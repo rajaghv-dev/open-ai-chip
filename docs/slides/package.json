@@ -1,0 +1,7 @@
+{
+  "name": "open-ai-silicon-slides",
+  "private": true,
+  "description": "Generator for the workshop deck open-ai-silicon-osi.pptx",
+  "scripts": { "build": "node build_deck.js" },
+  "dependencies": { "pptxgenjs": "4.0.1" }
+}

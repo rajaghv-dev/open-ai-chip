@@ -1,11 +1,16 @@
-# open-ai-chip Makefile -- one design: the ChipIgnite template's user_proj_example (designs/user_proj_example),
-# RTL to GDSII with LibreLane 3.0.2 in Docker on sky130A. Flow and checks ported from ../open-ai-silicon (exercise 1).
+# open-ai-chip Makefile -- RTL to GDSII with LibreLane 3.0.2 in Docker on sky130A, one design at a time.
+# Designs: every designs/<name>/config.json. user_proj_example is the ChipIgnite template's counter; vision_all_lit,
+# vision_block and text_sentiment are the tiny AI engines (model in model/tiny_ai/). Flow and checks ported from
+# ../open-ai-silicon (exercise 1).
 #
-#   make flow-all     the one command: simulate -> gds -> check -> gl (synthesised) -> gl-final (routed) -> collect
-#   make help         every target
+#   make flow-all [DESIGN=<name>]   simulate -> gds -> check -> gl (synthesised) -> gl-final (routed) -> collect
+#   make tiny                       flow-all for the three tiny AI engines, then a table
+#   make help                       every target
 
 SHELL        := /bin/bash
-DESIGN       := user_proj_example
+DESIGN       ?= user_proj_example
+DESIGNS      := $(patsubst designs/%/config.json,%,$(wildcard designs/*/config.json))
+TINY         := vision_all_lit vision_block text_sentiment
 DDIR         := designs/$(DESIGN)
 PDK_ROOT     ?= $(HOME)/.volare
 DOCKER_IMAGE := ghcr.io/librelane/librelane:3.0.2
@@ -14,7 +19,7 @@ CPUSET       ?= 0-1
 NETLIST      ?= synth
 GL_TIMEOUT   ?= 900
 SIM_DIR      := build/sim/$(DESIGN)
-TMP          := build/flow
+TMP          := build/flow/$(DESIGN)
 
 # The Colima VM "osl" when DOCKER_HOST is not set and its socket exists; otherwise Docker's default.
 ifeq ($(origin DOCKER_HOST),undefined)
@@ -48,15 +53,25 @@ define run_librelane
 			--design-dir $(CURDIR)/$(1) $(PROF_LL_ARGS) $(2) $(CURDIR)/$(1)/config.json
 endef
 
-SIM_RTL := $(shell python3 scripts/flow/design_info.py $(DESIGN) files)
-SIM_TB  := $(DDIR)/tb/$(DESIGN)_tb.v
+ifeq ($(wildcard $(DDIR)/config.json),)
+  $(error unknown DESIGN '$(DESIGN)'; designs: $(DESIGNS))
+endif
+SIM_RTL  := $(shell python3 scripts/flow/design_info.py $(DESIGN) files)
+SIM_TB   := $(DDIR)/tb/$(DESIGN)_tb.v
+# generated vectors (tiny AI engines): passed as +VEC=; their testbench body is shared/tb/stream_tb.vh
+SIM_VEC  := $(wildcard $(DDIR)/tb/vectors.hex)
+SIM_PLUS := $(if $(SIM_VEC),+VEC=$(abspath $(SIM_VEC)))
+GL_DESC  := $(if $(SIM_VEC),every case of tb/vectors.hex,committed tb)
 
-.PHONY: help doctor test simulate gds flow check gl gl-final collect view flow-all clean
+.PHONY: help doctor test simulate gds flow check gl gl-final collect view flow-all tiny generate check-generated model-check clean
 .DEFAULT_GOAL := help
 
 help:
-	@echo "open-ai-chip: $(DESIGN) (ChipIgnite template counter), sky130A, LibreLane 3.0.2 in Docker"
+	@echo "open-ai-chip: sky130A, LibreLane 3.0.2 in Docker. DESIGN=$(DESIGN) (designs: $(DESIGNS))"
 	@echo ""
+	@echo "  generate         re-fit the tiny AI model, regenerate ROMs and vectors (model/tiny_ai/)"
+	@echo "  check-generated  fail if regenerating changes any generated file"
+	@echo "  model-check      the model matches every truth-table label (16, 512, 256 cases)"
 	@echo "  doctor     host tools, Docker daemon, LibreLane image, PDK"
 	@echo "  test       fast repository checks (structure, configs, RTL lint), no Docker"
 	@echo "  simulate   RTL simulation, self-checking testbench (iverilog)"
@@ -67,6 +82,7 @@ help:
 	@echo "  collect    GDS, LEF, netlists, reports, layout.png -> build/results/$(DESIGN)/; evidence -> $(DDIR)/output/"
 	@echo "  view       summary of collected results (ARGS=--no-gui for text only)"
 	@echo "  flow-all   the one command: simulate, gds, check, gl, gl-final, collect; prints a summary"
+	@echo "  tiny       flow-all for $(TINY), then a table"
 	@echo "  clean      remove $(DDIR)/runs/ and build/"
 	@echo ""
 	@echo "  Options: PROFILE=tight|actions  CPUSET=0-1  DOCKER_HOST=unix://...  PDK_ROOT=$(PDK_ROOT)"
@@ -79,12 +95,12 @@ test:
 
 # ---- RTL simulation ----
 # -Wno-timescale: the upstream RTL has no `timescale (kept byte-identical) and no delays.
-$(SIM_DIR)/tb.vvp: $(SIM_RTL) $(SIM_TB)
+$(SIM_DIR)/tb.vvp: $(SIM_RTL) $(SIM_TB) $(wildcard shared/tb/*.vh)
 	@mkdir -p $(SIM_DIR)
-	iverilog -g2012 -Wall -Wno-timescale -o $@ $(SIM_RTL) $(SIM_TB)
+	iverilog -g2012 -Wall -Wno-timescale -I shared/tb -o $@ $(SIM_RTL) $(SIM_TB)
 
 simulate: $(SIM_DIR)/tb.vvp
-	cd $(SIM_DIR) && set -o pipefail && vvp -n tb.vvp | tee sim.log
+	cd $(SIM_DIR) && set -o pipefail && vvp -n tb.vvp $(SIM_PLUS) | tee sim.log
 	@grep -Eq '^PASS' $(SIM_DIR)/sim.log
 
 # ---- RTL to GDSII ----
@@ -118,7 +134,7 @@ else
 	@echo "synthesis__check_error__count = $$(bash scripts/flow/gl_sim.sh checks $(DESIGN))" | tee build/gl/$(DESIGN)/synth_checks.txt
 endif
 	@bash scripts/flow/gl_sim.sh run $(DESIGN) --source $(NETLIST) --name $(DESIGN) --tb $(SIM_TB) --top $(DESIGN)_tb \
-	  --desc "committed tb, 28 checks" --timeout $(GL_TIMEOUT)
+	  -I shared/tb $(if $(SIM_PLUS),--plus $(SIM_PLUS)) --desc "$(GL_DESC)" --timeout $(GL_TIMEOUT)
 
 gl-final:
 	@$(MAKE) --no-print-directory gl NETLIST=final
@@ -152,6 +168,24 @@ flow-all:
 	E=$$(date +%s); \
 	python3 scripts/flow/summary.py $(DESIGN) $(TMP)/stages.txt $$((E-S)); \
 	[ $$fail = 0 ]
+
+# ---- the tiny AI engines, one after another ----
+tiny:
+	@fail=""; for d in $(TINY); do \
+	  echo "##### $$d #####"; $(MAKE) --no-print-directory flow-all DESIGN=$$d || fail="$$fail $$d"; \
+	done; \
+	python3 scripts/flow/tiny_table.py $(TINY); \
+	if [ -n "$$fail" ]; then echo "tiny: FAILED:$$fail"; exit 1; fi; echo "tiny: all passed"
+
+# ---- tiny AI model and generated files ----
+generate:
+	cd model/tiny_ai && python3 train.py && python3 gen_rom.py
+
+model-check:
+	cd model/tiny_ai && python3 golden.py --check
+
+check-generated:
+	@bash scripts/check_generated.sh
 
 clean:
 	rm -rf $(DDIR)/runs build

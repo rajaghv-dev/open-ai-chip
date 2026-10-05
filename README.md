@@ -1,31 +1,46 @@
 # open-ai-chip
 
-One design for now: `user_proj_example`, the 16-bit Wishbone / logic-analyser counter that ships in the ChipIgnite
-template (`chipfoundry/caravel_user_project` @ `b510613`), taken from RTL to GDSII on sky130A with LibreLane 3.0.2 in
-Docker. The flow and the checks are ported from `../open-ai-silicon` (its exercise 1); see `provenance/SOURCES.md`.
-The tiny-AI project this repository is meant to grow into is specified in `SPEC.md`.
+Four designs, each taken from RTL to GDSII on sky130A with LibreLane 3.0.2 in Docker:
+
+- `user_proj_example`: the 16-bit Wishbone / logic-analyser counter that ships in the ChipIgnite template
+  (`chipfoundry/caravel_user_project` @ `b510613`). The baseline.
+- Three tiny AI engines, the `SPEC.md` MVP set, built from the architecture study in `../open-ai-silicon`
+  (`docs/ARCH_STUDY_PLAN.md`):
+  - `vision_all_lit`: dense neuron.
+  - `vision_block`: one convolution neuron reused at four positions, with max-pooling.
+  - `text_sentiment`: embedding lookup and accumulator.
+
+  Each has its own `designs/<name>/README.md`.
+
+The flow and the checks are ported from `../open-ai-silicon` (its exercise 1); see `provenance/SOURCES.md`.
+The next step in `SPEC.md` is to combine the three engines into one Caravel macro, `tiny_ai_core`.
 
 ## Run
 
 ```bash
 make doctor      # tools, Docker daemon, LibreLane image, sky130A PDK at the pinned commit
-make test        # fast checks, no Docker
-make flow-all    # simulate -> gds -> check -> gl (synthesised) -> gl-final (routed) -> collect
+make test        # fast checks, no Docker: structure, configs, lint, model, RTL sims, negative tests
+make flow-all    # user_proj_example: simulate -> gds -> check -> gl (synthesised) -> gl-final (routed) -> collect
+make tiny        # the same for the three tiny AI engines, then a comparison table
 ```
 
-Single stages: `make simulate | gds | check | gl | gl-final | collect | view`. Defaults: `PROFILE=tight`
+Any design: `make flow-all DESIGN=<name>`. Single stages: `make simulate | gds | check | gl | gl-final | collect | view`
+(with `DESIGN=`). Tiny AI model: `make model-check` (fitted model matches every label), `make generate` (re-fit,
+regenerate ROMs and vectors), `make check-generated` (regeneration reproduces every committed file). Defaults: `PROFILE=tight`
 (container capped at 2 CPUs / 8 GB), `CPUSET=0-1`. If `DOCKER_HOST` is unset and `~/.colima/osl/docker.sock` exists,
 the Makefile uses it.
 
 | Stage | What passes means |
 |---|---|
-| simulate | 28 self-checking checks on the RTL (`designs/user_proj_example/tb/`) |
+| simulate | the self-checking testbench on the RTL: 28 checks (counter); every input of each tiny engine plus protocol cases, with random stalls |
 | gds | LibreLane finished (`Flow complete.`); an unchanged, complete earlier run is reused |
 | check | Magic/KLayout/route DRC, LVS, XOR, antenna all 0; setup and hold slack non-negative at every corner; zero synthesis check errors; surviving flip-flops = RTL registers |
 | gl / gl-final | the same testbench passes on the synthesised and on the routed netlist |
 | collect | GDS, LEF, netlists, reports, `layout.png` in `build/results/user_proj_example/`; metrics, resources, flow.log, LEF in `designs/user_proj_example/output/` |
 
 ## Measured results
+
+### user_proj_example
 
 From `designs/user_proj_example/output/metrics.json` and `resources.json` (run `RUN_2026-10-05_16-01-41`, PROFILE=tight,
 Colima `osl` VM, arm64). They match the reference repository's exercise 1 on every number below.
@@ -41,7 +56,28 @@ Colima `osl` VM, arm64). They match the reference repository's exercise 1 on eve
 | Flow wall time, peak container memory | 74 s, 0.763 GB |
 | `make flow-all`: first run / rerun (run reused) | 83 s / 9 s |
 
+### Tiny AI engines
+
+From `designs/<name>/output/` (`make tiny`, PROFILE=tight, same VM). Cases = every valid input plus protocol cases
+(short and long frames, out-of-range items), each also run on both gate-level netlists. Slack is the worst over all
+9 corners.
+
+| design | cases | std cells | flip-flops | die um | setup ns | hold ns | DRC/LVS/XOR/antenna | max-slew/max-cap | flow s | peak GB |
+|---|---|---|---|---|---|---|---|---|---|---|
+| vision_all_lit | 29 | 169 | 10 | 80 x 80 | +16.07 | +0.11 | 0/0/0/0 | 0/0 | 42 | 0.549 |
+| vision_block | 540 | 297 | 24 | 80 x 80 | +13.53 | +0.11 | 0/0/0/0 | 0/0 | 49 | 0.557 |
+| text_sentiment | 269 | 200 | 12 | 80 x 80 | +14.75 | +0.11 | 0/0/0/0 | 0/0 | 45 | 0.56 |
+
+Max-slew reached 0 by tightening design repair, not by loosening the limit: `MAX_FANOUT_CONSTRAINT` 8,
+`PL_RESIZER_MAX_SLEW_MARGIN` 40, `GRT_DESIGN_REPAIR_MAX_SLEW_PCT` 40, `RUN_POST_GRT_DESIGN_REPAIR`.
+
+## Slides
+
+`docs/slides/` is the workshop deck of `../open-ai-silicon`, copied unchanged as reference material. It describes that
+repository's MNIST designs and is not regenerated here (see `docs/slides/README.md` and `provenance/SOURCES.md`).
+
 ## Not covered
 
+- The tiny engines are standalone 24-pin macros; `tiny_ai_core` (the Wishbone macro of `SPEC.md`) is not built yet.
 - `user_project_wrapper`, full-Caravel simulation (the template's `io_ports`, `la_test1`, `la_test2`), and the ChipFoundry precheck.
 - Max-slew / max-cap counts are reported by `make check`, not failed on: they come from the template's input-transition constraints on 541 unbuffered pins.

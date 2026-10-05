@@ -1,0 +1,33 @@
+{
+  "_what": "Source of truth for the three tiny AI examples (SPEC.md, Functional specification). train.py fits parameters to these label rules; golden.py and the RTL implement the widths and the stream behaviour below.",
+  "version": 1,
+  "seed": 1,
+  "stream": {
+    "input": "one item per beat in s_data[7:0]; s_last marks the final beat of a frame",
+    "output": "two beats: beat 0 = {6'b0, error, class}, beat 1 = score (8-bit, two's complement), m_last on beat 1",
+    "error": "a beat whose s_data exceeds input_max (the beat is not used), or a frame whose length is not exactly inputs; beats past inputs are ignored",
+    "latency": "clock edges from the edge that accepts the last input beat to the edge that raises m_valid, counting both"
+  },
+  "designs": {
+    "vision_all_lit": {
+      "mode": 0, "inputs": 4, "input_max": 1, "image": [2, 2],
+      "label": "1 when all four pixels are 1",
+      "model": "one binary neuron: score = count of pixels equal to their 1-bit weight; class = score >= threshold",
+      "weight_bits": 1, "threshold_bits": 3, "score": "unsigned 0..4", "latency": 1
+    },
+    "vision_block": {
+      "mode": 1, "inputs": 9, "input_max": 1, "image": [3, 3], "kernel": [2, 2],
+      "label": "1 when some 2x2 window of the 3x3 image is fully lit",
+      "model": "one 2x2 binary kernel neuron reused serially at the four positions (one per cycle), OR max-pooling; window bit order TL, TR, BL, BR",
+      "weight_bits": 1, "threshold_bits": 3, "score": "unsigned 0..4, the largest window match count", "latency": 5
+    },
+    "text_sentiment": {
+      "mode": 2, "inputs": 4, "input_max": 3,
+      "vocabulary": ["PAD", "GOOD", "FINE", "BAD"],
+      "label": "1 when the number of GOOD tokens is greater than the number of BAD tokens",
+      "model": "signed embedding lookup per token, four-term sum; class = sum > 0 (a sum of 0 is negative)",
+      "embedding_bits": 3, "embedding_range": [-4, 3], "accumulator_bits": 5,
+      "score": "signed sum, -16..12 by width, sign-extended to 8 bits", "latency": 1
+    }
+  }
+}

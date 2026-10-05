@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """check_signoff.py -- "no logic lost" sign-off check for one design or all of them.
 
-    scripts/flow/check_signoff.py <design>            design directory name (user_proj_example) or its short name (upe)
+    scripts/flow/check_signoff.py <design>            design directory name, or upe for user_proj_example
     scripts/flow/check_signoff.py --all               every design, then a table; exit 1 if any fails
     options: --metrics FILE   use this metrics.json instead of the newest run / designs/<design>/output/
 
@@ -36,7 +36,7 @@ REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 IMAGE = os.environ.get("DOCKER_IMAGE", "ghcr.io/librelane/librelane:3.0.2")
 PDK_MAX_TRANSITION = 0.75
 
-DESIGNS = ["user_proj_example"]
+DESIGNS = sorted(os.path.basename(os.path.dirname(c)) for c in glob.glob(os.path.join(REPO, "designs", "*", "config.json")))
 ALIAS = {"upe": "user_proj_example"}
 
 
@@ -61,6 +61,9 @@ def read_config(design):
 
 
 def run_yosys(script_path):
+    sock = os.path.expanduser("~/.colima/osl/docker.sock")      # same default as the Makefile
+    if "DOCKER_HOST" not in os.environ and os.path.exists(sock):
+        os.environ["DOCKER_HOST"] = "unix://" + sock
     if os.environ.get("USE_DOCKER", "1") == "0":
         cmd = ["yosys", "-q", script_path]
     else:
@@ -121,6 +124,9 @@ def rtl_registers(design):
         f"synth -flatten -noabc\n"
         f"write_json {out}\n")
     r = run_yosys(ys)
+    if (r.returncode != 0 and "Can't open output file" in (r.stdout + r.stderr)):
+        # the Colima VM's view of a directory the host just wrote can lag; one retry (seen once in 15 runs)
+        r = run_yosys(ys)
     if r.returncode != 0 or not os.path.exists(out):
         msg = (r.stderr or r.stdout).strip().splitlines()
         raise RuntimeError("Yosys elaboration failed: " + (msg[-1][:200] if msg else "no output"))
