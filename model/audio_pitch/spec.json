@@ -1,0 +1,22 @@
+{
+  "_what": "Source of truth for audio_pitch, a streaming one-bit pitch detector. train.py fits the threshold to generated labelled square waves; golden.py is the bit-exact cycle-level reference; gen_rom.py writes the ROM and the testbench vectors.",
+  "version": 1,
+  "seed": 12345,
+  "window": 8,
+  "training": {
+    "high_half_periods": [2, 3],
+    "low_half_periods": [8, 12],
+    "noise_variants": 3,
+    "label": "1 = high tone (square wave with half-period 2 or 3 samples), 0 = low tone (half-period 8 or 12); every phase; each clean window plus 3 copies with one flipped sample"
+  },
+  "stream": {
+    "input": "one sample per beat; s_data[0] = sign bit of the waveform; s_data[7:1] must be 0 (else error); s_last marks the last sample of a recording and clears the history",
+    "output": "one beat per input beat once W samples of the recording have been seen (warm-up = first W-1 samples, no output); m_data = {error, class, count[5:0]}; m_last = s_last of the input beat",
+    "count": "number of sign changes among the last W samples (0..W-1)",
+    "class": "count >= threshold (1 = high tone)",
+    "error": "a bad sample (s_data[7:1] != 0, its bit 0 is still used) sets a flag that rides on the next result beat (this beat if warm) and then clears; it is dropped if the recording ends first",
+    "latency": "the result beat is registered: m_valid rises on the clock edge that accepts the input beat",
+    "flow": "s_ready = !m_valid || m_ready (one result register, no combinational path from s_valid to m_valid)"
+  },
+  "threshold_bits": 4
+}

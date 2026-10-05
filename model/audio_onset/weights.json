@@ -1,0 +1,14 @@
+{
+  "_generated": "by model/audio_onset/train.py from model/audio_onset/spec.json; do not edit",
+  "source_sha256": "a4ef3468d028736083757c78859ced48c16d900ed2154b8e436246f1556c2b79",
+  "weights": [
+    -1,
+    -1,
+    1,
+    1
+  ],
+  "threshold": 4,
+  "train_accuracy": 0.9563,
+  "test_accuracy": 1.0,
+  "all_windows_accuracy": 1.0
+}

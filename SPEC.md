@@ -6,6 +6,19 @@ The key decision is to build one hard macro named `tiny_ai_core`. It contains th
 
 ## Status (as of 2026-10-05)
 
+> **Update 2026-10-06 (owner decisions and results):**
+> - `tiny_ai_core` simplified for learning: only the Wishbone bus and the interrupt leave the core (109 signal pins;
+>   the GPIO and logic-analyser mirrors of "External observability" are removed); 250 x 250 um die; hardened against
+>   the template's Caravel macro constraints; builds in about 2 minutes.
+> - Phase 7 (wrapper) **done locally**: `user_project_wrapper` with one `tiny_ai_core mprj` hardens signoff-clean (DRC,
+>   LVS, XOR, antenna 0; setup/hold >= 0 at all corners; max-slew/cap/fanout 0) and the Wishbone testbench passes on its
+>   gate-level netlists (`designs/user_project_wrapper/README.md` has the five-step path to clean).
+> - Open owner decisions: (1) the macro's max-slew budget of 0 conflicts with the Caravel input transitions of
+>   `wbs_adr_i` / `wbs_dat_i` (0.84-0.92 ns > 0.75 ns limit): count only internal nets, or accept as environment-limited;
+>   (2) the wrapper's unconnected `io_oeb` must be driven high (or all user GPIO set to inputs) before any tapeout.
+> - New engines, RTL verified, not hardened yet: `audio_pitch`, `audio_onset`, `image_text_match`; and a precision
+>   study (`model/precision_hw/`, seven formats) in progress.
+
 This specification was written before any implementation. The requirements below are unchanged. Where the
 implementation refines or deviates, an indented "Implemented" or "Decision" note sits under the item; where a budget
 is missed, a "Proposed amendment (owner to decide)" note records the options. Nothing in a note changes a requirement.

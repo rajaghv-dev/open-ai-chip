@@ -1,43 +1,44 @@
 Reading timing models for corner nom_tt_025C_1v80…
 Reading timing library for the 'nom_tt_025C_1v80' corner at '~/.volare/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__tt_025C_1v80.lib'…
-Reading OpenROAD database at '~/raja/open-ai-chip/designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/32-openroad-repairdesignpostgpl/tiny_ai_core.odb'…
-Reading design constraints file at '/nix/store/ql4nbdxqdd9ph8x1k8awi7yklk8rx51j-python3-3.13.9-env/lib/python3.13/site-packages/librelane/scripts/base.sdc'…
-[INFO] Using clock wb_clk_i…
-[INFO] Setting output delay to: 5
-[INFO] Setting input delay to: 5
-[INFO] Setting load to: 0.033442
-[INFO] Setting clock uncertainty to: 0.25
-[INFO] Setting clock transition to: 0.1499999999999999944488848768742172978818416595458984375
-[INFO] Setting timing derate to: 5%
+Reading OpenROAD database at '~/raja/open-ai-chip/designs/tiny_ai_core/runs/RUN_2026-10-05_19-50-40/32-openroad-repairdesignpostgpl/tiny_ai_core.odb'…
+Reading design constraints file at '~/raja/open-ai-chip/designs/tiny_ai_core/base_tiny_ai_core.sdc'…
+[INFO]: Creating clock {clk} for port wb_clk_i with period: 25
+[INFO]: Setting clock uncertainity to: 0.25
+[INFO]: Setting clock transition to: 0.1499999999999999944488848768742172978818416595458984375
+[INFO]: Setting maximum transition to: 0.75
+[INFO]: Setting maximum fanout to: 8
+[INFO]: Setting timing derate to: 0 %
+[INFO]: Setting clock latency range: 4.65 : 5.57
+[INFO]: Setting clock transition: 0.61
 + detailed_placement -max_displacement  500 100 
 Placement Analysis
 ---------------------------------
 total displacement          0.0 u
 average displacement        0.0 u
 max displacement            0.0 u
-original HPWL           36199.3 u
-legalized HPWL          37436.0 u
-delta HPWL                    3 %
+original HPWL           26368.4 u
+legalized HPWL          26986.4 u
+delta HPWL                    2 %
 
-[INFO DPL-0020] Mirrored 690 instances
-[INFO DPL-0021] HPWL before           37436.0 u
-[INFO DPL-0022] HPWL after            36198.5 u
-[INFO DPL-0023] HPWL delta               -3.3 %
+[INFO DPL-0020] Mirrored 321 instances
+[INFO DPL-0021] HPWL before           26986.4 u
+[INFO DPL-0022] HPWL after            26368.4 u
+[INFO DPL-0023] HPWL delta               -2.3 %
 Setting global connections for newly added cells…
 [INFO] Setting global connections...
 [INFO ODB-0403] 0 connections made, 0 conflicts skipped.
 Updating metrics…
 Cell type report:                       Count       Area
-  Fill cell                               278    1043.50
-  Tap cell                               2115    2646.29
-  Buffer                                   21     105.10
-  Timing Repair Buffer                    405    3037.91
-  Inverter                                 32     123.87
+  Fill cell                               166     623.10
+  Tap cell                                765     957.17
+  Buffer                                    3      15.01
+  Timing Repair Buffer                    162    1780.46
+  Inverter                                 31     116.36
   Sequential cell                         109    2318.47
-  Multi-Input combinational cell          738    5666.68
-  Total                                  3698   14941.83
-Writing OpenROAD database to '~/raja/open-ai-chip/designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/34-openroad-detailedplacement/tiny_ai_core.odb'…
-Writing netlist to '~/raja/open-ai-chip/designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/34-openroad-detailedplacement/tiny_ai_core.nl.v'…
-Writing powered netlist to '~/raja/open-ai-chip/designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/34-openroad-detailedplacement/tiny_ai_core.pnl.v'…
-Writing layout to '~/raja/open-ai-chip/designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/34-openroad-detailedplacement/tiny_ai_core.def'…
-Writing timing constraints to '~/raja/open-ai-chip/designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/34-openroad-detailedplacement/tiny_ai_core.sdc'…
+  Multi-Input combinational cell          573    5008.55
+  Total                                  1809   10819.13
+Writing OpenROAD database to '~/raja/open-ai-chip/designs/tiny_ai_core/runs/RUN_2026-10-05_19-50-40/34-openroad-detailedplacement/tiny_ai_core.odb'…
+Writing netlist to '~/raja/open-ai-chip/designs/tiny_ai_core/runs/RUN_2026-10-05_19-50-40/34-openroad-detailedplacement/tiny_ai_core.nl.v'…
+Writing powered netlist to '~/raja/open-ai-chip/designs/tiny_ai_core/runs/RUN_2026-10-05_19-50-40/34-openroad-detailedplacement/tiny_ai_core.pnl.v'…
+Writing layout to '~/raja/open-ai-chip/designs/tiny_ai_core/runs/RUN_2026-10-05_19-50-40/34-openroad-detailedplacement/tiny_ai_core.def'…
+Writing timing constraints to '~/raja/open-ai-chip/designs/tiny_ai_core/runs/RUN_2026-10-05_19-50-40/34-openroad-detailedplacement/tiny_ai_core.sdc'…

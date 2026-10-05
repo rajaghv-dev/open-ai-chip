@@ -30,7 +30,7 @@ flowchart LR
         E0["vision_all_lit"]
         E1["vision_block"]
         E2["text_sentiment"]
-        OUT["GPIO pads, logic analyser, IRQ"]
+        OUT["Wishbone read-back and IRQ"]
         CPU --> WB --> CORE
         CORE --> E0
         CORE --> E1
@@ -274,11 +274,14 @@ flowchart LR
 width, so four 3-bit signed terms cannot overflow.
 
 ## 4. tiny_ai_core
-**Build status: hardened and clean** (`designs/tiny_ai_core/output/metrics.json`): 400 x 400 um, Magic and KLayout
-DRC 0, LVS 0, XOR 0, antenna 0, max-slew / max-cap / max-fanout 0 at every corner, worst setup +6.99 ns and hold
-+0.108 ns over all corners, 109 of 109 RTL registers surviving. The Wishbone testbench (784 cases, 65,642 checks)
-passes on the RTL, the synthesised netlist and the routed netlist. Not yet done: the `user_project_wrapper`,
-full-Caravel simulation and the ChipFoundry precheck.
+**Build status: hardened, and placed in `user_project_wrapper`, both signoff-clean** (`designs/tiny_ai_core/output/`,
+`designs/user_project_wrapper/output/`). Simplified for learning (owner decision 2026-10-06): only the Wishbone bus and
+the interrupt leave the core (109 signal pins), on a 250 x 250 um die hardened against the template's Caravel macro
+constraints. Core: Magic and KLayout DRC 0, LVS 0, XOR 0, antenna 0, worst setup +1.46 ns and hold +0.105 ns over all
+corners, 109 of 109 RTL registers surviving; 195 max-slew violations reported, mostly on nets driven directly by
+Wishbone input ports whose Caravel input transition already exceeds the limit. Wrapper: all of these 0, including
+max-slew. The Wishbone testbench (784 cases, 39,956 checks) passes on the RTL, synthesised and routed netlists of the
+core and of the wrapper. Not yet done: full-Caravel simulation and the ChipFoundry precheck.
 
 `tiny_ai_core` puts the three engines (instances `u_vision_all_lit`, `u_vision_block`, `u_text_sentiment`, unchanged)
 behind one Wishbone register window: exactly three compute nodes (`SPEC.md`, chip hierarchy).
@@ -293,7 +296,7 @@ flowchart TD
     CTRL --> UB["u_vision_block: compute node 2"]
     CTRL --> UT["u_text_sentiment: compute node 3"]
     UA & UB & UT -->|"result beats, mux by active"| CTRL
-    REGS --> OBS["GPIO io_out, la_data_out, irq"]
+    REGS --> OBS["irq to the management core"]
     CTRL --> REGS
 ```
 
@@ -317,8 +320,8 @@ Base `0x3000_0000`, 256-byte window, byte offsets (header of `tiny_ai_core.v`):
 Modes: 0 = vision_all_lit (4 inputs), 1 = vision_block (9), 2 = text_sentiment (4); mode 3 is invalid. Protocol
 violations (START or INPUT while busy, wrong input count, out-of-range input, a tenth input) set the sticky ERROR bit.
 
-Observability (`tiny_ai_core.v` header; `SPEC.md`): `io_out[8]` class, `[9]` DONE, `[10]` BUSY, `[11]` ERROR,
-`[13:12]` active mode, `[21:14]` score. `la_data_out[15:0]` = RESULT, `[31:16]` = STATUS, `[63:32]` = CYCLES.
+Observability: results are read over Wishbone (RESULT, STATUS, CYCLES) and `irq[0]` signals completion. The GPIO and
+logic-analyser mirrors that `SPEC.md` describes were removed to keep the core simple (owner decision 2026-10-06).
 `irq[0]`: one-clock pulse on commit.
 
 ### Run sequence
@@ -379,11 +382,11 @@ split). MEMORY: the weight ROMs are constants (no flip-flops); the only data sto
 `vision_block`, also the largest engine in cells and flip-flops. COMPUTE: an XNOR with a small counter or adder;
 `vision_block` reuses one neuron over four cycles instead of replicating it. CONTROL: the FSM, `count`, `win` and
 `error` are a large share of the flip-flops in every engine (read from the register lists, not measured).
-`tiny_ai_core` (`designs/tiny_ai_core/output/metrics.json`): 3,521 standard cells, of which 2,115 are tap cells
-(physical-only; their number is set by the 400 x 400 um die) and 1,406 are logic: 738 combinational, 109 flip-flops,
-468 timing-repair buffers, 34 clock buffers, 32 inverters, 21 buffers, 4 antenna cells. The `SPEC.md` budget of at most
-2,500 standard cells excluding fill is therefore exceeded as written (3,521) but met if tap cells are also excluded
-(1,406); the sequential budget (at most 128) is met with 109.
+`tiny_ai_core` (`designs/tiny_ai_core/output/metrics.json`): 1809 standard cells, of which 765 are tap cells
+(physical-only; set by the 250 x 250 um die) and 1044 are logic: 573 combinational, 109 flip-flops, 245 timing-repair
+buffers, 34 clock buffers, 31 inverters, 3 buffers, 49 antenna cells. Within the `SPEC.md` budgets of at most 2,500
+standard cells excluding fill and at most 128 sequential cells. (The earlier 400 x 400 um version with the full Caravel
+pin list had 3,521 cells, 2,115 of them tap cells: shrinking the interface shrank the die and halved the cell count.)
 
 ## 6. Scaling to real networks
 The mappings follow `docs/WHY_AI.md` section 10; no figures are given because none are measured here.

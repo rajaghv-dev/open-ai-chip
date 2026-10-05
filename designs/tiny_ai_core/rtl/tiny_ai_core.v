@@ -12,7 +12,7 @@
 // were learned by model/tiny_ai/train.py from labelled examples and live in the generated *_rom.v files; this module
 // adds none. Everything in this file is ordinary system glue, the part every accelerator also has: a bus register
 // block (how the CPU talks to the accelerator), an input buffer (where the data waits), a sequencer that streams the
-// data into the selected network and collects its answer, and status / interrupt / pad outputs. Changing what the chip
+// data into the selected network and collects its answer, and status and interrupt. Changing what the chip
 // recognises means retraining and regenerating the ROMs; nothing in this file changes.
 //
 // Register map (base 0x3000_0000, 256-byte window; byte offsets):
@@ -33,10 +33,10 @@
 //   an input when the buffer already holds 9; CLEAR while busy.
 // CLEAR (idle) resets DONE, ERROR, input count, buffer, RESULT and CYCLES. START and CLEAR in one write: CLEAR wins
 // and START is ignored. DONE stays set until CLEAR or the next valid START; ERROR stays set until CLEAR.
-// GPIO: io_out[8] class, [9] DONE, [10] BUSY, [11] ERROR, [13:12] active mode, [21:14] score; those pads are outputs
-// (io_oeb = 0), every other pad is an input (io_oeb = 1, io_out = 0).
-// Logic analyser: la_data_out[15:0] = RESULT[15:0], [31:16] = STATUS[15:0], [63:32] = CYCLES, the rest 0.
 // irq[0]: one-clock pulse when a result is committed; irq[2:1] = 0.
+// Simplified for learning (owner decision 2026-10-06): only the Wishbone bus and the interrupt leave the core; results
+// are read over Wishbone and irq[0] signals completion. The GPIO and logic-analyser mirrors of SPEC.md External
+// observability are not implemented.
 `timescale 1ns/1ps
 `default_nettype none
 module tiny_ai_core (
@@ -54,12 +54,6 @@ module tiny_ai_core (
     input  wire [31:0]  wbs_adr_i,
     output wire         wbs_ack_o,
     output wire [31:0]  wbs_dat_o,
-    input  wire [127:0] la_data_in,
-    output wire [127:0] la_data_out,
-    input  wire [127:0] la_oenb,
-    input  wire [37:0]  io_in,
-    output wire [37:0]  io_out,
-    output wire [37:0]  io_oeb,
     output wire [2:0]   irq
 );
     localparam [31:0] ID_VALUE    = 32'h5441_4901;
@@ -263,11 +257,7 @@ module tiny_ai_core (
         end
     end
 
-    // ---------------------------------------------------------------- pads, logic analyser, interrupt
-    //                pads 37..22  21..14     13..12  11     10    9     8          7..0
-    assign io_out = {16'd0,      res_score, active, error, busy, done, res_class, 8'd0};
-    assign io_oeb = {16'hFFFF, 14'd0, 8'hFF};
-    assign la_data_out = {64'd0, 24'd0, cycles, status[15:0], result[15:0]};
+    // ---------------------------------------------------------------- interrupt
     assign irq = {2'b00, irq_pulse};
 endmodule
 `default_nettype wire

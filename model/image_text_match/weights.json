@@ -1,0 +1,65 @@
+{
+  "_generated": "by model/image_text_match/train.py from spec.json; do not edit",
+  "source_sha256": "ca8ffe55c94b20592c5493d387631ebdd4264128f0afac55bcec63d260ae79ba",
+  "channels": [
+    "A_cols",
+    "A_rows",
+    "A_diags",
+    "B_cols",
+    "B_rows",
+    "B_diags"
+  ],
+  "image_encoder": [
+    {
+      "kernel": [
+        0,
+        0,
+        0
+      ],
+      "threshold": 3
+    },
+    {
+      "kernel": [
+        1,
+        1,
+        1
+      ],
+      "threshold": 3
+    }
+  ],
+  "text_embedding": [
+    [
+      0,
+      1,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      3,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      3,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      3
+    ]
+  ],
+  "threshold": 3
+}

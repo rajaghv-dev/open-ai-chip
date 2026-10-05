@@ -11,10 +11,9 @@ module user_project_wrapper_tb;
     reg  [31:0]  wbs_dat_i = 32'd0, wbs_adr_i = 32'd0;
     wire         wbs_ack_o;
     wire [31:0]  wbs_dat_o;
-    reg  [127:0] la_data_in = 128'h0123_4567_89AB_CDEF_FEDC_BA98_7654_3210;
-    reg  [127:0] la_oenb    = 128'hFFFF_0000_FFFF_0000_0000_FFFF_0000_FFFF;
+    reg  [127:0] la_data_in = 128'd0, la_oenb = {128{1'b1}};   // wrapper ports the design no longer uses
+    reg  [37:0]  io_in = 38'd0;
     wire [127:0] la_data_out;
-    reg  [37:0]  io_in = 38'h2A_5A5A_5A5A;
     wire [37:0]  io_out, io_oeb;
     wire [2:0]   irq;
     wire [`MPRJ_IO_PADS-10:0] analog_io;
@@ -37,6 +36,17 @@ module user_project_wrapper_tb;
             $fatal(1, "FAIL analog_io not high impedance");
         end
     end
+
+    // Decision documentation: the wrapper no longer drives la_data_out, io_out, io_oeb (the core has no such ports and
+    // the wrapper has no glue logic), so they read z in RTL simulation. Compiled only with -DRTL_Z_CHECK (manual RTL run);
+    // gate-level runs (scripts/flow/gl_sim.sh passes no such define) and the default make simulate skip it.
+`ifdef RTL_Z_CHECK
+    initial begin
+        #1;
+        if (la_data_out !== {128{1'bz}} || io_out !== {38{1'bz}} || io_oeb !== {38{1'bz}})
+            $fatal(1, "FAIL undriven wrapper outputs are not z: la=%h io_out=%h io_oeb=%h", la_data_out, io_out, io_oeb);
+    end
+`endif
 
 `define TB_NAME "user_project_wrapper_tb"
 `include "tiny_ai_wb_tb.vh"

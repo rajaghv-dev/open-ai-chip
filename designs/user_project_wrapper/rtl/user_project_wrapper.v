@@ -26,8 +26,11 @@
  * module header and port list are byte-identical to upstream; the example
  * user_proj_example instance is replaced by exactly one tiny_ai_core
  * instance named mprj, connected port-for-port with no glue logic. The
- * io_* buses reach the macro whole (tiny_ai_core has 38-bit pad buses), so
- * the template's io_in[37:30],io_in[7:0] slicing is gone; irq drives user_irq.
+ * tiny_ai_core macro has only the Wishbone slave port, irq and power pins
+ * (simplified for learning, owner decision 2026-10-06), so irq drives
+ * user_irq and la_data_in, la_oenb and io_in are unused. la_data_out, io_out
+ * and io_oeb are left undriven by the wrapper (no glue logic is allowed here;
+ * the template itself leaves some io bits unconnected).
  * analog_io and user_clock2 are intentionally unused.
  *
  *-------------------------------------------------------------
@@ -105,18 +108,6 @@ tiny_ai_core mprj (
     .wbs_dat_i(wbs_dat_i),
     .wbs_ack_o(wbs_ack_o),
     .wbs_dat_o(wbs_dat_o),
-
-    // Logic Analyzer
-
-    .la_data_in(la_data_in),
-    .la_data_out(la_data_out),
-    .la_oenb (la_oenb),
-
-    // IO Pads
-
-    .io_in (io_in),
-    .io_out(io_out),
-    .io_oeb(io_oeb),
 
     // IRQ
     .irq(user_irq)

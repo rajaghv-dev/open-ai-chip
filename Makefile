@@ -70,6 +70,8 @@ SIM_TB   := $(DDIR)/tb/$(DESIGN)_tb.v
 SIM_VEC  ?= $(firstword $(wildcard $(DDIR)/tb/vectors.hex $(foreach m,$(MACROS),designs/$(m)/tb/vectors.hex)))
 MACRO_VIEWS_DIRS := $(foreach m,$(MACROS),build/macros/$(m))
 GL_NLX   := $(foreach m,$(MACROS),--netlist-extra build/macros/$(m)/nl/$(m).nl.v)
+# macro-definition files of the RTL (e.g. the wrapper's defines.v: MPRJ_IO_PADS) are compiled first at gate level too
+GL_PRE   := $(foreach f,$(filter %defines.v,$(SIM_RTL)),--pre $(f))
 # `make views` takes the macro as DESIGN=<macro>; default tiny_ai_core
 VIEWS_OF := $(if $(filter file,$(origin DESIGN)),tiny_ai_core,$(DESIGN))
 SIM_PLUS := $(if $(SIM_VEC),+VEC=$(abspath $(SIM_VEC)))
@@ -161,7 +163,7 @@ else
 	@echo "synthesis__check_error__count = $$(bash scripts/flow/gl_sim.sh checks $(DESIGN))" | tee build/gl/$(DESIGN)/synth_checks.txt
 endif
 	@bash scripts/flow/gl_sim.sh run $(DESIGN) --source $(NETLIST) --name $(DESIGN) --tb $(SIM_TB) --top $(DESIGN)_tb \
-	  -I shared/tb $(GL_NLX) $(if $(SIM_PLUS),--plus $(SIM_PLUS)) --desc "$(GL_DESC)" --timeout $(GL_TIMEOUT)
+	  -I shared/tb $(GL_PRE) $(GL_NLX) $(if $(SIM_PLUS),--plus $(SIM_PLUS)) --desc "$(GL_DESC)" --timeout $(GL_TIMEOUT)
 
 gl-final:
 	@$(MAKE) --no-print-directory gl NETLIST=final

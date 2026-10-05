@@ -1,0 +1,32 @@
+{
+  "design": "audio_onset",
+  "task": "streaming onset detector: after each 4-bit window energy, is the sound getting louder?",
+  "ports": {
+    "pins": 24,
+    "s_data": "bits [3:0] = window energy (0..15); bits [7:4] must be 0, else the error flag is set",
+    "m_data": "{error[7], class[6], sum[5:0] two's complement}",
+    "s_last": "marks the last sample of a stream; it clears the history (warm-up starts again)",
+    "s_ready": "!m_valid | m_ready (one output register; no combinational path from s_valid)",
+    "latency_cycles": 1
+  },
+  "network": {
+    "neurons": 1,
+    "window": 4,
+    "window_order": "w[0] applies to the OLDEST of the last four energies, w[3] to the newest",
+    "weight_bits": 3,
+    "weight_search_range": [-2, 2],
+    "sum_bits": 6,
+    "threshold_bits": 6,
+    "activation": "class = (sum >= threshold)",
+    "warmup_samples": 3
+  },
+  "data": {
+    "seed": 12345,
+    "energy_max": 15,
+    "label_rule": "label = 1 if (e2 + e3) - (e0 + e1) >= margin else 0, e0 oldest .. e3 newest: the newest two energies exceed the older two by at least margin/2 each on average",
+    "margin": 4,
+    "label_noise": 0.05,
+    "train_windows": 3000,
+    "test_windows": 3000
+  }
+}

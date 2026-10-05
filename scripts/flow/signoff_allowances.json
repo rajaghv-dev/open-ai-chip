@@ -1,4 +1,13 @@
 {
-  "_what": "Flip-flops that synthesis legitimately removes (constant, or never read), per design, so check_signoff.py can require an exact register count. Format: \"<design dir name>\": {\"removed_registers\": <int>, \"reason\": \"<why those bits are dead by design>\"}. The check fails when surviving sequential cells < RTL registers - removed_registers. Every entry needs a reason a reviewer can verify in the RTL. JSON has no comments, hence this field.",
-  "designs": {}
+  "_what": "Flip-flops that synthesis legitimately removes (constant, or never read), per design, so check_signoff.py can require an exact register count. Format: \"<design dir name>\": {\"removed_registers\": <int>, \"reason\": \"<why those bits are dead by design>\"}. The check fails when surviving sequential cells < RTL registers - removed_registers. Every entry needs a reason a reviewer can verify in the RTL. JSON has no comments, hence this field. Also \"undriven_outputs\": [<top-level output port names>] with \"undriven_reason\": top-level OUTPUT ports a design deliberately leaves unconnected; only Yosys 'is used but has no driver' warnings on exactly those ports of the top module are accepted, every other driver warning still fails.",
+  "designs": {
+    "user_project_wrapper": {
+      "undriven_outputs": [
+        "io_out",
+        "io_oeb",
+        "la_data_out"
+      ],
+      "undriven_reason": "Owner decision 2026-10-06 (learning build): tiny_ai_core keeps only the Wishbone bus and the interrupt, and the wrapper may not contain glue logic, so the GPIO and logic-analyser outputs of the fixed Caravel interface are left unconnected. Tapeout caveat: a floating io_oeb leaves the pad output enable undefined; before tapeout either drive io_oeb high and io_out/la_data_out low from the macro, or confirm every user GPIO is configured as an input in user_defines.v."
+    }
+  }
 }

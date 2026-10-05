@@ -17,8 +17,8 @@
     "DIE_AREA": [
         0,
         0,
-        400,
-        400
+        250,
+        250
     ],
     "VDD_NETS": [
         "vccd1"
@@ -33,10 +33,17 @@
     "RUN_ANTENNA_REPAIR": true,
     "RUN_POST_GRT_DESIGN_REPAIR": true,
     "MAX_FANOUT_CONSTRAINT": 8,
-    "PL_RESIZER_MAX_SLEW_MARGIN": 70,
-    "GRT_DESIGN_REPAIR_MAX_SLEW_PCT": 70,
+    "PL_RESIZER_MAX_SLEW_MARGIN": 20,
+    "GRT_DESIGN_REPAIR_MAX_SLEW_PCT": 20,
     "ERROR_ON_SYNTH_CHECKS": true,
     "CTS_SINK_CLUSTERING_SIZE": 8,
     "CTS_SINK_CLUSTERING_MAX_DIAMETER": 20,
-    "CTS_DISTANCE_BETWEEN_BUFFERS": 30
+    "CTS_DISTANCE_BETWEEN_BUFFERS": 30,
+    "//DIE_AREA": "250x250 um: only 109 signal pins (~2.3 um pitch on one 250 um edge), ~1,400 logic cells, fewer tap cells; 250 um still lets one full 8-net group of the wrapper's horizontal met5 PDN straps (pitch 180, 18.6 um between nets) cross the macro.",
+    "IO_PIN_ORDER_CFG": "dir::pin_order.cfg",
+    "PNR_SDC_FILE": "dir::base_tiny_ai_core.sdc",
+    "SIGNOFF_SDC_FILE": "dir::base_tiny_ai_core.sdc",
+    "DIODE_ON_PORTS": "in",
+    "//IO_PIN_ORDER_CFG": "109 signal pins on the S side, ordered left to right like the wrapper DEF Wishbone pads (x 3..624 um) so macro-to-pad wires do not cross; irq at the right end. One explicit regex per pin. (In pin_order.cfg every line starting with # is a direction marker, so the note lives here.)",
+    "//SLEW": "Slew margins 20 (not 70): with the Caravel macro SDC some inputs arrive at 0.84-0.97 ns, above the 0.75 ns limit; a 70% margin made repair chase those unfixable nets until the container ran out of memory, and 40% gave more violations (247) than 20% (195). Most remaining max-slew violations are on nets driven by the wbs_adr_i / wbs_dat_i input ports (environment-limited); see designs/user_project_wrapper/README.md."
 }

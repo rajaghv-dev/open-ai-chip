@@ -17,9 +17,14 @@ Architecture and block diagrams of every engine and of `tiny_ai_core`: [docs/ARC
 
 The flow and the checks are ported from `../open-ai-silicon` (its exercise 1); see `provenance/SOURCES.md`.
 - `tiny_ai_core`: the three engines, unchanged, behind one Caravel Wishbone register interface (`SPEC.md` register
-  map, GPIO and logic-analyser mirrors, interrupt). Hardened as a 400 x 400 um macro, clean.
+  map and interrupt). Kept deliberately simple for learning: only the Wishbone bus and the interrupt leave the core
+  (109 signal pins). Hardened as a 250 x 250 um macro in about 2 minutes.
+- `user_project_wrapper`: Caravel's fixed user-area wrapper with `tiny_ai_core` as its single macro `mprj`.
+  Hardened clean in under a minute; the full chip-level evidence is in its README.
+- Three more tiny engines, RTL verified, not hardened yet: `audio_pitch` and `audio_onset` (streaming audio) and
+  `image_text_match` (multimodal: a 3 x 3 image and a one-word caption in one shared embedding space).
 
-The next step in `SPEC.md` is the `user_project_wrapper` around `tiny_ai_core`, full-Caravel simulation and the precheck.
+Next in `SPEC.md`: full-Caravel simulation with management firmware, and the ChipFoundry precheck.
 
 ## Run
 
@@ -75,20 +80,31 @@ From `designs/<name>/output/` (`make tiny`, PROFILE=tight, same VM). Cases = eve
 | vision_block | 540 | 297 | 24 | 80 x 80 | +13.53 | +0.11 | 0/0/0/0 | 0/0 | 49 | 0.557 |
 | text_sentiment | 269 | 200 | 12 | 80 x 80 | +14.75 | +0.11 | 0/0/0/0 | 0/0 | 45 | 0.56 |
 
-### tiny_ai_core
+### tiny_ai_core and user_project_wrapper
 
-From `designs/tiny_ai_core/output/` (`make flow-all DESIGN=tiny_ai_core`). The Wishbone testbench drives all 784 inputs
-of the three engines (16 + 512 + 256) through the register interface, plus registers, byte lanes, protocol errors,
-back-to-back runs and reset: 65,642 checks, passing on the RTL, the synthesised netlist and the routed netlist.
+From `designs/tiny_ai_core/output/` and `designs/user_project_wrapper/output/` (`make flow-all DESIGN=tiny_ai_core`,
+then `make wrapper`). The Wishbone testbench drives all 784 inputs of the three engines (16 + 512 + 256) through the
+register interface, plus registers, byte lanes, protocol errors, back-to-back runs and reset: 39,956 checks, passing on
+the RTL, the synthesised netlist and the routed netlist of the core, and again through the wrapper's ports on the
+wrapper's netlists with the core's routed netlist inside.
 
-| std cells (tap / logic) | flip-flops | die um | setup ns | hold ns | DRC/LVS/XOR/antenna | slew/cap/fanout | longest run | flow s | peak GB |
+| design | std cells (tap) | flip-flops | die um | setup ns | hold ns | DRC/LVS/XOR/antenna | slew/cap/fanout | flow s | peak GB |
 |---|---|---|---|---|---|---|---|---|---|
-| 3,521 (2,115 / 1,406) | 109 | 400 x 400 | +6.99 | +0.108 | 0/0/0/0 | 0/0/0 | 15 cycles (vision_block) | 168 | 1.016 |
+| tiny_ai_core | 1,809 (765) | 109 | 250 x 250 | +1.46 | +0.105 | 0/0/0/0 | 195/0/0 | 98 | 0.643 |
+| user_project_wrapper | macro only | 0 | 2920 x 3520 | +1.46 | +0.105 | 0/0/0/0 | 0/0/0 | 53 | 0.624 |
 
-`SPEC.md` budgets 2,500 standard cells excluding fill: exceeded as written (3,521) because the 400 x 400 um die needs
-2,115 tap cells; the logic itself is 1,406 cells. The slew, cap and fanout zeros came from tightening repair, not from
-loosening limits: heuristic diode insertion off (it added a diode to buffer outputs; antenna repair stays on and
-antenna is 0), slew margins 70, a deeper clock tree (`CTS_DISTANCE_BETWEEN_BUFFERS` 30).
+How it got here, in short (details in `designs/user_project_wrapper/README.md`):
+- The core is hardened with the template's macro constraints (`designs/tiny_ai_core/base_tiny_ai_core.sdc`: Caravel
+  clock latencies, Wishbone input delays and transitions), so hold is checked against the real bus timing.
+- Its 109 pins all sit on its bottom edge in the wrapper's Wishbone pad order, and it is placed just above those pads
+  (`mprj` at 189.06, 87.04 um) with one full power-strap group crossing it: short wires, no congestion, no antenna diodes.
+- The 195 max-slew violations of the core are reported, not hidden: most are on nets driven directly by the
+  `wbs_adr_i` / `wbs_dat_i` input ports, whose Caravel input transition (0.84-0.92 ns) already exceeds the 0.75 ns
+  limit (environment-limited); a 70% repair margin made the repair step run out of memory chasing them, 40% gave 247,
+  20% gives 195. At wrapper level, max-slew, max-cap and max-fanout are 0.
+- The wrapper's GPIO and logic-analyser outputs are left unconnected (owner decision for this learning build; listed
+  with the reason in `scripts/flow/signoff_allowances.json`). Tapeout caveat: drive `io_oeb` high from the macro, or
+  configure every user GPIO as an input in `user_defines.v`, before any submission.
 
 Max-slew reached 0 by tightening design repair, not by loosening the limit: `MAX_FANOUT_CONSTRAINT` 8,
 `PL_RESIZER_MAX_SLEW_MARGIN` 40, `GRT_DESIGN_REPAIR_MAX_SLEW_PCT` 40, `RUN_POST_GRT_DESIGN_REPAIR`.
@@ -128,6 +144,5 @@ repository's MNIST designs and is not regenerated here (see `docs/slides/README.
 
 ## Not covered
 
-- `tiny_ai_core` is hardened standalone; it is not yet placed in `user_project_wrapper`.
-- `user_project_wrapper`, full-Caravel simulation (the template's `io_ports`, `la_test1`, `la_test2`), and the ChipFoundry precheck.
+- Full-Caravel simulation (the template's `io_ports`, `la_test1`, `la_test2`), and the ChipFoundry precheck.
 - Max-slew / max-cap counts are reported by `make check`, not failed on: they come from the template's input-transition constraints on 541 unbuffered pins.

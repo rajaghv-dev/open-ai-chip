@@ -1,0 +1,37 @@
+{
+  "_what": "Source of truth for image_text_match: a CLIP-like toy. Does a one-word caption describe a 3x3 one-bit image? train.py fits kernels, text embedding table and threshold to the labels; golden.py and the RTL implement the structure, widths and stream behaviour below.",
+  "version": 1,
+  "stream": {
+    "input": "10 beats, one item per beat in s_data[7:0], s_last on the 10th: beats 0..8 = pixels (raster order, value 0/1, bit s_data[0]), beat 9 = caption token (0..3)",
+    "output": "two beats: beat 0 = {6'b0, error, class}, beat 1 = similarity score (8-bit two's complement), m_last on beat 1",
+    "error": "a pixel beat above 1 or a token beat above 3 (the item is not used: pixel left 0 / token left 0 = EMPTY), a beat past the 10th (ignored), or a frame whose length is not exactly 10 (missing items are 0)",
+    "latency": "clock edges from the edge that accepts the last input beat to the edge that raises m_valid, counting both: 1 (accept) + 8 (one line per cycle) + 1 (similarity) = 10"
+  },
+  "inputs": 10,
+  "pixels": 9,
+  "captions": ["EMPTY", "VERT", "HORIZ", "DIAG"],
+  "labels": {
+    "EMPTY": "1 when no pixel is lit",
+    "VERT": "1 when some column (pixels 0,3,6 / 1,4,7 / 2,5,8) is fully lit",
+    "HORIZ": "1 when some row (pixels 0,1,2 / 3,4,5 / 6,7,8) is fully lit",
+    "DIAG": "1 when a diagonal (pixels 0,4,8 or 2,4,6) is fully lit"
+  },
+  "lines": {
+    "_note": "8 lines of 3 pixels, scanned one per cycle by the SAME two neurons; pixel i of a line is kernel tap i. group = channel pool: cols 0-2, rows 3-5, diags 6-7",
+    "cols": [[0, 3, 6], [1, 4, 7], [2, 5, 8]],
+    "rows": [[0, 1, 2], [3, 4, 5], [6, 7, 8]],
+    "diags": [[0, 4, 8], [2, 4, 6]]
+  },
+  "model": {
+    "image_encoder": "two 3-tap binary neurons (A, B), each: match = number of line pixels equal to their 1-bit kernel weight (0..3); fire = match >= neuron threshold. Each neuron is reused over the 8 lines; fires are SUM-pooled per line group into small counts: embedding = 6 counts (A cols, A rows, A diags, B cols, B rows, B diags), each 0..3",
+    "text_encoder": "ROM: caption token -> 6 signed 3-bit integers in the SAME 6-dimensional space (range -4..3)",
+    "similarity": "dot product of the 6 counts with the 6 text weights (7-bit signed, trained so |score| <= 63); class = score >= threshold"
+  },
+  "search": {
+    "neuron_threshold_range": [1, 3],
+    "text_weight_range": [-2, 3],
+    "sim_threshold_range": [1, 12],
+    "order": "kernel pairs ascending by (cost, A, B); first exact wins; then smallest threshold; then per caption smallest sum |w| then lexicographic. Deterministic, no randomness (seed recorded for completeness)"
+  },
+  "seed": 1
+}

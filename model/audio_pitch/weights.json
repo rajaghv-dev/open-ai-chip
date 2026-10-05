@@ -1,0 +1,22 @@
+{
+  "_what": "written by train.py; read by golden.py and gen_rom.py",
+  "window": 8,
+  "threshold": 4,
+  "train_examples": 200,
+  "train_correct": 171,
+  "train_accuracy_percent": 85.5,
+  "high_tone_counts_seen": [
+    2,
+    3,
+    4,
+    5
+  ],
+  "low_tone_counts_seen": [
+    0,
+    1,
+    2,
+    3
+  ],
+  "wrong_high_below_threshold": 29,
+  "wrong_low_at_or_above_threshold": 0
+}

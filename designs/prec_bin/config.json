@@ -1,0 +1,34 @@
+{
+    "PDK": "sky130A",
+    "STD_CELL_LIBRARY": "sky130_fd_sc_hd",
+    "DESIGN_NAME": "prec_bin",
+    "VERILOG_FILES": [
+        "dir::rtl/prec_bin_rom.v",
+        "dir::rtl/prec_bin.v"
+    ],
+    "CLOCK_PERIOD": 25,
+    "CLOCK_PORT": "clk",
+    "FP_SIZING": "absolute",
+    "DIE_AREA": [
+        0,
+        0,
+        80,
+        80
+    ],
+    "VDD_NETS": [
+        "vccd1"
+    ],
+    "GND_NETS": [
+        "vssd1"
+    ],
+    "RT_MAX_LAYER": "met4",
+    "PDN_MULTILAYER": false,
+    "MAGIC_DRC_USE_GDS": true,
+    "RUN_HEURISTIC_DIODE_INSERTION": true,
+    "RUN_ANTENNA_REPAIR": true,
+    "RUN_POST_GRT_DESIGN_REPAIR": true,
+    "ERROR_ON_SYNTH_CHECKS": true,
+    "MAX_FANOUT_CONSTRAINT": 8,
+    "PL_RESIZER_MAX_SLEW_MARGIN": 40,
+    "GRT_DESIGN_REPAIR_MAX_SLEW_PCT": 40
+}

@@ -265,6 +265,20 @@ def check(design, explicit=None, quiet=False):
         rtl, drvwarn, bd = rtl_registers(design)
         info['breakdown'] = bd
         info["rtl"] = rtl
+        # top-level output ports a design deliberately leaves unconnected (signoff_allowances.json, with a reason)
+        try:
+            _al = json.load(open(os.path.join(REPO, "scripts", "flow", "signoff_allowances.json")))["designs"].get(design, {})
+        except (OSError, ValueError):
+            _al = {}
+        _und = set(_al.get("undriven_outputs", []))
+        if _und:
+            _top = read_config(design)[1]
+            _pat = re.compile(r"Wire " + re.escape(_top) + r"\.\\?(\w+)\s*(?:\[\d+\])? is used but has no driver")
+            _accepted = [w for w in drvwarn if _pat.search(w) and _pat.search(w).group(1) in _und]
+            drvwarn = [w for w in drvwarn if w not in _accepted]
+            if _accepted:
+                notes.append(f"{len(_accepted)} undriven top-level output bit(s) accepted: {', '.join(sorted(_und))} "
+                             f"(signoff_allowances.json: {_al.get('undriven_reason', 'no reason given')[:80]}...)")
         if drvwarn:
             fails.append(f"RTL drivers: Yosys reports {len(drvwarn)} conflicting/missing driver warning(s), e.g. '{drvwarn[0]}'")
         allow = 0
