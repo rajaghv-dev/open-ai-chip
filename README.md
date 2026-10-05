@@ -13,9 +13,13 @@ Four designs, each taken from RTL to GDSII on sky130A with LibreLane 3.0.2 in Do
   Each has its own `designs/<name>/README.md`.
 
 How and why these are AI rather than ordinary code or logic, with worked examples: [docs/WHY_AI.md](docs/WHY_AI.md).
+Architecture and block diagrams of every engine and of `tiny_ai_core`: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 The flow and the checks are ported from `../open-ai-silicon` (its exercise 1); see `provenance/SOURCES.md`.
-The next step in `SPEC.md` is to combine the three engines into one Caravel macro, `tiny_ai_core`.
+- `tiny_ai_core`: the three engines, unchanged, behind one Caravel Wishbone register interface (`SPEC.md` register
+  map, GPIO and logic-analyser mirrors, interrupt). Hardened as a 400 x 400 um macro, clean.
+
+The next step in `SPEC.md` is the `user_project_wrapper` around `tiny_ai_core`, full-Caravel simulation and the precheck.
 
 ## Run
 
@@ -24,6 +28,7 @@ make doctor      # tools, Docker daemon, LibreLane image, sky130A PDK at the pin
 make test        # fast checks, no Docker: structure, configs, lint, model, RTL sims, negative tests
 make flow-all    # user_proj_example: simulate -> gds -> check -> gl (synthesised) -> gl-final (routed) -> collect
 make tiny        # the same for the three tiny AI engines, then a comparison table
+make flow-all DESIGN=tiny_ai_core   # the combined Wishbone macro
 ```
 
 Any design: `make flow-all DESIGN=<name>`. Single stages: `make simulate | gds | check | gl | gl-final | collect | view`
@@ -70,6 +75,21 @@ From `designs/<name>/output/` (`make tiny`, PROFILE=tight, same VM). Cases = eve
 | vision_block | 540 | 297 | 24 | 80 x 80 | +13.53 | +0.11 | 0/0/0/0 | 0/0 | 49 | 0.557 |
 | text_sentiment | 269 | 200 | 12 | 80 x 80 | +14.75 | +0.11 | 0/0/0/0 | 0/0 | 45 | 0.56 |
 
+### tiny_ai_core
+
+From `designs/tiny_ai_core/output/` (`make flow-all DESIGN=tiny_ai_core`). The Wishbone testbench drives all 784 inputs
+of the three engines (16 + 512 + 256) through the register interface, plus registers, byte lanes, protocol errors,
+back-to-back runs and reset: 65,642 checks, passing on the RTL, the synthesised netlist and the routed netlist.
+
+| std cells (tap / logic) | flip-flops | die um | setup ns | hold ns | DRC/LVS/XOR/antenna | slew/cap/fanout | longest run | flow s | peak GB |
+|---|---|---|---|---|---|---|---|---|---|
+| 3,521 (2,115 / 1,406) | 109 | 400 x 400 | +6.99 | +0.108 | 0/0/0/0 | 0/0/0 | 15 cycles (vision_block) | 168 | 1.016 |
+
+`SPEC.md` budgets 2,500 standard cells excluding fill: exceeded as written (3,521) because the 400 x 400 um die needs
+2,115 tap cells; the logic itself is 1,406 cells. The slew, cap and fanout zeros came from tightening repair, not from
+loosening limits: heuristic diode insertion off (it added a diode to buffer outputs; antenna repair stays on and
+antenna is 0), slew margins 70, a deeper clock tree (`CTS_DISTANCE_BETWEEN_BUFFERS` 30).
+
 Max-slew reached 0 by tightening design repair, not by loosening the limit: `MAX_FANOUT_CONSTRAINT` 8,
 `PL_RESIZER_MAX_SLEW_MARGIN` 40, `GRT_DESIGN_REPAIR_MAX_SLEW_PCT` 40, `RUN_POST_GRT_DESIGN_REPAIR`.
 
@@ -108,6 +128,6 @@ repository's MNIST designs and is not regenerated here (see `docs/slides/README.
 
 ## Not covered
 
-- The tiny engines are standalone 24-pin macros; `tiny_ai_core` (the Wishbone macro of `SPEC.md`) is not built yet.
+- `tiny_ai_core` is hardened standalone; it is not yet placed in `user_project_wrapper`.
 - `user_project_wrapper`, full-Caravel simulation (the template's `io_ports`, `la_test1`, `la_test2`), and the ChipFoundry precheck.
 - Max-slew / max-cap counts are reported by `make check`, not failed on: they come from the template's input-transition constraints on 541 unbuffered pins.

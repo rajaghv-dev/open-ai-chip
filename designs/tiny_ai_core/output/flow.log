@@ -1,0 +1,1297 @@
+Starting…
+Running 'Verilator.Lint' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/01-verilator-lint'…
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/01-verilator-lint/verilator-lint.log'[/repr.filename]…
+Running 'Checker.LintTimingConstructs' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/02-checker-linttimingconstructs'…
+Check for Lint Timing Errors clear.
+Running 'Checker.LintErrors' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/03-checker-linterrors'…
+Check for Lint errors clear.
+Running 'Checker.LintWarnings' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/04-checker-lintwarnings'…
+451 Lint warnings found.
+Running 'Yosys.JsonHeader' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/05-yosys-jsonheader'…
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/05-yosys-jsonheader/yosys-jsonheader.log'[/repr.filename]…
+Running 'Yosys.Synthesis' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/06-yosys-synthesis'…
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/06-yosys-synthesis/yosys-synthesis.log'[/repr.filename]…
+Parsing synthesis checks…
+Running 'Checker.YosysUnmappedCells' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/07-checker-yosysunmappedcells'…
+Check for Unmapped Yosys instances clear.
+Running 'Checker.YosysSynthChecks' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/08-checker-yosyssynthchecks'…
+Check for Yosys check errors clear.
+Running 'Checker.NetlistAssignStatements' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/09-checker-netlistassignstatements'…
+Running 'OpenROAD.CheckSDCFiles' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/10-openroad-checksdcfiles'…
+'PNR_SDC_FILE' is not defined. Using generic fallback SDC for OpenROAD PnR steps.
+'SIGNOFF_SDC_FILE' is not defined. Using generic fallback SDC for OpenROAD PnR steps.
+Running 'OpenROAD.CheckMacroInstances' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/11-openroad-checkmacroinstances'…
+No macros found, skipping instance check…
+Running 'OpenROAD.STAPrePNR' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/12-openroad-staprepnr'…
+Starting STA for the nom_tt_025C_1v80 timing corner…
+Starting STA for the nom_ss_100C_1v60 timing corner…
+Starting STA for the nom_ff_n40C_1v95 timing corner…
+Skipping corner min_tt_025C_1v80 for STA (identical to nom_tt_025C_1v80 at this stage)…
+Skipping corner min_ss_100C_1v60 for STA (identical to nom_ss_100C_1v60 at this stage)…
+Skipping corner min_ff_n40C_1v95 for STA (identical to nom_ff_n40C_1v95 at this stage)…
+Skipping corner max_tt_025C_1v80 for STA (identical to nom_tt_025C_1v80 at this stage)…
+Skipping corner max_ss_100C_1v60 for STA (identical to nom_ss_100C_1v60 at this stage)…
+Skipping corner max_ff_n40C_1v95 for STA (identical to nom_ff_n40C_1v95 at this stage)…
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/12-openroad-staprepnr/nom_tt_025C_1v80/sta.log'[/repr.filename]…
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/12-openroad-staprepnr/nom_ss_100C_1v60/sta.log'[/repr.filename]…
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/12-openroad-staprepnr/nom_ff_n40C_1v95/sta.log'[/repr.filename]…
+Finished STA for the nom_ss_100C_1v60 timing corner.
+Finished STA for the nom_tt_025C_1v80 timing corner.
+Finished STA for the nom_ff_n40C_1v95 timing corner.
+Running 'OpenROAD.Floorplan' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/13-openroad-floorplan'…
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/13-openroad-floorplan/openroad-floorplan.log'[/repr.filename]…
+Running 'OpenROAD.DumpRCValues' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/14-openroad-dumprcvalues'…
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/14-openroad-dumprcvalues/openroad-dumprcvalues.log'[/repr.filename]…
+Running 'Odb.CheckMacroAntennaProperties' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/15-odb-checkmacroantennaproperties'…
+No cells provided, skipping 'Odb.CheckMacroAntennaProperties'…
+Running 'Odb.SetPowerConnections' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/16-odb-setpowerconnections'…
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/16-odb-setpowerconnections/odb-setpowerconnections.log'[/repr.filename]…
+Running 'Odb.ManualMacroPlacement' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/17-odb-manualmacroplacement'…
+No instances found, skipping 'Odb.ManualMacroPlacement'…
+Running 'OpenROAD.CutRows' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/18-openroad-cutrows'…
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/18-openroad-cutrows/openroad-cutrows.log'[/repr.filename]…
+Running 'OpenROAD.TapEndcapInsertion' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/19-openroad-tapendcapinsertion'…
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/19-openroad-tapendcapinsertion/openroad-tapendcapinsertion.log'[/repr.filename]…
+Running 'Odb.AddPDNObstructions' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/20-odb-addpdnobstructions'…
+'PDN_OBSTRUCTIONS' is not defined. Skipping 'Odb.AddPDNObstructions'…
+Running 'OpenROAD.GeneratePDN' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/21-openroad-generatepdn'…
+'PDN_CFG' not explicitly set, setting it to /nix/store/ql4nbdxqdd9ph8x1k8awi7yklk8rx51j-python3-3.13.9-env/lib/python3.13/site-packages/librelane/scripts/openroad/common/pdn_cfg.tcl…
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/21-openroad-generatepdn/openroad-generatepdn.log'[/repr.filename]…
+Running 'Odb.RemovePDNObstructions' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/22-odb-removepdnobstructions'…
+'PDN_OBSTRUCTIONS' is not defined. Skipping 'Odb.RemovePDNObstructions'…
+Running 'Odb.AddRoutingObstructions' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/23-odb-addroutingobstructions'…
+'ROUTING_OBSTRUCTIONS' is not defined. Skipping 'Odb.AddRoutingObstructions'…
+Running 'OpenROAD.GlobalPlacementSkipIO' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/24-openroad-globalplacementskipio'…
+'PL_TARGET_DENSITY_PCT' not explicitly set, using dynamically calculated target density: 17.319400…
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/24-openroad-globalplacementskipio/openroad-globalplacementskipio.log'[/repr.filename]…
+Running 'OpenROAD.IOPlacement' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/25-openroad-ioplacement'…
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/25-openroad-ioplacement/openroad-ioplacement.log'[/repr.filename]…
+Running 'Odb.CustomIOPlacement' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/26-odb-customioplacement'…
+No custom I/O placement file configured, skipping 'Odb.CustomIOPlacement'…
+Running 'Odb.ApplyDEFTemplate' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/27-odb-applydeftemplate'…
+No DEF template provided, skipping 'Odb.ApplyDEFTemplate'…
+Running 'OpenROAD.GlobalPlacement' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/28-openroad-globalplacement'…
+'PL_TARGET_DENSITY_PCT' not explicitly set, using dynamically calculated target density: 17.319400…
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/28-openroad-globalplacement/openroad-globalplacement.log'[/repr.filename]…
+Running 'Odb.WriteVerilogHeader' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/29-odb-writeverilogheader'…
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/29-odb-writeverilogheader/odb-writeverilogheader.log'[/repr.filename]…
+Running 'Checker.PowerGridViolations' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/30-checker-powergridviolations'…
+Check for power grid violations (as reported by OpenROAD PSM- you may ignore these if LVS passes) clear.
+Running 'OpenROAD.STAMidPNR' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/31-openroad-stamidpnr'…
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/31-openroad-stamidpnr/openroad-stamidpnr.log'[/repr.filename]…
+Running 'OpenROAD.RepairDesignPostGPL' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/32-openroad-repairdesignpostgpl'…
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/32-openroad-repairdesignpostgpl/openroad-repairdesignpostgpl.log'[/repr.filename]…
+[STA-1140] ~/.volare/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__tt_025C_1v80.lib line 1, library sky130_fd_sc_hd__tt_025C_1v80 already exists.
+[STA-1140] ~/.volare/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__ff_n40C_1v95.lib line 1, library sky130_fd_sc_hd__ff_n40C_1v95 already exists.
+[STA-1140] ~/.volare/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__ss_100C_1v60.lib line 1, library sky130_fd_sc_hd__ss_100C_1v60 already exists.
+[STA-1140] ~/.volare/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__tt_025C_1v80.lib line 1, library sky130_fd_sc_hd__tt_025C_1v80 already exists.
+[STA-1140] ~/.volare/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__ss_100C_1v60.lib line 1, library sky130_fd_sc_hd__ss_100C_1v60 already exists.
+[STA-1140] ~/.volare/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__ff_n40C_1v95.lib line 1, library sky130_fd_sc_hd__ff_n40C_1v95 already exists.
+[RSZ-0020] found 2 floating nets.
+Running 'Odb.ManualGlobalPlacement' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/33-odb-manualglobalplacement'…
+'MANUAL_GLOBAL_PLACEMENTS' not set. Skipping 'Odb.ManualGlobalPlacement'…
+Running 'OpenROAD.DetailedPlacement' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/34-openroad-detailedplacement'…
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/34-openroad-detailedplacement/openroad-detailedplacement.log'[/repr.filename]…
+Running 'OpenROAD.CTS' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/35-openroad-cts'…
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/35-openroad-cts/openroad-cts.log'[/repr.filename]…
+[STA-1140] ~/.volare/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__tt_025C_1v80.lib line 1, library sky130_fd_sc_hd__tt_025C_1v80 already exists.
+[STA-1140] ~/.volare/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__ff_n40C_1v95.lib line 1, library sky130_fd_sc_hd__ff_n40C_1v95 already exists.
+[STA-1140] ~/.volare/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__ss_100C_1v60.lib line 1, library sky130_fd_sc_hd__ss_100C_1v60 already exists.
+[STA-1140] ~/.volare/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__tt_025C_1v80.lib line 1, library sky130_fd_sc_hd__tt_025C_1v80 already exists.
+[STA-1140] ~/.volare/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__ss_100C_1v60.lib line 1, library sky130_fd_sc_hd__ss_100C_1v60 already exists.
+[STA-1140] ~/.volare/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__ff_n40C_1v95.lib line 1, library sky130_fd_sc_hd__ff_n40C_1v95 already exists.
+Running 'OpenROAD.STAMidPNR-1' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/36-openroad-stamidpnr-1'…
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/36-openroad-stamidpnr-1/openroad-stamidpnr-1.log'[/repr.filename]…
+Running 'OpenROAD.ResizerTimingPostCTS' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/37-openroad-resizertimingpostcts'…
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/37-openroad-resizertimingpostcts/openroad-resizertimingpostcts.log'[/repr.filename]…
+[STA-1140] ~/.volare/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__tt_025C_1v80.lib line 1, library sky130_fd_sc_hd__tt_025C_1v80 already exists.
+[STA-1140] ~/.volare/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__ff_n40C_1v95.lib line 1, library sky130_fd_sc_hd__ff_n40C_1v95 already exists.
+[STA-1140] ~/.volare/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__ss_100C_1v60.lib line 1, library sky130_fd_sc_hd__ss_100C_1v60 already exists.
+[STA-1140] ~/.volare/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__tt_025C_1v80.lib line 1, library sky130_fd_sc_hd__tt_025C_1v80 already exists.
+[STA-1140] ~/.volare/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__ss_100C_1v60.lib line 1, library sky130_fd_sc_hd__ss_100C_1v60 already exists.
+[STA-1140] ~/.volare/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__ff_n40C_1v95.lib line 1, library sky130_fd_sc_hd__ff_n40C_1v95 already exists.
+Running 'OpenROAD.STAMidPNR-2' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/38-openroad-stamidpnr-2'…
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/38-openroad-stamidpnr-2/openroad-stamidpnr-2.log'[/repr.filename]…
+Running 'OpenROAD.GlobalRouting' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/39-openroad-globalrouting'…
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/39-openroad-globalrouting/openroad-globalrouting.log'[/repr.filename]…
+Running 'OpenROAD.CheckAntennas' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/40-openroad-checkantennas'…
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/40-openroad-checkantennas/openroad-checkantennas.log'[/repr.filename]…
+Running 'OpenROAD.RepairDesignPostGRT' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/41-openroad-repairdesignpostgrt'…
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/41-openroad-repairdesignpostgrt/openroad-repairdesignpostgrt.log'[/repr.filename]…
+[STA-1140] ~/.volare/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__tt_025C_1v80.lib line 1, library sky130_fd_sc_hd__tt_025C_1v80 already exists.
+[STA-1140] ~/.volare/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__ff_n40C_1v95.lib line 1, library sky130_fd_sc_hd__ff_n40C_1v95 already exists.
+[STA-1140] ~/.volare/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__ss_100C_1v60.lib line 1, library sky130_fd_sc_hd__ss_100C_1v60 already exists.
+[STA-1140] ~/.volare/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__tt_025C_1v80.lib line 1, library sky130_fd_sc_hd__tt_025C_1v80 already exists.
+[STA-1140] ~/.volare/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__ss_100C_1v60.lib line 1, library sky130_fd_sc_hd__ss_100C_1v60 already exists.
+[STA-1140] ~/.volare/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__ff_n40C_1v95.lib line 1, library sky130_fd_sc_hd__ff_n40C_1v95 already exists.
+[EST-0026] Missing route to pin _1273_/D in net _0000_.
+[EST-0026] Missing route to pin _0655_/X in net _0000_.
+[EST-0026] Missing route to pin _1273_/D in net _0000_.
+[EST-0026] Missing route to pin _0655_/X in net _0000_.
+[EST-0026] Missing route to pin _1273_/D in net _0000_.
+[EST-0026] Missing route to pin _0655_/X in net _0000_.
+[EST-0026] Missing route to pin _1273_/D in net _0000_.
+[EST-0026] Missing route to pin _0655_/X in net _0000_.
+[EST-0026] Missing route to pin _1273_/D in net _0000_.
+[EST-0026] Missing route to pin _0655_/X in net _0000_.
+[EST-0026] Missing route to pin _1273_/D in net _0000_.
+[EST-0026] Missing route to pin _0655_/X in net _0000_.
+[EST-0026] Missing route to pin _1273_/D in net _0000_.
+[EST-0026] Missing route to pin _0655_/X in net _0000_.
+[EST-0026] Missing route to pin _1273_/D in net _0000_.
+[EST-0026] Missing route to pin _0655_/X in net _0000_.
+[EST-0026] Missing route to pin _1273_/D in net _0000_.
+[EST-0026] Missing route to pin _0655_/X in net _0000_.
+[EST-0026] Missing route to pin _1274_/D in net _0001_.
+[EST-0026] Missing route to pin _0654_/Y in net _0001_.
+[EST-0026] Missing route to pin _1274_/D in net _0001_.
+[EST-0026] Missing route to pin _0654_/Y in net _0001_.
+[EST-0026] Missing route to pin _1274_/D in net _0001_.
+[EST-0026] Missing route to pin _0654_/Y in net _0001_.
+[EST-0026] Missing route to pin _1274_/D in net _0001_.
+[EST-0026] Missing route to pin _0654_/Y in net _0001_.
+[EST-0026] Missing route to pin _1274_/D in net _0001_.
+[EST-0026] Missing route to pin _0654_/Y in net _0001_.
+[EST-0026] Missing route to pin _1274_/D in net _0001_.
+[EST-0026] Missing route to pin _0654_/Y in net _0001_.
+[EST-0026] Missing route to pin _1274_/D in net _0001_.
+[EST-0026] Missing route to pin _0654_/Y in net _0001_.
+[EST-0026] Missing route to pin _1274_/D in net _0001_.
+[EST-0026] Missing route to pin _0654_/Y in net _0001_.
+[EST-0026] Missing route to pin _1274_/D in net _0001_.
+[EST-0026] Missing route to pin _0654_/Y in net _0001_.
+[EST-0026] Missing route to pin _1275_/D in net _0002_.
+[EST-0026] Missing route to pin _0651_/Y in net _0002_.
+[EST-0026] Missing route to pin _1275_/D in net _0002_.
+[EST-0026] Missing route to pin _0651_/Y in net _0002_.
+[EST-0026] Missing route to pin _1275_/D in net _0002_.
+[EST-0026] Missing route to pin _0651_/Y in net _0002_.
+[EST-0026] Missing route to pin _1275_/D in net _0002_.
+[EST-0026] Missing route to pin _0651_/Y in net _0002_.
+[EST-0026] Missing route to pin _1275_/D in net _0002_.
+[EST-0026] Missing route to pin _0651_/Y in net _0002_.
+[EST-0026] Missing route to pin _1275_/D in net _0002_.
+[EST-0026] Missing route to pin _0651_/Y in net _0002_.
+[EST-0026] Missing route to pin _1275_/D in net _0002_.
+[EST-0026] Missing route to pin _0651_/Y in net _0002_.
+[EST-0026] Missing route to pin _1275_/D in net _0002_.
+[EST-0026] Missing route to pin _0651_/Y in net _0002_.
+[EST-0026] Missing route to pin _1275_/D in net _0002_.
+[EST-0026] Missing route to pin _0651_/Y in net _0002_.
+[EST-0026] Missing route to pin _1270_/D in net _0003_.
+[EST-0026] Missing route to pin _0644_/X in net _0003_.
+[EST-0026] Missing route to pin _1270_/D in net _0003_.
+[EST-0026] Missing route to pin _0644_/X in net _0003_.
+[EST-0026] Missing route to pin _1270_/D in net _0003_.
+[EST-0026] Missing route to pin _0644_/X in net _0003_.
+[EST-0026] Missing route to pin _1270_/D in net _0003_.
+[EST-0026] Missing route to pin _0644_/X in net _0003_.
+[EST-0026] Missing route to pin _1270_/D in net _0003_.
+[EST-0026] Missing route to pin _0644_/X in net _0003_.
+[EST-0026] Missing route to pin _1270_/D in net _0003_.
+[EST-0026] Missing route to pin _0644_/X in net _0003_.
+[EST-0026] Missing route to pin _1270_/D in net _0003_.
+[EST-0026] Missing route to pin _0644_/X in net _0003_.
+[EST-0026] Missing route to pin _1270_/D in net _0003_.
+[EST-0026] Missing route to pin _0644_/X in net _0003_.
+[EST-0026] Missing route to pin _1270_/D in net _0003_.
+[EST-0026] Missing route to pin _0644_/X in net _0003_.
+[EST-0026] Missing route to pin _1271_/D in net _0004_.
+[EST-0026] Missing route to pin _0640_/X in net _0004_.
+[EST-0026] Missing route to pin _1271_/D in net _0004_.
+[EST-0026] Missing route to pin _0640_/X in net _0004_.
+[EST-0026] Missing route to pin _1271_/D in net _0004_.
+[EST-0026] Missing route to pin _0640_/X in net _0004_.
+[EST-0026] Missing route to pin _1271_/D in net _0004_.
+[EST-0026] Missing route to pin _0640_/X in net _0004_.
+[EST-0026] Missing route to pin _1271_/D in net _0004_.
+[EST-0026] Missing route to pin _0640_/X in net _0004_.
+[EST-0026] Missing route to pin _1271_/D in net _0004_.
+[EST-0026] Missing route to pin _0640_/X in net _0004_.
+[EST-0026] Missing route to pin _1271_/D in net _0004_.
+[EST-0026] Missing route to pin _0640_/X in net _0004_.
+[EST-0026] Missing route to pin _1271_/D in net _0004_.
+[EST-0026] Missing route to pin _0640_/X in net _0004_.
+[EST-0026] Missing route to pin _1271_/D in net _0004_.
+[EST-0026] Missing route to pin _0640_/X in net _0004_.
+[EST-0026] Missing route to pin _1266_/D in net _0006_.
+[EST-0026] Missing route to pin _0634_/X in net _0006_.
+[EST-0026] Missing route to pin _1266_/D in net _0006_.
+[EST-0026] Missing route to pin _0634_/X in net _0006_.
+[EST-0026] Missing route to pin _1266_/D in net _0006_.
+[EST-0026] Missing route to pin _0634_/X in net _0006_.
+[EST-0026] Missing route to pin _1266_/D in net _0006_.
+[EST-0026] Missing route to pin _0634_/X in net _0006_.
+[EST-0026] Missing route to pin _1266_/D in net _0006_.
+[EST-0026] Missing route to pin _0634_/X in net _0006_.
+[EST-0026] Missing route to pin _1266_/D in net _0006_.
+[EST-0026] Missing route to pin _0634_/X in net _0006_.
+[EST-0026] Missing route to pin _1266_/D in net _0006_.
+[EST-0026] Missing route to pin _0634_/X in net _0006_.
+[EST-0026] Missing route to pin _1266_/D in net _0006_.
+[EST-0026] Missing route to pin _0634_/X in net _0006_.
+[EST-0026] Missing route to pin _1266_/D in net _0006_.
+[EST-0026] Missing route to pin _0634_/X in net _0006_.
+[EST-0026] Missing route to pin _1267_/D in net _0007_.
+[EST-0026] Missing route to pin _0630_/X in net _0007_.
+[EST-0026] Missing route to pin _1267_/D in net _0007_.
+[EST-0026] Missing route to pin _0630_/X in net _0007_.
+[EST-0026] Missing route to pin _1267_/D in net _0007_.
+[EST-0026] Missing route to pin _0630_/X in net _0007_.
+[EST-0026] Missing route to pin _1267_/D in net _0007_.
+[EST-0026] Missing route to pin _0630_/X in net _0007_.
+[EST-0026] Missing route to pin _1267_/D in net _0007_.
+[EST-0026] Missing route to pin _0630_/X in net _0007_.
+[EST-0026] Missing route to pin _1267_/D in net _0007_.
+[EST-0026] Missing route to pin _0630_/X in net _0007_.
+[EST-0026] Missing route to pin _1267_/D in net _0007_.
+[EST-0026] Missing route to pin _0630_/X in net _0007_.
+[EST-0026] Missing route to pin _1267_/D in net _0007_.
+[EST-0026] Missing route to pin _0630_/X in net _0007_.
+[EST-0026] Missing route to pin _1267_/D in net _0007_.
+[EST-0026] Missing route to pin _0630_/X in net _0007_.
+[EST-0026] Missing route to pin _1268_/D in net _0008_.
+[EST-0026] Missing route to pin _0628_/Y in net _0008_.
+[EST-0026] Missing route to pin _1268_/D in net _0008_.
+[EST-0026] Missing route to pin _0628_/Y in net _0008_.
+[EST-0026] Missing route to pin _1268_/D in net _0008_.
+[EST-0026] Missing route to pin _0628_/Y in net _0008_.
+[EST-0026] Missing route to pin _1268_/D in net _0008_.
+[EST-0026] Missing route to pin _0628_/Y in net _0008_.
+[EST-0026] Missing route to pin _1268_/D in net _0008_.
+[EST-0026] Missing route to pin _0628_/Y in net _0008_.
+[EST-0026] Missing route to pin _1268_/D in net _0008_.
+[EST-0026] Missing route to pin _0628_/Y in net _0008_.
+[EST-0026] Missing route to pin _1268_/D in net _0008_.
+[EST-0026] Missing route to pin _0628_/Y in net _0008_.
+[EST-0026] Missing route to pin _1268_/D in net _0008_.
+[EST-0026] Missing route to pin _0628_/Y in net _0008_.
+[EST-0026] Missing route to pin _1268_/D in net _0008_.
+[EST-0026] Missing route to pin _0628_/Y in net _0008_.
+[EST-0026] Missing route to pin _1168_/D in net _0011_.
+[EST-0026] Missing route to pin _0737_/X in net _0011_.
+[EST-0026] Missing route to pin _1168_/D in net _0011_.
+[EST-0026] Missing route to pin _0737_/X in net _0011_.
+[EST-0026] Missing route to pin _1168_/D in net _0011_.
+[EST-0026] Missing route to pin _0737_/X in net _0011_.
+[EST-0026] Missing route to pin _1168_/D in net _0011_.
+[EST-0026] Missing route to pin _0737_/X in net _0011_.
+[EST-0026] Missing route to pin _1168_/D in net _0011_.
+[EST-0026] Missing route to pin _0737_/X in net _0011_.
+[EST-0026] Missing route to pin _1168_/D in net _0011_.
+[EST-0026] Missing route to pin _0737_/X in net _0011_.
+[EST-0026] Missing route to pin _1168_/D in net _0011_.
+[EST-0026] Missing route to pin _0737_/X in net _0011_.
+[EST-0026] Missing route to pin _1168_/D in net _0011_.
+[EST-0026] Missing route to pin _0737_/X in net _0011_.
+[EST-0026] Missing route to pin _1168_/D in net _0011_.
+[EST-0026] Missing route to pin _0737_/X in net _0011_.
+[EST-0026] Missing route to pin _1170_/D in net _0013_.
+[EST-0026] Missing route to pin _0744_/Y in net _0013_.
+[EST-0026] Missing route to pin _1170_/D in net _0013_.
+[EST-0026] Missing route to pin _0744_/Y in net _0013_.
+[EST-0026] Missing route to pin _1170_/D in net _0013_.
+[EST-0026] Missing route to pin _0744_/Y in net _0013_.
+[EST-0026] Missing route to pin _1170_/D in net _0013_.
+[EST-0026] Missing route to pin _0744_/Y in net _0013_.
+[EST-0026] Missing route to pin _1170_/D in net _0013_.
+[EST-0026] Missing route to pin _0744_/Y in net _0013_.
+[EST-0026] Missing route to pin _1170_/D in net _0013_.
+[EST-0026] Missing route to pin _0744_/Y in net _0013_.
+[EST-0026] Missing route to pin _1170_/D in net _0013_.
+[EST-0026] Missing route to pin _0744_/Y in net _0013_.
+[EST-0026] Missing route to pin _1170_/D in net _0013_.
+[EST-0026] Missing route to pin _0744_/Y in net _0013_.
+[EST-0026] Missing route to pin _1170_/D in net _0013_.
+[EST-0026] Missing route to pin _0744_/Y in net _0013_.
+[EST-0026] Missing route to pin hold602/A in net _0019_.
+[EST-0026] Missing route to pin _0799_/Y in net _0019_.
+[EST-0026] Missing route to pin hold602/A in net _0019_.
+[EST-0026] Missing route to pin _0799_/Y in net _0019_.
+[EST-0026] Missing route to pin hold602/A in net _0019_.
+[EST-0026] Missing route to pin _0799_/Y in net _0019_.
+[EST-0026] Missing route to pin hold602/A in net _0019_.
+[EST-0026] Missing route to pin _0799_/Y in net _0019_.
+[EST-0026] Missing route to pin hold602/A in net _0019_.
+[EST-0026] Missing route to pin _0799_/Y in net _0019_.
+[EST-0026] Missing route to pin hold602/A in net _0019_.
+[EST-0026] Missing route to pin _0799_/Y in net _0019_.
+[EST-0026] Missing route to pin hold602/A in net _0019_.
+[EST-0026] Missing route to pin _0799_/Y in net _0019_.
+[EST-0026] Missing route to pin hold602/A in net _0019_.
+[EST-0026] Missing route to pin _0799_/Y in net _0019_.
+[EST-0026] Missing route to pin hold602/A in net _0019_.
+[EST-0026] Missing route to pin _0799_/Y in net _0019_.
+[EST-0026] Missing route to pin _1177_/D in net _0020_.
+[EST-0026] Missing route to pin _0802_/X in net _0020_.
+[EST-0026] Missing route to pin _1177_/D in net _0020_.
+[EST-0026] Missing route to pin _0802_/X in net _0020_.
+[EST-0026] Missing route to pin _1177_/D in net _0020_.
+[EST-0026] Missing route to pin _0802_/X in net _0020_.
+[EST-0026] Missing route to pin _1177_/D in net _0020_.
+[EST-0026] Missing route to pin _0802_/X in net _0020_.
+[EST-0026] Missing route to pin _1177_/D in net _0020_.
+[EST-0026] Missing route to pin _0802_/X in net _0020_.
+[EST-0026] Missing route to pin _1177_/D in net _0020_.
+[EST-0026] Missing route to pin _0802_/X in net _0020_.
+[EST-0026] Missing route to pin _1177_/D in net _0020_.
+[EST-0026] Missing route to pin _0802_/X in net _0020_.
+[EST-0026] Missing route to pin _1177_/D in net _0020_.
+[EST-0026] Missing route to pin _0802_/X in net _0020_.
+[EST-0026] Missing route to pin _1177_/D in net _0020_.
+[EST-0026] Missing route to pin _0802_/X in net _0020_.
+[EST-0026] Missing route to pin _1181_/D in net _0024_.
+[EST-0026] Missing route to pin _0820_/Y in net _0024_.
+[EST-0026] Missing route to pin _1181_/D in net _0024_.
+[EST-0026] Missing route to pin _0820_/Y in net _0024_.
+[EST-0026] Missing route to pin _1181_/D in net _0024_.
+[EST-0026] Missing route to pin _0820_/Y in net _0024_.
+[EST-0026] Missing route to pin _1181_/D in net _0024_.
+[EST-0026] Missing route to pin _0820_/Y in net _0024_.
+[EST-0026] Missing route to pin _1181_/D in net _0024_.
+[EST-0026] Missing route to pin _0820_/Y in net _0024_.
+[EST-0026] Missing route to pin _1181_/D in net _0024_.
+[EST-0026] Missing route to pin _0820_/Y in net _0024_.
+[EST-0026] Missing route to pin _1181_/D in net _0024_.
+[EST-0026] Missing route to pin _0820_/Y in net _0024_.
+[EST-0026] Missing route to pin _1181_/D in net _0024_.
+[EST-0026] Missing route to pin _0820_/Y in net _0024_.
+[EST-0026] Missing route to pin _1181_/D in net _0024_.
+[EST-0026] Missing route to pin _0820_/Y in net _0024_.
+[EST-0026] Missing route to pin _1182_/D in net _0025_.
+[EST-0026] Missing route to pin _0823_/Y in net _0025_.
+[EST-0026] Missing route to pin _1182_/D in net _0025_.
+[EST-0026] Missing route to pin _0823_/Y in net _0025_.
+[EST-0026] Missing route to pin _1182_/D in net _0025_.
+[EST-0026] Missing route to pin _0823_/Y in net _0025_.
+[EST-0026] Missing route to pin _1182_/D in net _0025_.
+[EST-0026] Missing route to pin _0823_/Y in net _0025_.
+[EST-0026] Missing route to pin _1182_/D in net _0025_.
+[EST-0026] Missing route to pin _0823_/Y in net _0025_.
+[EST-0026] Missing route to pin _1182_/D in net _0025_.
+[EST-0026] Missing route to pin _0823_/Y in net _0025_.
+[EST-0026] Missing route to pin _1182_/D in net _0025_.
+[EST-0026] Missing route to pin _0823_/Y in net _0025_.
+[EST-0026] Missing route to pin _1182_/D in net _0025_.
+[EST-0026] Missing route to pin _0823_/Y in net _0025_.
+[EST-0026] Missing route to pin _1182_/D in net _0025_.
+[EST-0026] Missing route to pin _0823_/Y in net _0025_.
+[EST-0026] Missing route to pin hold632/A in net _0026_.
+[EST-0026] Missing route to pin _0837_/X in net _0026_.
+[EST-0026] Missing route to pin hold632/A in net _0026_.
+[EST-0026] Missing route to pin _0837_/X in net _0026_.
+[EST-0026] Missing route to pin hold632/A in net _0026_.
+[EST-0026] Missing route to pin _0837_/X in net _0026_.
+[EST-0026] Missing route to pin hold632/A in net _0026_.
+[EST-0026] Missing route to pin _0837_/X in net _0026_.
+[EST-0026] Missing route to pin hold632/A in net _0026_.
+[EST-0026] Missing route to pin _0837_/X in net _0026_.
+[EST-0026] Missing route to pin hold632/A in net _0026_.
+[EST-0026] Missing route to pin _0837_/X in net _0026_.
+[EST-0026] Missing route to pin hold632/A in net _0026_.
+[EST-0026] Missing route to pin _0837_/X in net _0026_.
+[EST-0026] Missing route to pin hold632/A in net _0026_.
+[EST-0026] Missing route to pin _0837_/X in net _0026_.
+[EST-0026] Missing route to pin hold632/A in net _0026_.
+[EST-0026] Missing route to pin _0837_/X in net _0026_.
+[EST-0026] Missing route to pin _1185_/D in net _0028_.
+[EST-0026] Missing route to pin _0847_/X in net _0028_.
+[EST-0026] Missing route to pin _1185_/D in net _0028_.
+[EST-0026] Missing route to pin _0847_/X in net _0028_.
+[EST-0026] Missing route to pin _1185_/D in net _0028_.
+[EST-0026] Missing route to pin _0847_/X in net _0028_.
+[EST-0026] Missing route to pin _1185_/D in net _0028_.
+[EST-0026] Missing route to pin _0847_/X in net _0028_.
+[EST-0026] Missing route to pin _1185_/D in net _0028_.
+[EST-0026] Missing route to pin _0847_/X in net _0028_.
+[EST-0026] Missing route to pin _1185_/D in net _0028_.
+[EST-0026] Missing route to pin _0847_/X in net _0028_.
+[EST-0026] Missing route to pin _1185_/D in net _0028_.
+[EST-0026] Missing route to pin _0847_/X in net _0028_.
+[EST-0026] Missing route to pin _1185_/D in net _0028_.
+[EST-0026] Missing route to pin _0847_/X in net _0028_.
+[EST-0026] Missing route to pin _1185_/D in net _0028_.
+[EST-0026] Missing route to pin _0847_/X in net _0028_.
+[EST-0026] Missing route to pin _1186_/D in net _0029_.
+[EST-0026] Missing route to pin _0850_/X in net _0029_.
+[EST-0026] Missing route to pin _1186_/D in net _0029_.
+[EST-0026] Missing route to pin _0850_/X in net _0029_.
+[EST-0026] Missing route to pin _1186_/D in net _0029_.
+[EST-0026] Missing route to pin _0850_/X in net _0029_.
+[EST-0026] Missing route to pin _1186_/D in net _0029_.
+[EST-0026] Missing route to pin _0850_/X in net _0029_.
+[EST-0026] Missing route to pin _1186_/D in net _0029_.
+[EST-0026] Missing route to pin _0850_/X in net _0029_.
+[EST-0026] Missing route to pin _1186_/D in net _0029_.
+[EST-0026] Missing route to pin _0850_/X in net _0029_.
+[EST-0026] Missing route to pin _1186_/D in net _0029_.
+[EST-0026] Missing route to pin _0850_/X in net _0029_.
+[EST-0026] Missing route to pin _1186_/D in net _0029_.
+[EST-0026] Missing route to pin _0850_/X in net _0029_.
+[EST-0026] Missing route to pin _1186_/D in net _0029_.
+[EST-0026] Missing route to pin _0850_/X in net _0029_.
+[EST-0026] Missing route to pin _1188_/D in net _0031_.
+[EST-0026] Missing route to pin _0857_/X in net _0031_.
+[EST-0026] Missing route to pin _1188_/D in net _0031_.
+[EST-0026] Missing route to pin _0857_/X in net _0031_.
+[EST-0026] Missing route to pin _1188_/D in net _0031_.
+[EST-0026] Missing route to pin _0857_/X in net _0031_.
+[EST-0026] Missing route to pin _1188_/D in net _0031_.
+[EST-0026] Missing route to pin _0857_/X in net _0031_.
+[EST-0026] Missing route to pin _1188_/D in net _0031_.
+[EST-0026] Missing route to pin _0857_/X in net _0031_.
+[EST-0026] Missing route to pin _1188_/D in net _0031_.
+[EST-0026] Missing route to pin _0857_/X in net _0031_.
+[EST-0026] Missing route to pin _1188_/D in net _0031_.
+[EST-0026] Missing route to pin _0857_/X in net _0031_.
+[EST-0026] Missing route to pin _1188_/D in net _0031_.
+[EST-0026] Missing route to pin _0857_/X in net _0031_.
+[EST-0026] Missing route to pin _1188_/D in net _0031_.
+[EST-0026] Missing route to pin _0857_/X in net _0031_.
+[EST-0026] Missing route to pin _1189_/D in net _0032_.
+[EST-0026] Missing route to pin _0861_/X in net _0032_.
+[EST-0026] Missing route to pin _1189_/D in net _0032_.
+[EST-0026] Missing route to pin _0861_/X in net _0032_.
+[EST-0026] Missing route to pin _1189_/D in net _0032_.
+[EST-0026] Missing route to pin _0861_/X in net _0032_.
+[EST-0026] Missing route to pin _1189_/D in net _0032_.
+[EST-0026] Missing route to pin _0861_/X in net _0032_.
+[EST-0026] Missing route to pin _1189_/D in net _0032_.
+[EST-0026] Missing route to pin _0861_/X in net _0032_.
+[EST-0026] Missing route to pin _1189_/D in net _0032_.
+[EST-0026] Missing route to pin _0861_/X in net _0032_.
+[EST-0026] Missing route to pin _1189_/D in net _0032_.
+[EST-0026] Missing route to pin _0861_/X in net _0032_.
+[EST-0026] Missing route to pin _1189_/D in net _0032_.
+[EST-0026] Missing route to pin _0861_/X in net _0032_.
+[EST-0026] Missing route to pin _1189_/D in net _0032_.
+[EST-0026] Missing route to pin _0861_/X in net _0032_.
+[EST-0026] Missing route to pin _1192_/D in net _0035_.
+[EST-0026] Missing route to pin _0873_/X in net _0035_.
+[EST-0026] Missing route to pin _1192_/D in net _0035_.
+[EST-0026] Missing route to pin _0873_/X in net _0035_.
+[EST-0026] Missing route to pin _1192_/D in net _0035_.
+[EST-0026] Missing route to pin _0873_/X in net _0035_.
+[EST-0026] Missing route to pin _1192_/D in net _0035_.
+[EST-0026] Missing route to pin _0873_/X in net _0035_.
+[EST-0026] Missing route to pin _1192_/D in net _0035_.
+[EST-0026] Missing route to pin _0873_/X in net _0035_.
+[EST-0026] Missing route to pin _1192_/D in net _0035_.
+[EST-0026] Missing route to pin _0873_/X in net _0035_.
+[EST-0026] Missing route to pin _1192_/D in net _0035_.
+[EST-0026] Missing route to pin _0873_/X in net _0035_.
+[EST-0026] Missing route to pin _1192_/D in net _0035_.
+[EST-0026] Missing route to pin _0873_/X in net _0035_.
+[EST-0026] Missing route to pin _1192_/D in net _0035_.
+[EST-0026] Missing route to pin _0873_/X in net _0035_.
+[EST-0026] Missing route to pin _1195_/D in net _0038_.
+[EST-0026] Missing route to pin _0884_/X in net _0038_.
+[EST-0026] Missing route to pin _1195_/D in net _0038_.
+[EST-0026] Missing route to pin _0884_/X in net _0038_.
+[EST-0026] Missing route to pin _1195_/D in net _0038_.
+[EST-0026] Missing route to pin _0884_/X in net _0038_.
+[EST-0026] Missing route to pin _1195_/D in net _0038_.
+[EST-0026] Missing route to pin _0884_/X in net _0038_.
+[EST-0026] Missing route to pin _1195_/D in net _0038_.
+[EST-0026] Missing route to pin _0884_/X in net _0038_.
+[EST-0026] Missing route to pin _1195_/D in net _0038_.
+[EST-0026] Missing route to pin _0884_/X in net _0038_.
+[EST-0026] Missing route to pin _1195_/D in net _0038_.
+[EST-0026] Missing route to pin _0884_/X in net _0038_.
+[EST-0026] Missing route to pin _1195_/D in net _0038_.
+[EST-0026] Missing route to pin _0884_/X in net _0038_.
+[EST-0026] Missing route to pin _1195_/D in net _0038_.
+[EST-0026] Missing route to pin _0884_/X in net _0038_.
+[EST-0026] Missing route to pin _1197_/D in net _0040_.
+[EST-0026] Missing route to pin _0892_/Y in net _0040_.
+[EST-0026] Missing route to pin _1197_/D in net _0040_.
+[EST-0026] Missing route to pin _0892_/Y in net _0040_.
+[EST-0026] Missing route to pin _1197_/D in net _0040_.
+[EST-0026] Missing route to pin _0892_/Y in net _0040_.
+[EST-0026] Missing route to pin _1197_/D in net _0040_.
+[EST-0026] Missing route to pin _0892_/Y in net _0040_.
+[EST-0026] Missing route to pin _1197_/D in net _0040_.
+[EST-0026] Missing route to pin _0892_/Y in net _0040_.
+[EST-0026] Missing route to pin _1197_/D in net _0040_.
+[EST-0026] Missing route to pin _0892_/Y in net _0040_.
+[EST-0026] Missing route to pin _1197_/D in net _0040_.
+[EST-0026] Missing route to pin _0892_/Y in net _0040_.
+[EST-0026] Missing route to pin _1197_/D in net _0040_.
+[EST-0026] Missing route to pin _0892_/Y in net _0040_.
+[EST-0026] Missing route to pin _1197_/D in net _0040_.
+[EST-0026] Missing route to pin _0892_/Y in net _0040_.
+[EST-0026] Missing route to pin _1198_/D in net _0041_.
+[EST-0026] Missing route to pin _0894_/X in net _0041_.
+[EST-0026] Missing route to pin _1198_/D in net _0041_.
+[EST-0026] Missing route to pin _0894_/X in net _0041_.
+[EST-0026] Missing route to pin _1198_/D in net _0041_.
+[EST-0026] Missing route to pin _0894_/X in net _0041_.
+[EST-0026] Missing route to pin _1198_/D in net _0041_.
+[EST-0026] Missing route to pin _0894_/X in net _0041_.
+[EST-0026] Missing route to pin _1198_/D in net _0041_.
+[EST-0026] Missing route to pin _0894_/X in net _0041_.
+[EST-0026] Missing route to pin _1198_/D in net _0041_.
+[EST-0026] Missing route to pin _0894_/X in net _0041_.
+[EST-0026] Missing route to pin _1198_/D in net _0041_.
+[EST-0026] Missing route to pin _0894_/X in net _0041_.
+[EST-0026] Missing route to pin _1198_/D in net _0041_.
+[EST-0026] Missing route to pin _0894_/X in net _0041_.
+[EST-0026] Missing route to pin _1198_/D in net _0041_.
+[EST-0026] Missing route to pin _0894_/X in net _0041_.
+[EST-0026] Missing route to pin hold587/A in net _0042_.
+[EST-0026] Missing route to pin _0918_/X in net _0042_.
+[EST-0026] Missing route to pin hold587/A in net _0042_.
+[EST-0026] Missing route to pin _0918_/X in net _0042_.
+[EST-0026] Missing route to pin hold587/A in net _0042_.
+[EST-0026] Missing route to pin _0918_/X in net _0042_.
+[EST-0026] Missing route to pin hold587/A in net _0042_.
+[EST-0026] Missing route to pin _0918_/X in net _0042_.
+[EST-0026] Missing route to pin hold587/A in net _0042_.
+[EST-0026] Missing route to pin _0918_/X in net _0042_.
+[EST-0026] Missing route to pin hold587/A in net _0042_.
+[EST-0026] Missing route to pin _0918_/X in net _0042_.
+[EST-0026] Missing route to pin hold587/A in net _0042_.
+[EST-0026] Missing route to pin _0918_/X in net _0042_.
+[EST-0026] Missing route to pin hold587/A in net _0042_.
+[EST-0026] Missing route to pin _0918_/X in net _0042_.
+[EST-0026] Missing route to pin hold587/A in net _0042_.
+[EST-0026] Missing route to pin _0918_/X in net _0042_.
+[EST-0026] Missing route to pin _1200_/D in net _0043_.
+[EST-0026] Missing route to pin _0929_/X in net _0043_.
+[EST-0026] Missing route to pin _1200_/D in net _0043_.
+[EST-0026] Missing route to pin _0929_/X in net _0043_.
+[EST-0026] Missing route to pin _1200_/D in net _0043_.
+[EST-0026] Missing route to pin _0929_/X in net _0043_.
+[EST-0026] Missing route to pin _1200_/D in net _0043_.
+[EST-0026] Missing route to pin _0929_/X in net _0043_.
+[EST-0026] Missing route to pin _1200_/D in net _0043_.
+[EST-0026] Missing route to pin _0929_/X in net _0043_.
+[EST-0026] Missing route to pin _1200_/D in net _0043_.
+[EST-0026] Missing route to pin _0929_/X in net _0043_.
+[EST-0026] Missing route to pin _1200_/D in net _0043_.
+[EST-0026] Missing route to pin _0929_/X in net _0043_.
+[EST-0026] Missing route to pin _1200_/D in net _0043_.
+[EST-0026] Missing route to pin _0929_/X in net _0043_.
+[EST-0026] Missing route to pin _1200_/D in net _0043_.
+[EST-0026] Missing route to pin _0929_/X in net _0043_.
+[EST-0026] Missing route to pin _1201_/D in net _0044_.
+[EST-0026] Missing route to pin _0931_/X in net _0044_.
+[EST-0026] Missing route to pin _1201_/D in net _0044_.
+[EST-0026] Missing route to pin _0931_/X in net _0044_.
+[EST-0026] Missing route to pin _1201_/D in net _0044_.
+[EST-0026] Missing route to pin _0931_/X in net _0044_.
+[EST-0026] Missing route to pin _1201_/D in net _0044_.
+[EST-0026] Missing route to pin _0931_/X in net _0044_.
+[EST-0026] Missing route to pin _1201_/D in net _0044_.
+[EST-0026] Missing route to pin _0931_/X in net _0044_.
+[EST-0026] Missing route to pin _1201_/D in net _0044_.
+[EST-0026] Missing route to pin _0931_/X in net _0044_.
+[EST-0026] Missing route to pin _1201_/D in net _0044_.
+[EST-0026] Missing route to pin _0931_/X in net _0044_.
+[EST-0026] Missing route to pin _1201_/D in net _0044_.
+[EST-0026] Missing route to pin _0931_/X in net _0044_.
+[EST-0026] Missing route to pin _1201_/D in net _0044_.
+[EST-0026] Missing route to pin _0931_/X in net _0044_.
+[EST-0026] Missing route to pin _1202_/D in net _0045_.
+[EST-0026] Missing route to pin _0933_/X in net _0045_.
+[EST-0026] Missing route to pin _1202_/D in net _0045_.
+[EST-0026] Missing route to pin _0933_/X in net _0045_.
+[EST-0026] Missing route to pin _1202_/D in net _0045_.
+[EST-0026] Missing route to pin _0933_/X in net _0045_.
+[EST-0026] Missing route to pin _1202_/D in net _0045_.
+[EST-0026] Missing route to pin _0933_/X in net _0045_.
+[EST-0026] Missing route to pin _1202_/D in net _0045_.
+[EST-0026] Missing route to pin _0933_/X in net _0045_.
+[EST-0026] Missing route to pin _1202_/D in net _0045_.
+[EST-0026] Missing route to pin _0933_/X in net _0045_.
+[EST-0026] Missing route to pin _1202_/D in net _0045_.
+[EST-0026] Missing route to pin _0933_/X in net _0045_.
+[EST-0026] Missing route to pin _1202_/D in net _0045_.
+[EST-0026] Missing route to pin _0933_/X in net _0045_.
+[EST-0026] Missing route to pin _1202_/D in net _0045_.
+[EST-0026] Missing route to pin _0933_/X in net _0045_.
+[EST-0026] Missing route to pin _1205_/D in net _0048_.
+[EST-0026] Missing route to pin _0965_/Y in net _0048_.
+[EST-0026] Missing route to pin _1205_/D in net _0048_.
+[EST-0026] Missing route to pin _0965_/Y in net _0048_.
+[EST-0026] Missing route to pin _1205_/D in net _0048_.
+[EST-0026] Missing route to pin _0965_/Y in net _0048_.
+[EST-0026] Missing route to pin _1205_/D in net _0048_.
+[EST-0026] Missing route to pin _0965_/Y in net _0048_.
+[EST-0026] Missing route to pin _1205_/D in net _0048_.
+[EST-0026] Missing route to pin _0965_/Y in net _0048_.
+[EST-0026] Missing route to pin _1205_/D in net _0048_.
+[EST-0026] Missing route to pin _0965_/Y in net _0048_.
+[EST-0026] Missing route to pin _1205_/D in net _0048_.
+[EST-0026] Missing route to pin _0965_/Y in net _0048_.
+[EST-0026] Missing route to pin _1205_/D in net _0048_.
+[EST-0026] Missing route to pin _0965_/Y in net _0048_.
+[EST-0026] Missing route to pin _1205_/D in net _0048_.
+[EST-0026] Missing route to pin _0965_/Y in net _0048_.
+[EST-0026] Missing route to pin _1207_/D in net _0050_.
+[EST-0026] Missing route to pin _0970_/Y in net _0050_.
+[EST-0026] Missing route to pin _1207_/D in net _0050_.
+[EST-0026] Missing route to pin _0970_/Y in net _0050_.
+[EST-0026] Missing route to pin _1207_/D in net _0050_.
+[EST-0026] Missing route to pin _0970_/Y in net _0050_.
+[EST-0026] Missing route to pin _1207_/D in net _0050_.
+[EST-0026] Missing route to pin _0970_/Y in net _0050_.
+[EST-0026] Missing route to pin _1207_/D in net _0050_.
+[EST-0026] Missing route to pin _0970_/Y in net _0050_.
+[EST-0026] Missing route to pin _1207_/D in net _0050_.
+[EST-0026] Missing route to pin _0970_/Y in net _0050_.
+[EST-0026] Missing route to pin _1207_/D in net _0050_.
+[EST-0026] Missing route to pin _0970_/Y in net _0050_.
+[EST-0026] Missing route to pin _1207_/D in net _0050_.
+[EST-0026] Missing route to pin _0970_/Y in net _0050_.
+[EST-0026] Missing route to pin _1207_/D in net _0050_.
+[EST-0026] Missing route to pin _0970_/Y in net _0050_.
+[EST-0026] Missing route to pin _1209_/D in net _0052_.
+[EST-0026] Missing route to pin _0974_/X in net _0052_.
+[EST-0026] Missing route to pin _1209_/D in net _0052_.
+[EST-0026] Missing route to pin _0974_/X in net _0052_.
+[EST-0026] Missing route to pin _1209_/D in net _0052_.
+[EST-0026] Missing route to pin _0974_/X in net _0052_.
+[EST-0026] Missing route to pin _1209_/D in net _0052_.
+[EST-0026] Missing route to pin _0974_/X in net _0052_.
+[EST-0026] Missing route to pin _1209_/D in net _0052_.
+[EST-0026] Missing route to pin _0974_/X in net _0052_.
+[EST-0026] Missing route to pin _1209_/D in net _0052_.
+[EST-0026] Missing route to pin _0974_/X in net _0052_.
+[EST-0026] Missing route to pin _1209_/D in net _0052_.
+[EST-0026] Missing route to pin _0974_/X in net _0052_.
+[EST-0026] Missing route to pin _1209_/D in net _0052_.
+[EST-0026] Missing route to pin _0974_/X in net _0052_.
+[EST-0026] Missing route to pin _1209_/D in net _0052_.
+[EST-0026] Missing route to pin _0974_/X in net _0052_.
+[EST-0026] Missing route to pin _1210_/D in net _0053_.
+[EST-0026] Missing route to pin _0985_/X in net _0053_.
+[EST-0026] Missing route to pin _1210_/D in net _0053_.
+[EST-0026] Missing route to pin _0985_/X in net _0053_.
+[EST-0026] Missing route to pin _1210_/D in net _0053_.
+[EST-0026] Missing route to pin _0985_/X in net _0053_.
+[EST-0026] Missing route to pin _1210_/D in net _0053_.
+[EST-0026] Missing route to pin _0985_/X in net _0053_.
+[EST-0026] Missing route to pin _1210_/D in net _0053_.
+[EST-0026] Missing route to pin _0985_/X in net _0053_.
+[EST-0026] Missing route to pin _1210_/D in net _0053_.
+[EST-0026] Missing route to pin _0985_/X in net _0053_.
+[EST-0026] Missing route to pin _1210_/D in net _0053_.
+[EST-0026] Missing route to pin _0985_/X in net _0053_.
+[EST-0026] Missing route to pin _1210_/D in net _0053_.
+[EST-0026] Missing route to pin _0985_/X in net _0053_.
+[EST-0026] Missing route to pin _1210_/D in net _0053_.
+[EST-0026] Missing route to pin _0985_/X in net _0053_.
+[EST-0026] Missing route to pin _1212_/D in net _0055_.
+[EST-0026] Missing route to pin _0994_/X in net _0055_.
+[EST-0026] Missing route to pin _1212_/D in net _0055_.
+[EST-0026] Missing route to pin _0994_/X in net _0055_.
+[EST-0026] Missing route to pin _1212_/D in net _0055_.
+[EST-0026] Missing route to pin _0994_/X in net _0055_.
+[EST-0026] Missing route to pin _1212_/D in net _0055_.
+[EST-0026] Missing route to pin _0994_/X in net _0055_.
+[EST-0026] Missing route to pin _1212_/D in net _0055_.
+[EST-0026] Missing route to pin _0994_/X in net _0055_.
+[EST-0026] Missing route to pin _1212_/D in net _0055_.
+[EST-0026] Missing route to pin _0994_/X in net _0055_.
+[EST-0026] Missing route to pin _1212_/D in net _0055_.
+[EST-0026] Missing route to pin _0994_/X in net _0055_.
+[EST-0026] Missing route to pin _1212_/D in net _0055_.
+[EST-0026] Missing route to pin _0994_/X in net _0055_.
+[EST-0026] Missing route to pin _1212_/D in net _0055_.
+[EST-0026] Missing route to pin _0994_/X in net _0055_.
+[EST-0026] Missing route to pin _1214_/D in net _0057_.
+[EST-0026] Missing route to pin _1003_/X in net _0057_.
+[EST-0026] Missing route to pin _1214_/D in net _0057_.
+[EST-0026] Missing route to pin _1003_/X in net _0057_.
+[EST-0026] Missing route to pin _1214_/D in net _0057_.
+[EST-0026] Missing route to pin _1003_/X in net _0057_.
+[EST-0026] Missing route to pin _1214_/D in net _0057_.
+[EST-0026] Missing route to pin _1003_/X in net _0057_.
+[EST-0026] Missing route to pin _1214_/D in net _0057_.
+[EST-0026] Missing route to pin _1003_/X in net _0057_.
+[EST-0026] Missing route to pin _1214_/D in net _0057_.
+[EST-0026] Missing route to pin _1003_/X in net _0057_.
+[EST-0026] Missing route to pin _1214_/D in net _0057_.
+[EST-0026] Missing route to pin _1003_/X in net _0057_.
+[EST-0026] Missing route to pin _1214_/D in net _0057_.
+[EST-0026] Missing route to pin _1003_/X in net _0057_.
+[EST-0026] Missing route to pin _1214_/D in net _0057_.
+[EST-0026] Missing route to pin _1003_/X in net _0057_.
+[EST-0026] Missing route to pin _1216_/D in net _0059_.
+[EST-0026] Missing route to pin _1013_/X in net _0059_.
+[EST-0026] Missing route to pin _1216_/D in net _0059_.
+[EST-0026] Missing route to pin _1013_/X in net _0059_.
+[EST-0026] Missing route to pin _1216_/D in net _0059_.
+[EST-0026] Missing route to pin _1013_/X in net _0059_.
+[EST-0026] Missing route to pin _1216_/D in net _0059_.
+[EST-0026] Missing route to pin _1013_/X in net _0059_.
+[EST-0026] Missing route to pin _1216_/D in net _0059_.
+[EST-0026] Missing route to pin _1013_/X in net _0059_.
+[EST-0026] Missing route to pin _1216_/D in net _0059_.
+[EST-0026] Missing route to pin _1013_/X in net _0059_.
+[EST-0026] Missing route to pin _1216_/D in net _0059_.
+[EST-0026] Missing route to pin _1013_/X in net _0059_.
+[EST-0026] Missing route to pin _1216_/D in net _0059_.
+[EST-0026] Missing route to pin _1013_/X in net _0059_.
+[EST-0026] Missing route to pin _1216_/D in net _0059_.
+[EST-0026] Missing route to pin _1013_/X in net _0059_.
+[EST-0026] Missing route to pin _1217_/D in net _0060_.
+[EST-0026] Missing route to pin _1017_/X in net _0060_.
+[EST-0026] Missing route to pin _1217_/D in net _0060_.
+[EST-0026] Missing route to pin _1017_/X in net _0060_.
+[EST-0026] Missing route to pin _1217_/D in net _0060_.
+[EST-0026] Missing route to pin _1017_/X in net _0060_.
+[EST-0026] Missing route to pin _1217_/D in net _0060_.
+[EST-0026] Missing route to pin _1017_/X in net _0060_.
+[EST-0026] Missing route to pin _1217_/D in net _0060_.
+[EST-0026] Missing route to pin _1017_/X in net _0060_.
+[EST-0026] Missing route to pin _1217_/D in net _0060_.
+[EST-0026] Missing route to pin _1017_/X in net _0060_.
+[EST-0026] Missing route to pin _1217_/D in net _0060_.
+[EST-0026] Missing route to pin _1017_/X in net _0060_.
+[EST-0026] Missing route to pin _1217_/D in net _0060_.
+[EST-0026] Missing route to pin _1017_/X in net _0060_.
+[EST-0026] Missing route to pin _1217_/D in net _0060_.
+[EST-0026] Missing route to pin _1017_/X in net _0060_.
+[EST-0026] Missing route to pin _1218_/D in net _0061_.
+[EST-0026] Missing route to pin _1022_/Y in net _0061_.
+[EST-0026] Missing route to pin _1218_/D in net _0061_.
+[EST-0026] Missing route to pin _1022_/Y in net _0061_.
+[EST-0026] Missing route to pin _1218_/D in net _0061_.
+[EST-0026] Missing route to pin _1022_/Y in net _0061_.
+[EST-0026] Missing route to pin _1218_/D in net _0061_.
+[EST-0026] Missing route to pin _1022_/Y in net _0061_.
+[EST-0026] Missing route to pin _1218_/D in net _0061_.
+[EST-0026] Missing route to pin _1022_/Y in net _0061_.
+[EST-0026] Missing route to pin _1218_/D in net _0061_.
+[EST-0026] Missing route to pin _1022_/Y in net _0061_.
+[EST-0026] Missing route to pin _1218_/D in net _0061_.
+[EST-0026] Missing route to pin _1022_/Y in net _0061_.
+[EST-0026] Missing route to pin _1218_/D in net _0061_.
+[EST-0026] Missing route to pin _1022_/Y in net _0061_.
+[EST-0026] Missing route to pin _1218_/D in net _0061_.
+[EST-0026] Missing route to pin _1022_/Y in net _0061_.
+[EST-0026] Missing route to pin _1222_/D in net _0065_.
+[EST-0026] Missing route to pin _1037_/X in net _0065_.
+[EST-0026] Missing route to pin _1222_/D in net _0065_.
+[EST-0026] Missing route to pin _1037_/X in net _0065_.
+[EST-0026] Missing route to pin _1222_/D in net _0065_.
+[EST-0026] Missing route to pin _1037_/X in net _0065_.
+[EST-0026] Missing route to pin _1222_/D in net _0065_.
+[EST-0026] Missing route to pin _1037_/X in net _0065_.
+[EST-0026] Missing route to pin _1222_/D in net _0065_.
+[EST-0026] Missing route to pin _1037_/X in net _0065_.
+[EST-0026] Missing route to pin _1222_/D in net _0065_.
+[EST-0026] Missing route to pin _1037_/X in net _0065_.
+[EST-0026] Missing route to pin _1222_/D in net _0065_.
+[EST-0026] Missing route to pin _1037_/X in net _0065_.
+[EST-0026] Missing route to pin _1222_/D in net _0065_.
+[EST-0026] Missing route to pin _1037_/X in net _0065_.
+[EST-0026] Missing route to pin _1222_/D in net _0065_.
+[EST-0026] Missing route to pin _1037_/X in net _0065_.
+[EST-0026] Missing route to pin _1223_/D in net _0066_.
+[EST-0026] Missing route to pin _1040_/Y in net _0066_.
+[EST-0026] Missing route to pin _1223_/D in net _0066_.
+[EST-0026] Missing route to pin _1040_/Y in net _0066_.
+[EST-0026] Missing route to pin _1223_/D in net _0066_.
+[EST-0026] Missing route to pin _1040_/Y in net _0066_.
+[EST-0026] Missing route to pin _1223_/D in net _0066_.
+[EST-0026] Missing route to pin _1040_/Y in net _0066_.
+[EST-0026] Missing route to pin _1223_/D in net _0066_.
+[EST-0026] Missing route to pin _1040_/Y in net _0066_.
+[EST-0026] Missing route to pin _1223_/D in net _0066_.
+[EST-0026] Missing route to pin _1040_/Y in net _0066_.
+[EST-0026] Missing route to pin _1223_/D in net _0066_.
+[EST-0026] Missing route to pin _1040_/Y in net _0066_.
+[EST-0026] Missing route to pin _1223_/D in net _0066_.
+[EST-0026] Missing route to pin _1040_/Y in net _0066_.
+[EST-0026] Missing route to pin _1223_/D in net _0066_.
+[EST-0026] Missing route to pin _1040_/Y in net _0066_.
+[EST-0026] Missing route to pin _1224_/D in net _0067_.
+[EST-0026] Missing route to pin _1046_/Y in net _0067_.
+[EST-0026] Missing route to pin _1224_/D in net _0067_.
+[EST-0026] Missing route to pin _1046_/Y in net _0067_.
+[EST-0026] Missing route to pin _1224_/D in net _0067_.
+[EST-0026] Missing route to pin _1046_/Y in net _0067_.
+[EST-0026] Missing route to pin _1224_/D in net _0067_.
+[EST-0026] Missing route to pin _1046_/Y in net _0067_.
+[EST-0026] Missing route to pin _1224_/D in net _0067_.
+[EST-0026] Missing route to pin _1046_/Y in net _0067_.
+[EST-0026] Missing route to pin _1224_/D in net _0067_.
+[EST-0026] Missing route to pin _1046_/Y in net _0067_.
+[EST-0026] Missing route to pin _1224_/D in net _0067_.
+[EST-0026] Missing route to pin _1046_/Y in net _0067_.
+[EST-0026] Missing route to pin _1224_/D in net _0067_.
+[EST-0026] Missing route to pin _1046_/Y in net _0067_.
+[EST-0026] Missing route to pin _1224_/D in net _0067_.
+[EST-0026] Missing route to pin _1046_/Y in net _0067_.
+[EST-0026] Missing route to pin _1225_/D in net _0068_.
+[EST-0026] Missing route to pin _1049_/X in net _0068_.
+[EST-0026] Missing route to pin _1225_/D in net _0068_.
+[EST-0026] Missing route to pin _1049_/X in net _0068_.
+[EST-0026] Missing route to pin _1225_/D in net _0068_.
+[EST-0026] Missing route to pin _1049_/X in net _0068_.
+[EST-0026] Missing route to pin _1225_/D in net _0068_.
+[EST-0026] Missing route to pin _1049_/X in net _0068_.
+[EST-0026] Missing route to pin _1225_/D in net _0068_.
+[EST-0026] Missing route to pin _1049_/X in net _0068_.
+[EST-0026] Missing route to pin _1225_/D in net _0068_.
+[EST-0026] Missing route to pin _1049_/X in net _0068_.
+[EST-0026] Missing route to pin _1225_/D in net _0068_.
+[EST-0026] Missing route to pin _1049_/X in net _0068_.
+[EST-0026] Missing route to pin _1225_/D in net _0068_.
+[EST-0026] Missing route to pin _1049_/X in net _0068_.
+[EST-0026] Missing route to pin _1225_/D in net _0068_.
+[EST-0026] Missing route to pin _1049_/X in net _0068_.
+[EST-0026] Missing route to pin _1228_/D in net _0071_.
+[EST-0026] Missing route to pin _1060_/Y in net _0071_.
+[EST-0026] Missing route to pin _1228_/D in net _0071_.
+[EST-0026] Missing route to pin _1060_/Y in net _0071_.
+[EST-0026] Missing route to pin _1228_/D in net _0071_.
+[EST-0026] Missing route to pin _1060_/Y in net _0071_.
+[EST-0026] Missing route to pin _1228_/D in net _0071_.
+[EST-0026] Missing route to pin _1060_/Y in net _0071_.
+[EST-0026] Missing route to pin _1228_/D in net _0071_.
+[EST-0026] Missing route to pin _1060_/Y in net _0071_.
+[EST-0026] Missing route to pin _1228_/D in net _0071_.
+[EST-0026] Missing route to pin _1060_/Y in net _0071_.
+[EST-0026] Missing route to pin _1228_/D in net _0071_.
+[EST-0026] Missing route to pin _1060_/Y in net _0071_.
+[EST-0026] Missing route to pin _1228_/D in net _0071_.
+[EST-0026] Missing route to pin _1060_/Y in net _0071_.
+[EST-0026] Missing route to pin _1228_/D in net _0071_.
+[EST-0026] Missing route to pin _1060_/Y in net _0071_.
+[EST-0026] Missing route to pin _1230_/D in net _0073_.
+[EST-0026] Missing route to pin _1066_/X in net _0073_.
+[EST-0026] Missing route to pin _1230_/D in net _0073_.
+[EST-0026] Missing route to pin _1066_/X in net _0073_.
+[EST-0026] Missing route to pin _1230_/D in net _0073_.
+[EST-0026] Missing route to pin _1066_/X in net _0073_.
+[EST-0026] Missing route to pin _1230_/D in net _0073_.
+[EST-0026] Missing route to pin _1066_/X in net _0073_.
+[EST-0026] Missing route to pin _1230_/D in net _0073_.
+[EST-0026] Missing route to pin _1066_/X in net _0073_.
+[EST-0026] Missing route to pin _1230_/D in net _0073_.
+[EST-0026] Missing route to pin _1066_/X in net _0073_.
+[EST-0026] Missing route to pin _1230_/D in net _0073_.
+[EST-0026] Missing route to pin _1066_/X in net _0073_.
+[EST-0026] Missing route to pin _1230_/D in net _0073_.
+[EST-0026] Missing route to pin _1066_/X in net _0073_.
+[EST-0026] Missing route to pin _1230_/D in net _0073_.
+[EST-0026] Missing route to pin _1066_/X in net _0073_.
+[EST-0026] Missing route to pin _1231_/D in net _0074_.
+[EST-0026] Missing route to pin _1069_/Y in net _0074_.
+[EST-0026] Missing route to pin _1231_/D in net _0074_.
+[EST-0026] Missing route to pin _1069_/Y in net _0074_.
+[EST-0026] Missing route to pin _1231_/D in net _0074_.
+[EST-0026] Missing route to pin _1069_/Y in net _0074_.
+[EST-0026] Missing route to pin _1231_/D in net _0074_.
+[EST-0026] Missing route to pin _1069_/Y in net _0074_.
+[EST-0026] Missing route to pin _1231_/D in net _0074_.
+[EST-0026] Missing route to pin _1069_/Y in net _0074_.
+[EST-0026] Missing route to pin _1231_/D in net _0074_.
+[EST-0026] Missing route to pin _1069_/Y in net _0074_.
+[EST-0026] Missing route to pin _1231_/D in net _0074_.
+[EST-0026] Missing route to pin _1069_/Y in net _0074_.
+[EST-0026] Missing route to pin _1231_/D in net _0074_.
+[EST-0026] Missing route to pin _1069_/Y in net _0074_.
+[EST-0026] Missing route to pin _1231_/D in net _0074_.
+[EST-0026] Missing route to pin _1069_/Y in net _0074_.
+[EST-0026] Missing route to pin _1233_/D in net _0076_.
+[EST-0026] Missing route to pin _1073_/X in net _0076_.
+[EST-0026] Missing route to pin _1233_/D in net _0076_.
+[EST-0026] Missing route to pin _1073_/X in net _0076_.
+[EST-0026] Missing route to pin _1233_/D in net _0076_.
+[EST-0026] Missing route to pin _1073_/X in net _0076_.
+[EST-0026] Missing route to pin _1233_/D in net _0076_.
+[EST-0026] Missing route to pin _1073_/X in net _0076_.
+[EST-0026] Missing route to pin _1233_/D in net _0076_.
+[EST-0026] Missing route to pin _1073_/X in net _0076_.
+[EST-0026] Missing route to pin _1233_/D in net _0076_.
+[EST-0026] Missing route to pin _1073_/X in net _0076_.
+[EST-0026] Missing route to pin _1233_/D in net _0076_.
+[EST-0026] Missing route to pin _1073_/X in net _0076_.
+[EST-0026] Missing route to pin _1233_/D in net _0076_.
+[EST-0026] Missing route to pin _1073_/X in net _0076_.
+[EST-0026] Missing route to pin _1233_/D in net _0076_.
+[EST-0026] Missing route to pin _1073_/X in net _0076_.
+[EST-0026] Missing route to pin _1234_/D in net _0077_.
+[EST-0026] Missing route to pin _1077_/Y in net _0077_.
+[EST-0026] Missing route to pin _1234_/D in net _0077_.
+[EST-0026] Missing route to pin _1077_/Y in net _0077_.
+[EST-0026] Missing route to pin _1234_/D in net _0077_.
+[EST-0026] Missing route to pin _1077_/Y in net _0077_.
+[EST-0026] Missing route to pin _1234_/D in net _0077_.
+[EST-0026] Missing route to pin _1077_/Y in net _0077_.
+[EST-0026] Missing route to pin _1234_/D in net _0077_.
+[EST-0026] Missing route to pin _1077_/Y in net _0077_.
+[EST-0026] Missing route to pin _1234_/D in net _0077_.
+[EST-0026] Missing route to pin _1077_/Y in net _0077_.
+[EST-0026] Missing route to pin _1234_/D in net _0077_.
+[EST-0026] Missing route to pin _1077_/Y in net _0077_.
+[EST-0026] Missing route to pin _1234_/D in net _0077_.
+[EST-0026] Missing route to pin _1077_/Y in net _0077_.
+[EST-0026] Missing route to pin _1234_/D in net _0077_.
+[EST-0026] Missing route to pin _1077_/Y in net _0077_.
+[EST-0026] Missing route to pin _1235_/D in net _0078_.
+[EST-0026] Missing route to pin _1080_/Y in net _0078_.
+[EST-0026] Missing route to pin _1235_/D in net _0078_.
+[EST-0026] Missing route to pin _1080_/Y in net _0078_.
+[EST-0026] Missing route to pin _1235_/D in net _0078_.
+[EST-0026] Missing route to pin _1080_/Y in net _0078_.
+[EST-0026] Missing route to pin _1235_/D in net _0078_.
+[EST-0026] Missing route to pin _1080_/Y in net _0078_.
+[EST-0026] Missing route to pin _1235_/D in net _0078_.
+[EST-0026] Missing route to pin _1080_/Y in net _0078_.
+[EST-0026] Missing route to pin _1235_/D in net _0078_.
+[EST-0026] Missing route to pin _1080_/Y in net _0078_.
+[EST-0026] Missing route to pin _1235_/D in net _0078_.
+[EST-0026] Missing route to pin _1080_/Y in net _0078_.
+[EST-0026] Missing route to pin _1235_/D in net _0078_.
+[EST-0026] Missing route to pin _1080_/Y in net _0078_.
+[EST-0026] Missing route to pin _1235_/D in net _0078_.
+[EST-0026] Missing route to pin _1080_/Y in net _0078_.
+[EST-0026] Missing route to pin _1236_/D in net _0079_.
+[EST-0026] Missing route to pin _1083_/X in net _0079_.
+[EST-0026] Missing route to pin _1236_/D in net _0079_.
+[EST-0026] Missing route to pin _1083_/X in net _0079_.
+[EST-0026] Missing route to pin _1236_/D in net _0079_.
+[EST-0026] Missing route to pin _1083_/X in net _0079_.
+[EST-0026] Missing route to pin _1236_/D in net _0079_.
+[EST-0026] Missing route to pin _1083_/X in net _0079_.
+[EST-0026] Missing route to pin _1236_/D in net _0079_.
+[EST-0026] Missing route to pin _1083_/X in net _0079_.
+[EST-0026] Missing route to pin _1236_/D in net _0079_.
+[EST-0026] Missing route to pin _1083_/X in net _0079_.
+[EST-0026] Missing route to pin _1236_/D in net _0079_.
+[EST-0026] Missing route to pin _1083_/X in net _0079_.
+[EST-0026] Missing route to pin _1236_/D in net _0079_.
+[EST-0026] Missing route to pin _1083_/X in net _0079_.
+[EST-0026] Missing route to pin _1236_/D in net _0079_.
+[EST-0026] Missing route to pin _1083_/X in net _0079_.
+[EST-0026] Missing route to pin _1237_/D in net _0080_.
+[EST-0026] Missing route to pin _1093_/Y in net _0080_.
+[EST-0026] Missing route to pin _1237_/D in net _0080_.
+[EST-0026] Missing route to pin _1093_/Y in net _0080_.
+[EST-0026] Missing route to pin _1237_/D in net _0080_.
+[EST-0026] Missing route to pin _1093_/Y in net _0080_.
+[EST-0026] Missing route to pin _1237_/D in net _0080_.
+[EST-0026] Missing route to pin _1093_/Y in net _0080_.
+[EST-0026] Missing route to pin _1237_/D in net _0080_.
+[EST-0026] Missing route to pin _1093_/Y in net _0080_.
+[EST-0026] Missing route to pin _1237_/D in net _0080_.
+[EST-0026] Missing route to pin _1093_/Y in net _0080_.
+[EST-0026] Missing route to pin _1237_/D in net _0080_.
+[EST-0026] Missing route to pin _1093_/Y in net _0080_.
+[EST-0026] Missing route to pin _1237_/D in net _0080_.
+[EST-0026] Missing route to pin _1093_/Y in net _0080_.
+[EST-0026] Missing route to pin _1237_/D in net _0080_.
+[EST-0026] Missing route to pin _1093_/Y in net _0080_.
+[EST-0026] Missing route to pin hold582/A in net _0081_.
+[EST-0026] Missing route to pin _1095_/X in net _0081_.
+[EST-0026] Missing route to pin hold582/A in net _0081_.
+[EST-0026] Missing route to pin _1095_/X in net _0081_.
+[EST-0026] Missing route to pin hold582/A in net _0081_.
+[EST-0026] Missing route to pin _1095_/X in net _0081_.
+[EST-0026] Missing route to pin hold582/A in net _0081_.
+[EST-0026] Missing route to pin _1095_/X in net _0081_.
+[EST-0026] Missing route to pin hold582/A in net _0081_.
+[EST-0026] Missing route to pin _1095_/X in net _0081_.
+[EST-0026] Missing route to pin hold582/A in net _0081_.
+[EST-0026] Missing route to pin _1095_/X in net _0081_.
+[EST-0026] Missing route to pin hold582/A in net _0081_.
+[EST-0026] Missing route to pin _1095_/X in net _0081_.
+[EST-0026] Missing route to pin hold582/A in net _0081_.
+[EST-0026] Missing route to pin _1095_/X in net _0081_.
+[EST-0026] Missing route to pin hold582/A in net _0081_.
+[EST-0026] Missing route to pin _1095_/X in net _0081_.
+[EST-0026] Missing route to pin _1239_/D in net _0082_.
+[EST-0026] Missing route to pin _1103_/X in net _0082_.
+[EST-0026] Missing route to pin _1239_/D in net _0082_.
+[EST-0026] Missing route to pin _1103_/X in net _0082_.
+[EST-0026] Missing route to pin _1239_/D in net _0082_.
+[EST-0026] Missing route to pin _1103_/X in net _0082_.
+[EST-0026] Missing route to pin _1239_/D in net _0082_.
+[EST-0026] Missing route to pin _1103_/X in net _0082_.
+[EST-0026] Missing route to pin _1239_/D in net _0082_.
+[EST-0026] Missing route to pin _1103_/X in net _0082_.
+[EST-0026] Missing route to pin _1239_/D in net _0082_.
+[EST-0026] Missing route to pin _1103_/X in net _0082_.
+[EST-0026] Missing route to pin _1239_/D in net _0082_.
+[EST-0026] Missing route to pin _1103_/X in net _0082_.
+[EST-0026] Missing route to pin _1239_/D in net _0082_.
+[EST-0026] Missing route to pin _1103_/X in net _0082_.
+[EST-0026] Missing route to pin _1239_/D in net _0082_.
+[EST-0026] Missing route to pin _1103_/X in net _0082_.
+[EST-0026] Missing route to pin _1240_/D in net _0083_.
+[EST-0026] Missing route to pin _1104_/X in net _0083_.
+[EST-0026] Missing route to pin _1240_/D in net _0083_.
+[EST-0026] Missing route to pin _1104_/X in net _0083_.
+[EST-0026] Missing route to pin _1240_/D in net _0083_.
+[EST-0026] Missing route to pin _1104_/X in net _0083_.
+[EST-0026] Missing route to pin _1240_/D in net _0083_.
+[EST-0026] Missing route to pin _1104_/X in net _0083_.
+[EST-0026] Missing route to pin _1240_/D in net _0083_.
+[EST-0026] Missing route to pin _1104_/X in net _0083_.
+[EST-0026] Missing route to pin _1240_/D in net _0083_.
+[EST-0026] Missing route to pin _1104_/X in net _0083_.
+[EST-0026] Missing route to pin _1240_/D in net _0083_.
+[EST-0026] Missing route to pin _1104_/X in net _0083_.
+[EST-0026] Missing route to pin _1240_/D in net _0083_.
+[EST-0026] Missing route to pin _1104_/X in net _0083_.
+[EST-0026] Missing route to pin _1240_/D in net _0083_.
+[EST-0026] Missing route to pin _1104_/X in net _0083_.
+[EST-0026] Missing route to pin _1241_/D in net _0084_.
+[EST-0026] Missing route to pin _1107_/X in net _0084_.
+[EST-0026] Missing route to pin _1241_/D in net _0084_.
+[EST-0026] Missing route to pin _1107_/X in net _0084_.
+[EST-0026] Missing route to pin _1241_/D in net _0084_.
+[EST-0026] Missing route to pin _1107_/X in net _0084_.
+[EST-0026] Missing route to pin _1241_/D in net _0084_.
+[EST-0026] Missing route to pin _1107_/X in net _0084_.
+[EST-0026] Missing route to pin _1241_/D in net _0084_.
+[EST-0026] Missing route to pin _1107_/X in net _0084_.
+[EST-0026] Missing route to pin _1241_/D in net _0084_.
+[EST-0026] Missing route to pin _1107_/X in net _0084_.
+[EST-0026] Missing route to pin _1241_/D in net _0084_.
+[EST-0026] Missing route to pin _1107_/X in net _0084_.
+[EST-0026] Missing route to pin _1241_/D in net _0084_.
+[EST-0026] Missing route to pin _1107_/X in net _0084_.
+[EST-0026] Missing route to pin _1241_/D in net _0084_.
+[EST-0026] Missing route to pin _1107_/X in net _0084_.
+[EST-0026] Missing route to pin hold618/A in net _0085_.
+[EST-0026] Missing route to pin _1108_/X in net _0085_.
+[EST-0026] Missing route to pin hold618/A in net _0085_.
+[EST-0026] Missing route to pin _1108_/X in net _0085_.
+[EST-0026] Missing route to pin hold618/A in net _0085_.
+[EST-0026] Missing route to pin _1108_/X in net _0085_.
+[EST-0026] Missing route to pin hold618/A in net _0085_.
+[EST-0026] Missing route to pin _1108_/X in net _0085_.
+[EST-0026] Missing route to pin hold618/A in net _0085_.
+[EST-0026] Missing route to pin _1108_/X in net _0085_.
+[EST-0026] Missing route to pin hold618/A in net _0085_.
+[EST-0026] Missing route to pin _1108_/X in net _0085_.
+[EST-0026] Missing route to pin hold618/A in net _0085_.
+[EST-0026] Missing route to pin _1108_/X in net _0085_.
+[EST-0026] Missing route to pin hold618/A in net _0085_.
+[EST-0026] Missing route to pin _1108_/X in net _0085_.
+[EST-0026] Missing route to pin hold618/A in net _0085_.
+[EST-0026] Missing route to pin _1108_/X in net _0085_.
+[EST-0026] Missing route to pin _1244_/D in net _0087_.
+[EST-0026] Missing route to pin _1111_/X in net _0087_.
+[EST-0026] Missing route to pin _1244_/D in net _0087_.
+[EST-0026] Missing route to pin _1111_/X in net _0087_.
+[EST-0026] Missing route to pin _1244_/D in net _0087_.
+[EST-0026] Missing route to pin _1111_/X in net _0087_.
+[EST-0026] Missing route to pin _1244_/D in net _0087_.
+[EST-0026] Missing route to pin _1111_/X in net _0087_.
+[EST-0026] Missing route to pin _1244_/D in net _0087_.
+[EST-0026] Missing route to pin _1111_/X in net _0087_.
+[EST-0026] Missing route to pin _1244_/D in net _0087_.
+[EST-0026] Missing route to pin _1111_/X in net _0087_.
+[EST-0026] Missing route to pin _1244_/D in net _0087_.
+[EST-0026] Missing route to pin _1111_/X in net _0087_.
+[EST-0026] Missing route to pin _1244_/D in net _0087_.
+[EST-0026] Missing route to pin _1111_/X in net _0087_.
+[EST-0026] Missing route to pin _1244_/D in net _0087_.
+[EST-0026] Missing route to pin _1111_/X in net _0087_.
+[EST-0026] Missing route to pin _1249_/D in net _0092_.
+[EST-0026] Missing route to pin _1127_/X in net _0092_.
+[EST-0026] Missing route to pin _1249_/D in net _0092_.
+[EST-0026] Missing route to pin _1127_/X in net _0092_.
+[EST-0026] Missing route to pin _1249_/D in net _0092_.
+[EST-0026] Missing route to pin _1127_/X in net _0092_.
+[EST-0026] Missing route to pin _1249_/D in net _0092_.
+[EST-0026] Missing route to pin _1127_/X in net _0092_.
+[EST-0026] Missing route to pin _1249_/D in net _0092_.
+[EST-0026] Missing route to pin _1127_/X in net _0092_.
+[EST-0026] Missing route to pin _1249_/D in net _0092_.
+[EST-0026] Missing route to pin _1127_/X in net _0092_.
+[EST-0026] Missing route to pin _1249_/D in net _0092_.
+[EST-0026] Missing route to pin _1127_/X in net _0092_.
+[EST-0026] Missing route to pin _1249_/D in net _0092_.
+[EST-0026] Missing route to pin _1127_/X in net _0092_.
+[EST-0026] Missing route to pin _1249_/D in net _0092_.
+[EST-0026] Missing route to pin _1127_/X in net _0092_.
+[EST-0026] Missing route to pin _1252_/D in net _0095_.
+[EST-0026] Missing route to pin _1138_/Y in net _0095_.
+[EST-0026] Missing route to pin _1252_/D in net _0095_.
+[EST-0026] Missing route to pin _1138_/Y in net _0095_.
+[EST-0026] Missing route to pin _1252_/D in net _0095_.
+[EST-0026] Missing route to pin _1138_/Y in net _0095_.
+[EST-0026] Missing route to pin _1252_/D in net _0095_.
+[EST-0026] Missing route to pin _1138_/Y in net _0095_.
+[EST-0026] Missing route to pin _1252_/D in net _0095_.
+[EST-0026] Missing route to pin _1138_/Y in net _0095_.
+[EST-0026] message limit (1000) reached. This message will no longer print.
+Running 'Odb.DiodesOnPorts' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/42-odb-diodesonports'…
+'DIODE_ON_PORTS' is set to 'none': skipping 'Odb.DiodesOnPorts'…
+Gating variable for step 'Odb.HeuristicDiodeInsertion' set to 'False'- the step will be skipped.
+Skipping step 'Heuristic Diode Insertion'…
+Running 'OpenROAD.RepairAntennas' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/43-openroad-repairantennas'…
+Running 'OpenROAD.DiodeInsertion' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/43-openroad-repairantennas/1-openroad-diodeinsertion'…
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/43-openroad-repairantennas/1-openroad-diodeinsertion/openroad-diodeinsertion.log'[/repr.filename]…
+Running 'OpenROAD.CheckAntennas' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/43-openroad-repairantennas/2-openroad-checkantennas'…
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/43-openroad-repairantennas/2-openroad-checkantennas/openroad-checkantennas.log'[/repr.filename]…
+Gating variable for step 'OpenROAD.ResizerTimingPostGRT' set to 'False'- the step will be skipped.
+Skipping step 'Resizer Timing Optimizations (Post-Global Routing)'…
+Running 'OpenROAD.STAMidPNR-3' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/44-openroad-stamidpnr-3'…
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/44-openroad-stamidpnr-3/openroad-stamidpnr-3.log'[/repr.filename]…
+Running 'OpenROAD.DetailedRouting' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/45-openroad-detailedrouting'…
+Running TritonRoute with 6 threads…
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/45-openroad-detailedrouting/openroad-detailedrouting.log'[/repr.filename]…
+[DRT-0349] LEF58_ENCLOSURE with no CUTCLASS is not supported. Skipping for layer mcon
+[DRT-0349] LEF58_ENCLOSURE with no CUTCLASS is not supported. Skipping for layer mcon
+[DRT-0349] LEF58_ENCLOSURE with no CUTCLASS is not supported. Skipping for layer via
+[DRT-0349] LEF58_ENCLOSURE with no CUTCLASS is not supported. Skipping for layer via
+[DRT-0349] LEF58_ENCLOSURE with no CUTCLASS is not supported. Skipping for layer via2
+[DRT-0349] LEF58_ENCLOSURE with no CUTCLASS is not supported. Skipping for layer via2
+[DRT-0349] LEF58_ENCLOSURE with no CUTCLASS is not supported. Skipping for layer via3
+[DRT-0349] LEF58_ENCLOSURE with no CUTCLASS is not supported. Skipping for layer via3
+[DRT-0349] LEF58_ENCLOSURE with no CUTCLASS is not supported. Skipping for layer via4
+[DRT-0349] LEF58_ENCLOSURE with no CUTCLASS is not supported. Skipping for layer via4
+Running 'Odb.RemoveRoutingObstructions' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/46-odb-removeroutingobstructions'…
+'ROUTING_OBSTRUCTIONS' is not defined. Skipping 'Odb.RemoveRoutingObstructions'…
+Running 'OpenROAD.CheckAntennas-1' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/47-openroad-checkantennas-1'…
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/47-openroad-checkantennas-1/openroad-checkantennas-1.log'[/repr.filename]…
+Running 'Checker.TrDRC' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/48-checker-trdrc'…
+Check for Routing DRC errors clear.
+Running 'Odb.ReportDisconnectedPins' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/49-odb-reportdisconnectedpins'…
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/49-odb-reportdisconnectedpins/odb-reportdisconnectedpins.log'[/repr.filename]…
+Running 'Checker.DisconnectedPins' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/50-checker-disconnectedpins'…
+Check for critical disconnected pins clear.
+Running 'Odb.ReportWireLength' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/51-odb-reportwirelength'…
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/51-odb-reportwirelength/odb-reportwirelength.log'[/repr.filename]…
+Running 'Checker.WireLength' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/52-checker-wirelength'…
+Threshold for Threshold-surpassing long wires is not set. The checker will be skipped.
+Running 'OpenROAD.FillInsertion' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/53-openroad-fillinsertion'…
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/53-openroad-fillinsertion/openroad-fillinsertion.log'[/repr.filename]…
+Running 'Odb.CellFrequencyTables' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/54-odb-cellfrequencytables'…
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/54-odb-cellfrequencytables/buffer_list.txt'[/repr.filename]…
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/54-odb-cellfrequencytables/odb-cellfrequencytables.log'[/repr.filename]…
+Running 'OpenROAD.RCX' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/55-openroad-rcx'…
+Running RCX for corners matching nom_* (~/raja/open-ai-chip/designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/55-openroad-rcx/nom/rcx.log)…
+Running RCX for corners matching max_* (~/raja/open-ai-chip/designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/55-openroad-rcx/max/rcx.log)…
+Running RCX for corners matching min_* (~/raja/open-ai-chip/designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/55-openroad-rcx/min/rcx.log)…
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/55-openroad-rcx/nom/rcx.log'[/repr.filename]…
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/55-openroad-rcx/max/rcx.log'[/repr.filename]…
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/55-openroad-rcx/min/rcx.log'[/repr.filename]…
+Finished RCX for corners matching max_*.
+Finished RCX for corners matching min_*.
+Finished RCX for corners matching nom_*.
+Running 'OpenROAD.STAPostPNR' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/56-openroad-stapostpnr'…
+Starting STA for the nom_tt_025C_1v80 timing corner…
+Starting STA for the nom_ss_100C_1v60 timing corner…
+Starting STA for the nom_ff_n40C_1v95 timing corner…
+Starting STA for the min_tt_025C_1v80 timing corner…
+Starting STA for the min_ss_100C_1v60 timing corner…
+Starting STA for the min_ff_n40C_1v95 timing corner…
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/56-openroad-stapostpnr/nom_tt_025C_1v80/sta.log'[/repr.filename]…
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/56-openroad-stapostpnr/nom_ff_n40C_1v95/sta.log'[/repr.filename]…
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/56-openroad-stapostpnr/min_tt_025C_1v80/sta.log'[/repr.filename]…
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/56-openroad-stapostpnr/nom_ss_100C_1v60/sta.log'[/repr.filename]…
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/56-openroad-stapostpnr/min_ss_100C_1v60/sta.log'[/repr.filename]…
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/56-openroad-stapostpnr/min_ff_n40C_1v95/sta.log'[/repr.filename]…
+Finished STA for the min_ss_100C_1v60 timing corner.
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/56-openroad-stapostpnr/min_ss_100C_1v60/filter_unannotated.log'[/repr.filename]…
+Finished STA for the min_tt_025C_1v80 timing corner.
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/56-openroad-stapostpnr/min_tt_025C_1v80/filter_unannotated.log'[/repr.filename]…
+Finished STA for the nom_tt_025C_1v80 timing corner.
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/56-openroad-stapostpnr/nom_tt_025C_1v80/filter_unannotated.log'[/repr.filename]…
+Finished STA for the nom_ff_n40C_1v95 timing corner.
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/56-openroad-stapostpnr/nom_ff_n40C_1v95/filter_unannotated.log'[/repr.filename]…
+Finished STA for the nom_ss_100C_1v60 timing corner.
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/56-openroad-stapostpnr/nom_ss_100C_1v60/filter_unannotated.log'[/repr.filename]…
+Finished STA for the min_ff_n40C_1v95 timing corner.
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/56-openroad-stapostpnr/min_ff_n40C_1v95/filter_unannotated.log'[/repr.filename]…
+Starting STA for the max_tt_025C_1v80 timing corner…
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/56-openroad-stapostpnr/max_tt_025C_1v80/sta.log'[/repr.filename]…
+Starting STA for the max_ss_100C_1v60 timing corner…
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/56-openroad-stapostpnr/max_ss_100C_1v60/sta.log'[/repr.filename]…
+Starting STA for the max_ff_n40C_1v95 timing corner…
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/56-openroad-stapostpnr/max_ff_n40C_1v95/sta.log'[/repr.filename]…
+Finished STA for the max_ss_100C_1v60 timing corner.
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/56-openroad-stapostpnr/max_ss_100C_1v60/filter_unannotated.log'[/repr.filename]…
+Finished STA for the max_ff_n40C_1v95 timing corner.
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/56-openroad-stapostpnr/max_ff_n40C_1v95/filter_unannotated.log'[/repr.filename]…
+Finished STA for the max_tt_025C_1v80 timing corner.
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/56-openroad-stapostpnr/max_tt_025C_1v80/filter_unannotated.log'[/repr.filename]…
+Running 'OpenROAD.IRDropReport' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/57-openroad-irdropreport'…
+'VSRC_LOC_FILES' was not given a value, which may make the results of IR drop analysis inaccurate. If you are not integrating a top-level chip for manufacture, you may ignore this warning, otherwise, see the documentation for 'VSRC_LOC_FILES'.
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/57-openroad-irdropreport/openroad-irdropreport.log'[/repr.filename]…
++ analyze_power_grid -net vccd1 -voltage_file ~/raja/open-ai-chip/designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/57-openroad-irdropreport/net-vccd1.csv
+[INFO PSM-0040] All shapes on net vccd1 are connected.
+########## IR report #################
+Net              : vccd1
+Corner           : nom_tt_025C_1v80
+Total power      : 4.32e-04 W
+Supply voltage   : 1.80e+00 V
+Worstcase voltage: 1.80e+00 V
+Average voltage  : 1.80e+00 V
+Average IR drop  : 6.44e-06 V
+Worstcase IR drop: 8.53e-05 V
+Percentage drop  : 0.00 %
+######################################
++ analyze_power_grid -net vssd1 -voltage_file ~/raja/open-ai-chip/designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/57-openroad-irdropreport/net-vssd1.csv
+[INFO PSM-0040] All shapes on net vssd1 are connected.
+########## IR report #################
+Net              : vssd1
+Corner           : nom_tt_025C_1v80
+Total power      : 4.32e-04 W
+Supply voltage   : 0.00e+00 V
+Worstcase voltage: 9.88e-05 V
+Average voltage  : 6.41e-06 V
+Average IR drop  : 6.41e-06 V
+Worstcase IR drop: 9.88e-05 V
+Percentage drop  : 0.01 %
+######################################
+
+Running 'Magic.StreamOut' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/58-magic-streamout'…
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/58-magic-streamout/magic-streamout.log'[/repr.filename]…
+Running 'KLayout.StreamOut' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/59-klayout-streamout'…
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/59-klayout-streamout/klayout-streamout.log'[/repr.filename]…
+Running 'KLayout.Render' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/60-klayout-render'…
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/60-klayout-render/klayout-render.log'[/repr.filename]…
+Running 'Magic.WriteLEF' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/61-magic-writelef'…
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/61-magic-writelef/magic-writelef.log'[/repr.filename]…
+Running 'Odb.CheckDesignAntennaProperties' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/62-odb-checkdesignantennaproperties'…
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/62-odb-checkdesignantennaproperties/odb-checkdesignantennaproperties.log'[/repr.filename]…
+Cell 'tiny_ai_core' has (318) input pin(s) without antenna gate information. They might not be connected to a gate.
+Cell 'tiny_ai_core' has (176) output pin(s) without antenna diffusion information. They might not be driven.
+Running 'KLayout.XOR' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/63-klayout-xor'…
+Running XOR with 2 threads…
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/63-klayout-xor/klayout-xor.log'[/repr.filename]…
+Running 'Checker.XOR' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/64-checker-xor'…
+Check for XOR differences clear.
+Running 'Magic.DRC' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/65-magic-drc'…
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/65-magic-drc/magic-drc.log'[/repr.filename]…
+Running 'KLayout.DRC' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/66-klayout-drc'…
+Running KLayout DRC with 2 threads…
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/66-klayout-drc/klayout-drc.log'[/repr.filename]…
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/66-klayout-drc/xml_drc_report_to_json.log'[/repr.filename]…
+Running 'Checker.MagicDRC' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/67-checker-magicdrc'…
+Check for Magic DRC errors clear.
+Running 'Checker.KLayoutDRC' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/68-checker-klayoutdrc'…
+Check for KLayout DRC errors clear.
+Running 'Magic.SpiceExtraction' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/69-magic-spiceextraction'…
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/69-magic-spiceextraction/magic-spiceextraction.log'[/repr.filename]…
+Running 'Checker.IllegalOverlap' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/70-checker-illegaloverlap'…
+Check for Magic Illegal Overlap errors clear.
+Running 'Netgen.LVS' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/71-netgen-lvs'…
+Logging subprocess to [repr.filename]'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/71-netgen-lvs/netgen-lvs.log'[/repr.filename]…
+Running 'Checker.LVS' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/72-checker-lvs'…
+Check for LVS errors clear.
+Gating variable for step 'Yosys.EQY' set to 'False'- the step will be skipped.
+Skipping step 'Equivalence Check'…
+Running 'Checker.SetupViolations' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/73-checker-setupviolations'…
+No setup violations found
+Running 'Checker.HoldViolations' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/74-checker-holdviolations'…
+No hold violations found
+Running 'Checker.MaxSlewViolations' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/75-checker-maxslewviolations'…
+No max slew violations found
+Running 'Checker.MaxCapViolations' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/76-checker-maxcapviolations'…
+No max cap violations found
+Running 'Misc.ReportManufacturability' at 'designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/77-misc-reportmanufacturability'…
+Saving views to '~/raja/open-ai-chip/designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/final'…
+Flow complete.

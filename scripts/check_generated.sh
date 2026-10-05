@@ -12,6 +12,7 @@ for d in vision_all_lit vision_block text_sentiment; do
   mkdir -p "$TMP/designs/$d/rtl" "$TMP/designs/$d/tb"
   GEN+=("designs/$d/rtl/${d}_rom.v" "designs/$d/tb/vectors.hex")
 done
+mkdir -p "$TMP/designs/tiny_ai_core/tb"; GEN+=("designs/tiny_ai_core/tb/vectors.hex")
 (cd "$TMP/model/tiny_ai" && python3 train.py >/dev/null && python3 gen_rom.py >/dev/null) || { echo "check-generated: FAIL (generator failed)"; exit 1; }
 bad=0
 for f in "${GEN[@]}"; do

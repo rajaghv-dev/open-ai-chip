@@ -14,7 +14,8 @@ set -uo pipefail
 cd "$(dirname "$0")/.."
 D=designs/user_proj_example
 TINY="vision_all_lit vision_block text_sentiment"
-ALL="user_proj_example $TINY"
+CORE=tiny_ai_core                      # the three engines behind the Wishbone register block
+ALL="user_proj_example $TINY $CORE"
 FAILS=0
 pass() { echo "  PASS  $*"; }
 fail() { echo "  FAIL  $*"; FAILS=$((FAILS+1)); }
@@ -70,6 +71,10 @@ PY
 then pass "$d/config.json valid"; else fail "$d/config.json"; fi
 done
 
+for f in designs/$CORE/config.json designs/$CORE/rtl/$CORE.v designs/$CORE/tb/${CORE}_tb.v designs/$CORE/tb/vectors.hex; do
+  [ -f "$f" ] || fail "missing $f"
+done
+
 echo "== rtl"
 for d in $ALL; do
   RTL=$(python3 scripts/flow/design_info.py $d files)
@@ -89,7 +94,7 @@ else fail "check_generated.sh:"; cat "$TMP/gen.log"; fi
 echo "== sim"
 # vsim <dir-name> <design> <vvp> <vec>: run a compiled testbench; prints exit code in $rc, log in $TMP/<name>.log
 vsim() { (cd "$TMP" && vvp -n "$3" +VEC="$4" > "$1.log" 2>&1); rc=$?; }
-for d in $TINY; do
+for d in $TINY $CORE; do
   VEC="$PWD/designs/$d/tb/vectors.hex"
   vsim "sim_$d" "$d" "tb_$d.vvp" "$VEC"
   if [ $rc -eq 0 ] && grep -q '^PASS' "$TMP/sim_$d.log"; then pass "$d: $(grep -m1 '^PASS' "$TMP/sim_$d.log" | cut -c1-90)"
@@ -97,6 +102,26 @@ for d in $TINY; do
 done
 
 echo "== negative"
+# tiny_ai_core: flip the expected class (byte 11) of the first case record; the Wishbone testbench must fail
+python3 - designs/$CORE/tb/vectors.hex "$TMP/core_bad.hex" <<'PYX'
+import sys
+src, dst = sys.argv[1:3]
+out, seen = [], 0
+for ln in open(src):
+    s = ln.strip()
+    if s and not s.startswith("//"):
+        seen += 1
+        if seen == 2:                                   # record 0 is the header; record 1 is the first case
+            w = s.split(); w[11] = "%02x" % (int(w[11], 16) ^ 1); ln = " ".join(w) + "\n"
+    out.append(ln)
+open(dst, "w").writelines(out)
+PYX
+if cmp -s "$TMP/core_bad.hex" designs/$CORE/tb/vectors.hex; then fail "$CORE: vector corruption did not apply"
+else
+  vsim "neg_core" "$CORE" "tb_$CORE.vvp" "$TMP/core_bad.hex"
+  if [ $rc -ne 0 ] && ! grep -q '^PASS' "$TMP/neg_core.log"; then pass "$CORE: testbench rejects a corrupted expected class ($(grep -m1 FAIL "$TMP/neg_core.log" | cut -c1-70))"
+  else fail "$CORE: testbench passed a corrupted vector (exit $rc)"; fi
+fi
 # break the counter (increment by 2); the testbench must exit non-zero and print no PASS line
 sed 's/count <= count + 1'"'"'b1;/count <= count + 2'"'"'d2;/' $D/rtl/user_proj_example.v > "$TMP/broken.v"
 if cmp -s "$TMP/broken.v" $D/rtl/user_proj_example.v; then fail "mutation did not apply (RTL changed?)"

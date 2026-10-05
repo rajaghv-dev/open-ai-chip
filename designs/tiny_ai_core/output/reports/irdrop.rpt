@@ -1,0 +1,26 @@
++ analyze_power_grid -net vccd1 -voltage_file ~/raja/open-ai-chip/designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/57-openroad-irdropreport/net-vccd1.csv
+[INFO PSM-0040] All shapes on net vccd1 are connected.
+########## IR report #################
+Net              : vccd1
+Corner           : nom_tt_025C_1v80
+Total power      : 4.32e-04 W
+Supply voltage   : 1.80e+00 V
+Worstcase voltage: 1.80e+00 V
+Average voltage  : 1.80e+00 V
+Average IR drop  : 6.44e-06 V
+Worstcase IR drop: 8.53e-05 V
+Percentage drop  : 0.00 %
+######################################
++ analyze_power_grid -net vssd1 -voltage_file ~/raja/open-ai-chip/designs/tiny_ai_core/runs/RUN_2026-10-05_18-11-12/57-openroad-irdropreport/net-vssd1.csv
+[INFO PSM-0040] All shapes on net vssd1 are connected.
+########## IR report #################
+Net              : vssd1
+Corner           : nom_tt_025C_1v80
+Total power      : 4.32e-04 W
+Supply voltage   : 0.00e+00 V
+Worstcase voltage: 9.88e-05 V
+Average voltage  : 6.41e-06 V
+Average IR drop  : 6.41e-06 V
+Worstcase IR drop: 9.88e-05 V
+Percentage drop  : 0.01 %
+######################################

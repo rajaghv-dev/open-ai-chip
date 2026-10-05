@@ -1,4 +1,9 @@
-"""Shared helpers for model/tiny_ai: paths, the spec, source hashes, truth tables and labels."""
+"""Shared helpers for model/tiny_ai: paths, the spec, source hashes, truth tables and labels.
+
+Machine-learning view of this file: truth_table() builds the LABELLED DATASET (every possible input paired with
+the answer a human wants). train.py fits a model to that dataset; golden.py runs the fitted model and is checked
+against the same dataset. The label rules below are NOT the model: they are the ground truth, given as examples.
+The model (a neuron, a kernel, an embedding table) never contains these rules; its numbers are found by training."""
 import hashlib, itertools, json, os
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -25,7 +30,9 @@ def popcount(x):
 
 def windows(frame):
     """The four 2x2 windows of a 3x3 frame (list of 9 bits, raster order), each a 4-bit value with
-    bit 0 = top-left, bit 1 = top-right, bit 2 = bottom-left, bit 3 = bottom-right; window order (0,0), (0,1), (1,0), (1,1)."""
+    bit 0 = top-left, bit 1 = top-right, bit 2 = bottom-left, bit 3 = bottom-right; window order (0,0), (0,1), (1,0), (1,1).
+    These are the convolution's receptive fields: the small patches the same 2x2 kernel is applied to
+    (slid one pixel at a time, no padding). Used by the label rule, by train.py and by golden.py."""
     out = []
     for r in (0, 1):
         for c in (0, 1):
@@ -35,11 +42,16 @@ def windows(frame):
 
 
 def truth_table(design):
-    """Every valid input of the design, with its label, in a fixed order."""
+    """Every valid input of the design, with its label, in a fixed order.
+    This is the labelled dataset: a list of (input, label) examples, i.e. the full truth table (2^4 = 16 rows,
+    2^9 = 512 rows, 4^4 = 256 rows). The label is the target answer, the "ground truth" a human supplies; the
+    expressions below only generate that answer key and are never copied into the model's parameters.
+    Because the table lists EVERY possible input, training on it leaves no unseen test inputs."""
     s = spec()["designs"][design]
     n, vmax = s["inputs"], s["input_max"]
     rows = []
     for items in itertools.product(range(vmax + 1), repeat=n):
+        # Labels: the answer a human wants for each input (the examples), not the learned rule.
         if design == "vision_all_lit":
             label = int(all(items))
         elif design == "vision_block":

@@ -1,4 +1,4 @@
-+ analyze_power_grid -net vccd1 -voltage_file ~/raja/open-ai-chip/designs/vision_block/runs/RUN_2026-10-05_16-28-04/58-openroad-irdropreport/net-vccd1.csv
++ analyze_power_grid -net vccd1 -voltage_file ~/raja/open-ai-chip/designs/vision_block/runs/RUN_2026-10-05_18-15-29/58-openroad-irdropreport/net-vccd1.csv
 [INFO PSM-0040] All shapes on net vccd1 are connected.
 ########## IR report #################
 Net              : vccd1
@@ -11,7 +11,7 @@ Average IR drop  : 2.92e-05 V
 Worstcase IR drop: 9.43e-05 V
 Percentage drop  : 0.01 %
 ######################################
-+ analyze_power_grid -net vssd1 -voltage_file ~/raja/open-ai-chip/designs/vision_block/runs/RUN_2026-10-05_16-28-04/58-openroad-irdropreport/net-vssd1.csv
++ analyze_power_grid -net vssd1 -voltage_file ~/raja/open-ai-chip/designs/vision_block/runs/RUN_2026-10-05_18-15-29/58-openroad-irdropreport/net-vssd1.csv
 [INFO PSM-0040] All shapes on net vssd1 are connected.
 ########## IR report #################
 Net              : vssd1

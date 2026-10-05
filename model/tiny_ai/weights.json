@@ -1,6 +1,6 @@
 {
   "_generated": "by model/tiny_ai/train.py from model/tiny_ai/spec.json; do not edit",
-  "source_sha256": "699452d902834020964250bbb2fb6f2090ad9966815eed774dcd1530f8630823",
+  "source_sha256": "ffe0d1c612f937456b37a9d9ba1c04e2ffca6c9c54ca5a8b518f4d3e94b43bad",
   "vision_all_lit": {
     "weights": [
       1,
