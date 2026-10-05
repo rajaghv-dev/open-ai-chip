@@ -1,0 +1,7 @@
+# versions.lock -- tool and PDK pins for this repository (shell-sourceable KEY=VALUE).
+# Same pins as ../open-ai-silicon/versions.lock (examples track) at 78fa678829cdfca02a6fea747bf1f43b9eb1c743.
+LIBRELANE_VERSION=3.0.2
+LIBRELANE_IMAGE=ghcr.io/librelane/librelane:3.0.2
+SKY130_PDK_COMMIT=8afc8346a57fe1ab7934ba5a6056ea8b43078e71   # librelane 3.0.2 pdk_hashes.yaml
+TEMPLATE_REPO=https://github.com/chipfoundry/caravel_user_project
+TEMPLATE_COMMIT=b510613cec367828966b37583f9090ac5ddb6491

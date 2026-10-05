@@ -1,0 +1,21 @@
+Source:   https://github.com/chipfoundry/caravel_user_project  (the ChipFoundry / ChipIgnite template)
+Commit:   b510613cec367828966b37583f9090ac5ddb6491  (branch main, 2026-04-23, "Add EXTRACT_CREATE_SUBCUT to lvs_config.json")
+Tag:      none matches the Caravel 2026.2.9 / CI2511 pins in versions.lock. The newest release tag is 2024.09.13-1
+          (commit 5020a223187c1693d5e5dd121e65ab7f6b770620, September 2024, OpenLane 1 style config). Its
+          verilog/rtl/user_proj_example.v and defines.v are byte-identical to main at the commit above.
+Files:    verilog/rtl/user_proj_example.v, verilog/rtl/defines.v  -> this directory, unchanged
+          LICENSE (Apache-2.0)                                     -> this directory
+          openlane/user_proj_example/{config.json,pin_order.cfg,base_user_proj_example.sdc}
+                                                                   -> adapted in designs/user_proj_example/
+Copied via ../open-ai-silicon designs/ci_user_proj_example/ at 78fa678829cdfca02a6fea747bf1f43b9eb1c743 (see provenance/SOURCES.md).
+
+LOCAL CHANGES from upstream (all in designs/user_proj_example/, none in the RTL):
+ 1. DIE_AREA 0 0 2800 1760 -> 0 0 200 200 (um). The template's size is the macro slot it reserves inside
+    user_project_wrapper for a large user design, not what this counter needs (about 300 cells). Measured cost of
+    the original size on this machine under PROFILE=tight (2 CPUs / 8 GB): 44+ minutes and unfinished (Magic DRC
+    ~22 min, Magic LEF ~9 min, KLayout DRC still running; 69,228 tap cells) (measured in ../open-ai-silicon).
+ 2. pin_order.cfg: '#BUS_SORT' -> '@bit_major' (deprecated in LibreLane 3); pins re-spread over all four sides
+    (upstream put every LA/Wishbone pin on S and the pads on E/W of a 2.8 mm die; 541 pins do not fit on the
+    edges of a 200 um die that way).
+ 3. config.json: LibreLane 3 names (IO_PIN_ORDER_CFG, PDN_MULTILAYER), ERROR_ON_SYNTH_CHECKS true,
+    MAX_TRANSITION_CONSTRAINT override removed, gf180 / non-hd library blocks removed, PDK / library set explicitly.

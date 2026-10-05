@@ -1,0 +1,9 @@
+.DS_Store
+__pycache__/
+*.pyc
+.venv/
+build/
+designs/*/runs/
+*.gds
+*.log
+!designs/*/output/*.log

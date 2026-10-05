@@ -1,0 +1,4 @@
+{
+  "_what": "Flip-flops that synthesis legitimately removes (constant, or never read), per design, so check_signoff.py can require an exact register count. Format: \"<design dir name>\": {\"removed_registers\": <int>, \"reason\": \"<why those bits are dead by design>\"}. The check fails when surviving sequential cells < RTL registers - removed_registers. Every entry needs a reason a reviewer can verify in the RTL. JSON has no comments, hence this field.",
+  "designs": {}
+}
