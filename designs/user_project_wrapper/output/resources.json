@@ -7,346 +7,345 @@
   },
   "cpuset": "0-1",
   "exit_code": 0,
-  "wall_s_total": 53,
-  "container_peak_mem_bytes": 670240768,
-  "container_peak_mem_gb": 0.624,
+  "wall_s_total": 54,
+  "container_peak_mem_bytes": 756244480,
+  "container_peak_mem_gb": 0.704,
   "samples": 24,
-  "run_dir": "designs/user_project_wrapper/runs/RUN_2026-10-05_19-52-33",
-  "peak_rss_bytes_flow_stats_max": 557842432,
+  "run_dir": "designs/user_project_wrapper/runs/RUN_2026-10-05_20-35-25",
+  "peak_rss_bytes_flow_stats_max": 551550976,
   "steps": [
     {
       "step": "01-verilator-lint",
-      "wall_s": 0.872,
-      "peak_rss_bytes_flow_stats": 827392,
-      "peak_mem_bytes_sampled": 181972992
+      "wall_s": 0.891,
+      "peak_rss_bytes_flow_stats": 966656,
+      "peak_mem_bytes_sampled": 181866496
     },
     {
       "step": "02-checker-linttimingconstructs",
       "wall_s": 0.001,
-      "peak_mem_bytes_sampled": 181972992
+      "peak_mem_bytes_sampled": 181866496
     },
     {
       "step": "03-checker-linterrors",
       "wall_s": 0.001,
-      "peak_mem_bytes_sampled": 181972992
+      "peak_mem_bytes_sampled": 181866496
     },
     {
       "step": "04-checker-lintwarnings",
       "wall_s": 0.001,
-      "peak_mem_bytes_sampled": 181972992
+      "peak_mem_bytes_sampled": 181866496
     },
     {
       "step": "05-yosys-jsonheader",
-      "wall_s": 0.777,
+      "wall_s": 0.748,
       "peak_rss_bytes_flow_stats": 136314880,
-      "peak_mem_bytes_sampled": 181972992
+      "peak_mem_bytes_sampled": 181866496
     },
     {
       "step": "06-yosys-synthesis",
-      "wall_s": 0.427,
+      "wall_s": 0.425,
       "peak_rss_bytes_flow_stats": 65011712,
-      "peak_mem_bytes_sampled": 491778048
+      "peak_mem_bytes_sampled": 486383616
     },
     {
       "step": "07-checker-yosysunmappedcells",
       "wall_s": 0.001,
-      "peak_mem_bytes_sampled": 491778048
+      "peak_mem_bytes_sampled": 486383616
     },
     {
       "step": "08-checker-yosyssynthchecks",
       "wall_s": 0.001,
-      "peak_mem_bytes_sampled": 491778048
+      "peak_mem_bytes_sampled": 486383616
     },
     {
       "step": "09-checker-netlistassignstatements",
-      "wall_s": 0.0,
-      "peak_mem_bytes_sampled": 491778048
+      "wall_s": 0.001,
+      "peak_mem_bytes_sampled": 486383616
     },
     {
       "step": "10-openroad-checksdcfiles",
       "wall_s": 0.0,
-      "peak_mem_bytes_sampled": 491778048
+      "peak_mem_bytes_sampled": 486383616
     },
     {
       "step": "11-openroad-checkmacroinstances",
-      "wall_s": 0.317,
-      "peak_rss_bytes_flow_stats": 46137344,
-      "peak_mem_bytes_sampled": 491778048
+      "wall_s": 0.311,
+      "peak_rss_bytes_flow_stats": 45088768,
+      "peak_mem_bytes_sampled": 486383616
     },
     {
       "step": "12-openroad-staprepnr",
-      "wall_s": 2.286,
-      "peak_mem_bytes_sampled": 135286784
+      "wall_s": 2.291,
+      "peak_mem_bytes_sampled": 146399232
     },
     {
       "step": "13-openroad-floorplan",
-      "wall_s": 0.516,
-      "peak_rss_bytes_flow_stats": 128974848,
-      "peak_mem_bytes_sampled": 135286784
+      "wall_s": 0.522,
+      "peak_rss_bytes_flow_stats": 127926272,
+      "peak_mem_bytes_sampled": 146399232
     },
     {
       "step": "14-openroad-dumprcvalues",
-      "wall_s": 0.416,
+      "wall_s": 0.42,
       "peak_rss_bytes_flow_stats": 104857600,
-      "peak_mem_bytes_sampled": 135286784
+      "peak_mem_bytes_sampled": 146399232
     },
     {
       "step": "15-odb-checkmacroantennaproperties",
-      "wall_s": 0.418,
-      "peak_rss_bytes_flow_stats": 133169152,
-      "peak_mem_bytes_sampled": 213549056
+      "wall_s": 0.42,
+      "peak_rss_bytes_flow_stats": 133169152
     },
     {
       "step": "16-odb-setpowerconnections",
       "wall_s": 0.423,
-      "peak_rss_bytes_flow_stats": 134217728,
-      "peak_mem_bytes_sampled": 213549056
+      "peak_rss_bytes_flow_stats": 134217728
     },
     {
       "step": "17-odb-manualmacroplacement",
-      "wall_s": 0.415,
+      "wall_s": 0.417,
       "peak_rss_bytes_flow_stats": 134217728,
-      "peak_mem_bytes_sampled": 213549056
+      "peak_mem_bytes_sampled": 182587392
     },
     {
       "step": "18-openroad-cutrows",
-      "wall_s": 0.414,
+      "wall_s": 0.524,
       "peak_rss_bytes_flow_stats": 104857600,
-      "peak_mem_bytes_sampled": 213549056
+      "peak_mem_bytes_sampled": 182587392
     },
     {
       "step": "19-odb-addpdnobstructions",
-      "wall_s": 0.001,
-      "peak_mem_bytes_sampled": 213549056
+      "wall_s": 0.002,
+      "peak_mem_bytes_sampled": 182587392
     },
     {
       "step": "20-openroad-generatepdn",
-      "wall_s": 0.728,
-      "peak_rss_bytes_flow_stats": 137363456,
-      "peak_mem_bytes_sampled": 209403904
+      "wall_s": 0.625,
+      "peak_rss_bytes_flow_stats": 132120576,
+      "peak_mem_bytes_sampled": 182587392
     },
     {
       "step": "21-odb-removepdnobstructions",
-      "wall_s": 0.002,
-      "peak_mem_bytes_sampled": 209403904
+      "wall_s": 0.001,
+      "peak_mem_bytes_sampled": 182587392
     },
     {
       "step": "22-odb-addroutingobstructions",
       "wall_s": 0.001,
-      "peak_mem_bytes_sampled": 209403904
+      "peak_mem_bytes_sampled": 182587392
     },
     {
       "step": "23-openroad-globalplacementskipio",
       "wall_s": 0.001,
-      "peak_mem_bytes_sampled": 209403904
+      "peak_mem_bytes_sampled": 182587392
     },
     {
       "step": "24-openroad-ioplacement",
       "wall_s": 0.001,
-      "peak_mem_bytes_sampled": 209403904
+      "peak_mem_bytes_sampled": 182587392
     },
     {
       "step": "25-odb-customioplacement",
       "wall_s": 0.001,
-      "peak_mem_bytes_sampled": 209403904
+      "peak_mem_bytes_sampled": 182587392
     },
     {
       "step": "26-odb-applydeftemplate",
-      "wall_s": 0.517,
-      "peak_rss_bytes_flow_stats": 174063616,
-      "peak_mem_bytes_sampled": 209403904
+      "wall_s": 0.518,
+      "peak_rss_bytes_flow_stats": 176160768,
+      "peak_mem_bytes_sampled": 218730496
     },
     {
       "step": "27-openroad-globalplacement",
-      "wall_s": 0.42,
-      "peak_rss_bytes_flow_stats": 105906176,
-      "peak_mem_bytes_sampled": 209403904
+      "wall_s": 0.414,
+      "peak_rss_bytes_flow_stats": 104857600,
+      "peak_mem_bytes_sampled": 218730496
     },
     {
       "step": "28-odb-writeverilogheader",
-      "wall_s": 0.418,
+      "wall_s": 0.421,
       "peak_rss_bytes_flow_stats": 128974848,
-      "peak_mem_bytes_sampled": 209403904
+      "peak_mem_bytes_sampled": 218730496
     },
     {
       "step": "29-checker-powergridviolations",
       "wall_s": 0.002,
-      "peak_mem_bytes_sampled": 209403904
+      "peak_mem_bytes_sampled": 218730496
     },
     {
       "step": "30-openroad-stamidpnr",
-      "wall_s": 0.522,
-      "peak_rss_bytes_flow_stats": 124780544
+      "wall_s": 0.528,
+      "peak_rss_bytes_flow_stats": 124780544,
+      "peak_mem_bytes_sampled": 218730496
     },
     {
       "step": "31-odb-manualglobalplacement",
-      "wall_s": 0.002
+      "wall_s": 0.002,
+      "peak_mem_bytes_sampled": 218730496
     },
     {
       "step": "32-openroad-detailedplacement",
-      "wall_s": 0.617,
-      "peak_rss_bytes_flow_stats": 385875968
+      "wall_s": 0.625,
+      "peak_rss_bytes_flow_stats": 385875968,
+      "peak_mem_bytes_sampled": 183668736
     },
     {
       "step": "33-openroad-stamidpnr-1",
-      "wall_s": 0.413,
+      "wall_s": 0.519,
       "peak_rss_bytes_flow_stats": 105906176,
-      "peak_mem_bytes_sampled": 439713792
+      "peak_mem_bytes_sampled": 183668736
     },
     {
       "step": "34-openroad-stamidpnr-2",
-      "wall_s": 0.415,
-      "peak_rss_bytes_flow_stats": 105906176,
-      "peak_mem_bytes_sampled": 439713792
+      "wall_s": 0.528,
+      "peak_rss_bytes_flow_stats": 104857600,
+      "peak_mem_bytes_sampled": 183668736
     },
     {
       "step": "35-openroad-globalrouting",
-      "wall_s": 1.306,
+      "wall_s": 1.331,
       "peak_rss_bytes_flow_stats": 423624704,
-      "peak_mem_bytes_sampled": 439713792
+      "peak_mem_bytes_sampled": 168312832
     },
     {
       "step": "36-openroad-checkantennas",
-      "wall_s": 0.416,
+      "wall_s": 0.422,
       "peak_rss_bytes_flow_stats": 105906176,
-      "peak_mem_bytes_sampled": 207814656
+      "peak_mem_bytes_sampled": 168312832
     },
     {
       "step": "37-odb-diodesonports",
       "wall_s": 0.001,
-      "peak_mem_bytes_sampled": 207814656
+      "peak_mem_bytes_sampled": 168312832
     },
     {
       "step": "38-openroad-stamidpnr-3",
-      "wall_s": 0.624,
-      "peak_rss_bytes_flow_stats": 351272960,
-      "peak_mem_bytes_sampled": 207814656
+      "wall_s": 0.612,
+      "peak_rss_bytes_flow_stats": 303038464,
+      "peak_mem_bytes_sampled": 168312832
     },
     {
       "step": "39-openroad-detailedrouting",
-      "wall_s": 1.741,
+      "wall_s": 1.755,
       "peak_rss_bytes_flow_stats": 527433728,
-      "peak_mem_bytes_sampled": 196272128
+      "peak_mem_bytes_sampled": 259358720
     },
     {
       "step": "40-odb-removeroutingobstructions",
       "wall_s": 0.001,
-      "peak_mem_bytes_sampled": 196272128
+      "peak_mem_bytes_sampled": 259358720
     },
     {
       "step": "41-openroad-checkantennas-1",
-      "wall_s": 0.417,
-      "peak_rss_bytes_flow_stats": 104857600,
-      "peak_mem_bytes_sampled": 196272128
+      "wall_s": 0.421,
+      "peak_rss_bytes_flow_stats": 105906176,
+      "peak_mem_bytes_sampled": 259358720
     },
     {
       "step": "42-checker-trdrc",
       "wall_s": 0.001,
-      "peak_mem_bytes_sampled": 196272128
+      "peak_mem_bytes_sampled": 259358720
     },
     {
       "step": "43-odb-reportdisconnectedpins",
-      "wall_s": 0.624,
-      "peak_rss_bytes_flow_stats": 167772160,
-      "peak_mem_bytes_sampled": 196272128
+      "wall_s": 0.622,
+      "peak_rss_bytes_flow_stats": 166723584,
+      "peak_mem_bytes_sampled": 215523328
     },
     {
       "step": "44-checker-disconnectedpins",
-      "wall_s": 0.001,
-      "peak_mem_bytes_sampled": 196272128
+      "wall_s": 0.002,
+      "peak_mem_bytes_sampled": 215523328
     },
     {
       "step": "45-odb-reportwirelength",
-      "wall_s": 0.413,
+      "wall_s": 0.422,
       "peak_rss_bytes_flow_stats": 124780544,
-      "peak_mem_bytes_sampled": 328765440
+      "peak_mem_bytes_sampled": 215523328
     },
     {
       "step": "46-checker-wirelength",
-      "wall_s": 0.001,
-      "peak_mem_bytes_sampled": 328765440
+      "wall_s": 0.002,
+      "peak_mem_bytes_sampled": 215523328
     },
     {
       "step": "47-odb-cellfrequencytables",
-      "wall_s": 0.935,
+      "wall_s": 1.038,
       "peak_rss_bytes_flow_stats": 169869312,
-      "peak_mem_bytes_sampled": 328765440
+      "peak_mem_bytes_sampled": 215523328
     },
     {
       "step": "48-openroad-rcx",
-      "wall_s": 0.429,
-      "peak_mem_bytes_sampled": 328765440
+      "wall_s": 0.425
     },
     {
       "step": "49-openroad-stapostpnr",
-      "wall_s": 4.628,
-      "peak_mem_bytes_sampled": 301993984
+      "wall_s": 4.909,
+      "peak_mem_bytes_sampled": 351870976
     },
     {
       "step": "50-magic-streamout",
-      "wall_s": 1.363,
+      "wall_s": 1.269,
       "peak_rss_bytes_flow_stats": 122683392,
-      "peak_mem_bytes_sampled": 301993984
+      "peak_mem_bytes_sampled": 351870976
     },
     {
       "step": "51-klayout-streamout",
-      "wall_s": 0.824,
+      "wall_s": 0.926,
       "peak_rss_bytes_flow_stats": 378535936,
-      "peak_mem_bytes_sampled": 364822528
+      "peak_mem_bytes_sampled": 306774016
     },
     {
       "step": "52-klayout-render",
-      "wall_s": 0.815,
-      "peak_rss_bytes_flow_stats": 379584512,
-      "peak_mem_bytes_sampled": 364822528
+      "wall_s": 0.821,
+      "peak_rss_bytes_flow_stats": 386924544,
+      "peak_mem_bytes_sampled": 306774016
     },
     {
       "step": "53-magic-writelef",
-      "wall_s": 1.521,
-      "peak_rss_bytes_flow_stats": 201326592
+      "wall_s": 1.54,
+      "peak_rss_bytes_flow_stats": 201326592,
+      "peak_mem_bytes_sampled": 288305152
     },
     {
       "step": "54-odb-checkdesignantennaproperties",
-      "wall_s": 0.517,
-      "peak_rss_bytes_flow_stats": 174063616,
-      "peak_mem_bytes_sampled": 428257280
+      "wall_s": 0.52,
+      "peak_rss_bytes_flow_stats": 175112192,
+      "peak_mem_bytes_sampled": 288305152
     },
     {
       "step": "55-klayout-xor",
-      "wall_s": 2.942,
-      "peak_rss_bytes_flow_stats": 506462208,
-      "peak_mem_bytes_sampled": 608051200
+      "wall_s": 2.957,
+      "peak_rss_bytes_flow_stats": 512753664
     },
     {
       "step": "56-checker-xor",
-      "wall_s": 0.001,
-      "peak_mem_bytes_sampled": 608051200
+      "wall_s": 0.002
     },
     {
       "step": "57-magic-drc",
-      "wall_s": 4.474,
+      "wall_s": 4.401,
       "peak_rss_bytes_flow_stats": 187695104,
-      "peak_mem_bytes_sampled": 574865408
+      "peak_mem_bytes_sampled": 565825536
     },
     {
       "step": "58-klayout-drc",
-      "wall_s": 9.57,
-      "peak_rss_bytes_flow_stats": 557842432,
-      "peak_mem_bytes_sampled": 355196928
+      "wall_s": 9.332,
+      "peak_rss_bytes_flow_stats": 551550976,
+      "peak_mem_bytes_sampled": 354922496
     },
     {
       "step": "59-checker-magicdrc",
-      "wall_s": 0.001,
-      "peak_mem_bytes_sampled": 355196928
+      "wall_s": 0.002,
+      "peak_mem_bytes_sampled": 354922496
     },
     {
       "step": "60-checker-klayoutdrc",
       "wall_s": 0.001,
-      "peak_mem_bytes_sampled": 355196928
+      "peak_mem_bytes_sampled": 354922496
     },
     {
       "step": "61-magic-spiceextraction",
-      "wall_s": 5.339,
+      "wall_s": 5.939,
       "peak_rss_bytes_flow_stats": 79691776
     },
     {
@@ -355,16 +354,16 @@
     },
     {
       "step": "63-netgen-lvs",
-      "wall_s": 0.319,
-      "peak_rss_bytes_flow_stats": 489684992
+      "wall_s": 0.327,
+      "peak_rss_bytes_flow_stats": 498073600
     },
     {
       "step": "64-checker-lvs",
-      "wall_s": 0.001
+      "wall_s": 0.002
     },
     {
       "step": "65-checker-setupviolations",
-      "wall_s": 0.001
+      "wall_s": 0.002
     },
     {
       "step": "66-checker-holdviolations",
@@ -380,7 +379,7 @@
     },
     {
       "step": "69-misc-reportmanufacturability",
-      "wall_s": 0.0
+      "wall_s": 0.001
     }
   ],
   "note": "wall_s and peak_rss_bytes_flow_stats come from LibreLane per-step runtime.txt / process_stats.json (steps with no subprocess have no rss). container peak = cgroup memory.peak (sampled every 2 s; the last sample before exit); per-step memory is the max of memory.current samples inside the step's file-time window, so it is a lower bound."

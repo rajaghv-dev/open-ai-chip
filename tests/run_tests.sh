@@ -11,7 +11,9 @@
 #                 instance `tiny_ai_core mprj`, module header identical to build/template's (when present), RTL testbench with
 #                 the macro RTL and the core's vectors (skipped with a NOTE until its tb exists)
 #   sim           each tiny AI engine's testbench passes on the RTL with its generated vectors (PASS line, exit 0)
-#   negative      the testbenches and the model FAIL on deliberately broken input (they can catch a bug): the counter with
+#   notes         every design with output/metrics.json has NOTES.md with the required headings
+#   negative      (also: one corrupted expected value each for audio_pitch, audio_onset, image_text_match, prec_int8)
+#                 the testbenches and the model FAIL on deliberately broken input (they can catch a bug): the counter with
 #                 +2 increments; per tiny engine a corrupted expected value in vectors.hex and a broken RTL copy; a mutated
 #                 threshold in a copy of model/tiny_ai. All mutations are made in a temp dir and asserted to have applied.
 set -uo pipefail
@@ -19,7 +21,9 @@ cd "$(dirname "$0")/.."
 D=designs/user_proj_example
 TINY="vision_all_lit vision_block text_sentiment"
 CORE=tiny_ai_core                      # the three engines behind the Wishbone register block
-ALL="user_proj_example $TINY $CORE"
+NEWENG="audio_pitch audio_onset image_text_match prec_bin prec_tern prec_int4 prec_int8 prec_fp8 prec_fp16 prec_bf16"
+STREAM="$TINY $NEWENG"                 # streaming engines: stream-style testbench with +VEC (the core and wrapper use their own)
+ALL="user_proj_example $TINY $CORE $NEWENG"
 WRAP=user_project_wrapper              # elaborate-only wrapper around the core macro; its files come from other work items
 note() { echo "  NOTE  $*"; }
 HAVE_WRAP=0; [ -f designs/$WRAP/config.json ] && { HAVE_WRAP=1; ALL="$ALL $WRAP"; }
@@ -38,10 +42,14 @@ for f in Makefile versions.lock README.md provenance/SOURCES.md \
          $D/rtl/user_proj_example.v $D/rtl/defines.v $D/rtl/LICENSE $D/rtl/UPSTREAM.txt $D/tb/user_proj_example_tb.v \
          scripts/doctor.sh scripts/flow/{run_capped.sh,find_reusable_run.py,gl_sim.sh,check_signoff.py,collect.sh,summary.py,design_info.py,signoff_allowances.json,tiny_table.py} \
          scripts/check_generated.sh shared/tb/stream_tb.vh \
-         model/tiny_ai/{common.py,train.py,golden.py,gen_rom.py,spec.json,weights.json}; do
+         model/tiny_ai/{common.py,train.py,golden.py,gen_rom.py,spec.json,weights.json} \
+         model/audio_pitch/{train.py,golden.py,gen_rom.py,spec.json,weights.json} \
+         model/audio_onset/{common.py,train.py,golden.py,gen_rom.py,spec.json,weights.json} \
+         model/image_text_match/{train.py,golden.py,gen_rom.py,spec.json,weights.json} \
+         model/precision_hw/{gen.py,golden.py,report.py,spec.md} scripts/docs/tables.py; do
   [ -f "$f" ] || fail "missing $f"
 done
-for d in $TINY; do
+for d in $TINY $NEWENG; do
   for f in designs/$d/config.json designs/$d/rtl/$d.v designs/$d/rtl/${d}_rom.v designs/$d/tb/${d}_tb.v designs/$d/tb/vectors.hex; do
     [ -f "$f" ] || fail "missing $f"
   done
@@ -156,15 +164,24 @@ if python3 model/tiny_ai/golden.py --check >"$TMP/golden.log" 2>&1; then
   if grep -qv ' 0 mismatches' "$TMP/golden.log"; then fail "golden.py --check reported mismatches:"; cat "$TMP/golden.log"
   else pass "golden.py --check: zero mismatches ($(grep -c mismatches "$TMP/golden.log") designs)"; fi
 else fail "golden.py --check:"; cat "$TMP/golden.log"; fi
+for m in image_text_match precision_hw; do
+  if python3 model/$m/golden.py --check >"$TMP/golden_$m.log" 2>&1; then
+    if grep -q 'mismatches' "$TMP/golden_$m.log" && grep 'mismatches' "$TMP/golden_$m.log" | grep -qv ' 0 mismatches'; then fail "$m golden.py --check reported mismatches:"; cat "$TMP/golden_$m.log"
+    else pass "$m golden.py --check: $(tail -1 "$TMP/golden_$m.log" | cut -c1-70)"; fi
+  else fail "$m golden.py --check:"; tail -5 "$TMP/golden_$m.log"; fi
+done
+# audio_pitch and audio_onset have no golden.py --check; their testbenches (== sim) compare the RTL with golden.py's vectors
 if scripts/check_generated.sh >"$TMP/gen.log" 2>&1; then pass "regeneration reproduces every generated file"
 else fail "check_generated.sh:"; cat "$TMP/gen.log"; fi
 
 echo "== sim"
 # vsim <dir-name> <design> <vvp> <vec>: run a compiled testbench; prints exit code in $rc, log in $TMP/<name>.log
 vsim() { (cd "$TMP" && vvp -n "$3" +VEC="$4" > "$1.log" 2>&1); rc=$?; }
-for d in $TINY $CORE; do
+for d in $TINY $CORE $NEWENG; do
   VEC="$PWD/designs/$d/tb/vectors.hex"
+  t0=$(date +%s)
   vsim "sim_$d" "$d" "tb_$d.vvp" "$VEC"
+  t1=$(date +%s); [ $((t1-t0)) -ge 10 ] && note "$d simulation took $((t1-t0)) s"
   if [ $rc -eq 0 ] && grep -q '^PASS' "$TMP/sim_$d.log"; then pass "$d: $(grep -m1 '^PASS' "$TMP/sim_$d.log" | cut -c1-90)"
   else fail "$d testbench (exit $rc): $(tail -2 "$TMP/sim_$d.log" | tr '\n' ' ' | cut -c1-120)"; fi
 done
@@ -240,6 +257,35 @@ PY
   fi
 done
 
+# new engines: one corrupted expected value in vectors.hex each (audio_pitch, audio_onset: 32-bit words; the others 16-byte records)
+for d in audio_pitch audio_onset image_text_match prec_int8; do
+  python3 - "$d" "designs/$d/tb/vectors.hex" "$TMP/$d.bad.hex" <<'PY'
+import sys
+d, src, dst = sys.argv[1:4]
+lines = open(src).read().split("\n")
+out, n, hit = [], 0, False
+first = {"audio_pitch": 4, "audio_onset": 3}.get(d)       # index of the first input-beat word; None: record layout
+flag = {"audio_pitch": 9, "audio_onset": 10}.get(d)       # "a result is expected" bit
+for ln in lines:
+    if ln.strip() and not ln.startswith("//") and not hit:
+        if first is not None:
+            if n >= first and int(ln.split()[0], 16) >> flag & 1:
+                ln = "%08x" % (int(ln.split()[0], 16) ^ (1 << 11)); hit = True      # expected m_data bit 0
+        elif n == 1:                                                                 # record 1: word 13 = expected beat 0
+            w = ln.split(); w[13] = "%02x" % (int(w[13], 16) ^ 1); ln = " ".join(w); hit = True
+        n += 1
+    out.append(ln)
+open(dst, "w").write("\n".join(out))
+sys.exit(0 if hit else 1)
+PY
+  if [ $? -ne 0 ] || cmp -s "$TMP/$d.bad.hex" designs/$d/tb/vectors.hex; then fail "$d: vector mutation did not apply"
+  else
+    vsim "negv_$d" "$d" "tb_$d.vvp" "$TMP/$d.bad.hex"
+    if [ $rc -ne 0 ] && ! grep -q '^PASS' "$TMP/negv_$d.log"; then pass "$d: testbench rejects a corrupted expected value ($(grep -m1 FAIL "$TMP/negv_$d.log" | cut -c1-60))"
+    else fail "$d: testbench passed a corrupted vector (exit $rc)"; fi
+  fi
+done
+
 # model: a copy of model/tiny_ai with the vision_all_lit threshold changed must fail golden.py --check
 mkdir -p "$TMP/mm/model" && cp -R model/tiny_ai "$TMP/mm/model/"
 python3 - "$TMP/mm/model/tiny_ai/weights.json" <<'PY'
@@ -251,6 +297,27 @@ PY
 if cmp -s "$TMP/mm/model/tiny_ai/weights.json" model/tiny_ai/weights.json; then fail "model: mutation did not apply"
 elif (cd "$TMP/mm/model/tiny_ai" && python3 golden.py --check >"$TMP/negm.log" 2>&1); then fail "model: golden.py --check passed a mutated threshold"
 else pass "golden.py --check rejects a mutated threshold ($(grep -m1 -v ' 0 mismatches' "$TMP/negm.log" | cut -c1-60))"; fi
+
+echo "== notes"
+# every design with output/metrics.json needs NOTES.md with these headings (## or ###, case-insensitive prefix match)
+for d in designs/*/; do
+  d=${d%/}; n=$(basename $d)
+  [ -f $d/output/metrics.json ] || continue
+  if [ ! -f $d/NOTES.md ]; then fail "$n: output/metrics.json exists but NOTES.md is missing"; continue; fi
+  if python3 - $d/NOTES.md <<'PY'
+import re, sys
+heads = [m.group(1).strip().lower() for m in re.finditer(r"^#{2,3}\s+(.+?)\s*$", open(sys.argv[1]).read(), re.M)]
+want = [("architecture",), ("data flow",), ("verification",), ("layout",), ("synthesis",), ("floorplan",), ("placement",),
+        ("clock tree", "cts"), ("routing",), ("timing",), ("drc",), ("lvs",), ("power", "ir"), ("antenna",), ("run time",),
+        ("reproduce",), ("intuitions and insights",)]
+miss = ["/".join(w) for w in want if not any(h.startswith(x) for h in heads for x in w)]
+if miss: sys.exit("missing headings: " + ", ".join(miss))
+PY
+  then pass "$n/NOTES.md: all required headings"; else fail "$n/NOTES.md"; fi
+done
+
+echo "== tables"
+if python3 scripts/docs/tables.py --check >"$TMP/tables.log" 2>&1; then pass "README results tables up to date"; else fail "tables.py --check: $(cat "$TMP/tables.log")"; fi
 
 echo
 [ "$FAILS" = 0 ] && { echo "test: ALL PASSED"; exit 0; } || { echo "test: $FAILS FAILED"; exit 1; }

@@ -12,7 +12,7 @@ Output: beat 0 = `{6'b0, error, class}`, beat 1 = XOR-fold of the raw 12-bit acc
 
 **Ports (24 pins):** `clk`, `rst` (synchronous, active high), `s_valid`, `s_data[7:0]`, `s_last`, `s_ready`, `m_valid`, `m_data[7:0]`, `m_last`, `m_ready`.
 
-**Status:** RTL verified; not hardened yet.
+**Status:** Hardened: `make flow-all` passed all 5 stages (simulate, gds, check, gate-level, collect). 377 std cells, 80 x 80 um die, 25 ns clock, worst setup slack 13.46 ns, hold 0.115 ns, DRC/LVS/antenna clean, 931-case RTL and gate-level simulation PASS (`output/metrics.json`, `NOTES.md`).
 
 ## Run
 

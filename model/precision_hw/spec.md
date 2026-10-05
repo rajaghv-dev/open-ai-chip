@@ -327,17 +327,53 @@ reset: state <= LOAD, count <= 0, error <= 0, x_vld <= 0, acc <= BIAS (bin: 0)
 The MAC of item k overlaps the arrival of item k+1. Input gaps (`s_valid` low) simply leave `x_vld` low. The
 bias is pre-loaded: the bias-first order costs no cycle.
 
-**Latency = 2 for all seven formats** (edge E accepts the last beat into `x_*`; edge E+1 does its MAC and raises
-`m_valid`). This is `golden.LATENCY` and is written into every vector record.
+**Latency = 2 for bin, tern, int4, int8; 3 for fp8, fp16, bf16.** This is `golden.LATENCY` and is written into every
+vector record.
+
+**Float schedule (fp8, fp16, bf16): two-stage MAC, latency 3.** Integer/binary/ternary formats keep the schedule above
+unchanged. For the float formats the single MAC step is split into two pipeline stages and `DRAIN` lasts 2 cycles:
+
+```
+extra registers: p_vld, p_prod[PW-1:0] (the rounded product in the format's product encoding), (p_idx not needed: the
+                 add needs only the product and valid; item index is carried only if the RTL wants it)
+every rising edge (not in reset):
+  stage 1 (multiply+round):  p_vld <= x_vld;  if (x_vld) p_prod <= ROUND_PRODUCT(rom.weight(addr = x_idx), x_pix)
+  stage 2 (add+round, RNE):  if (p_vld) acc <= ADD_RNE(acc, p_prod)
+  x_vld <= beat_in & (count < 9) & (s_data[7:4] == 0);  x_pix <= s_data[3:0];  x_idx <= count     (as before)
+  LOAD : unchanged; on s_last beat_in: state <= DRAIN0
+  DRAIN0: s_ready = 0. state <= DRAIN1      -- this edge performs stage 1 of the last item
+  DRAIN1: s_ready = 0. state <= OUT0        -- this edge performs stage 2 of the last item
+  OUT0 / OUT1 / reset: unchanged (acc <= BIAS on reset and on the OUT1 beat_out; p_vld <= 0 on reset)
+```
+
+- One input beat per cycle is still sustained: item k is in stage 1 while item k+1 is accepted into `x_*`, and in
+  stage 2 while item k+1 is in stage 1. The accumulator still starts at the bias, items are added in raster order,
+  each add is RNE on the accumulator format, so **results are bit-identical** to the 1-stage schedule (only timing
+  changes). The product rounding and the add rounding are the same two roundings as before; nothing is fused.
+- **m_valid timing.** Let E be the clock edge that accepts the 9th (or last) beat (`s_valid & s_ready & s_last`),
+  loading `x_*`. E+1 does stage 1 of the last item. E+2 does stage 2 and moves the state to `OUT0`. `m_valid` (and
+  `m_data` beat 0) is high after edge E+2, i.e. it is first sampled high at E+3. Counting from E to E+2 inclusive
+  gives **latency 3**, the same counting rule as latency 2 for the integer formats (E and E+1). `s_ready` is low from
+  E+1 until the second output beat is taken.
+- **Short or long frames.** The drain depends only on `s_last`, never on `count`: the frame ends at `s_last`, so
+  `DRAIN0/DRAIN1` always last exactly 2 cycles. Frames shorter than 9 beats (error) just leave later items unused:
+  no MAC for them (`x_vld` stays low), so the accumulator holds the bias plus the items received. Frames longer than
+  9 beats: beats after the 9th are accepted (`s_ready` stays high) and ignored (`x_vld` low), `error` is set, and the
+  drain starts at their `s_last`; the latency is counted from the edge accepting that `s_last` beat. A bad item
+  (`s_data[7:4] != 0`) gives `x_vld = 0`, so neither stage fires for it. A one-beat frame (s_last on the first beat)
+  also drains 2 cycles. Latency is identical (3) for every frame, error or not, including when the last item is unused,
+  so m_valid never rises earlier because stage 1/2 were idle.
+- A new frame cannot overlap the drain (`s_ready` is low), so no stage-1/2 hazard exists across frames.
 
 **Timing.**
 - At 25 ns (`CLOCK_PERIOD` of the other engines), the integer and binary MACs are trivially fast.
-- The fp16 and bf16 MACs are long register-to-register paths, through the ROM mux, the significand multiply, the
-  product rounder, alignment, the adder, the leading-zero count, normalisation, the second rounder, and FTZ, into
-  `acc`. They are expected to fit at the typical corner. The RTL agent must confirm the slow corner (ss, 100C, 1.6 V).
-- **Allowed fallback** (only if a float format cannot close timing): add a product register (multiply and round in
-  one cycle, add and round in the next). That format's latency becomes **3** (DRAIN lasts 2 cycles). Request
-  `LATENCY[fmt] = 3` in `golden.py` and re-run `gen.py`, because the vectors carry the latency. The bits do not change.
+- **Measured finding (this is itself a result of the study).** The single-cycle fp8 MAC (E4M3 x pixel -> fp16 product,
+  then fp16 add with RNE) hardened at 25 ns fails setup at the slow corners: `timing__setup__ws` = -2.144 ns at
+  max_ss_100C_1v60 (-1.916 ns nom_ss, -1.695 ns min_ss), 16 violating endpoints per ss corner
+  (`designs/prec_fp8/runs/RUN_2026-10-05_20-07-06/final/metrics.json`). fp16 and bf16 have longer MAC paths and are
+  expected to fail the same way. Hence the product register: **a floating-point MAC needs two pipeline stages at 40 MHz in
+  sky130 (latency 3), while the integer, ternary and binary MACs fit in one stage (latency 2).** This costs one extra
+  cycle of latency and the product register area, and no change in bits or throughput.
 
 ## 7. Generated ROM interface (`designs/prec_<fmt>/rtl/prec_<fmt>_rom.v`)
 
@@ -445,5 +481,5 @@ watching (section 6).
 4. Floats: FTZ on inputs; product rounded to the accumulator format (fp8: exact in fp16); sum RNE with
    guard/round/sticky; results below the smallest normal become `+0`; exact zero is `+0`; no Inf/NaN logic.
    `class = ~acc[15]`.
-5. beat 1 = XOR-fold of the accumulator (section 5.2). Latency 2.
+5. beat 1 = XOR-fold of the accumulator (section 5.2). Latency 2 (3 for the float formats, section 6).
 6. If a vector fails, compare with `python3 model/precision_hw/golden.py --trace <fmt> p0 .. p8`.

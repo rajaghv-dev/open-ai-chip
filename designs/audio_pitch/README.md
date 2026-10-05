@@ -31,4 +31,4 @@ Reference: `model/audio_pitch/golden.py` (bit-exact), checked against an indepen
 
 ## Status
 
-RTL verified; not hardened yet.
+Hardened: `make flow-all` passed all 5 stages (simulate, gds, check, gate-level, collect); 234 std cells, 21 flip-flops, 0 DRC/LVS/antenna violations, worst setup slack 13.354 ns at a 25 ns clock (`output/metrics.json`).

@@ -5,6 +5,8 @@
 #
 #   make flow-all [DESIGN=<name>]   simulate -> gds -> check -> gl (synthesised) -> gl-final (routed) -> collect
 #   make tiny                       flow-all for the three tiny AI engines, then a table
+#   make all-designs                flow-all for every design in a fixed order (hours; not part of any check)
+#   make table                      regenerate the results tables of README.md from designs/*/output (no Docker)
 #   make views [DESIGN=<macro>]     export a hardened macro's views (gds lef nl pnl spef lib) to build/macros/<macro>/
 #   make wrapper                    views of every macro of user_project_wrapper, then flow-all DESIGN=user_project_wrapper
 #   make help                       every target
@@ -13,6 +15,11 @@ SHELL        := /bin/bash
 DESIGN       ?= user_proj_example
 DESIGNS      := $(patsubst designs/%/config.json,%,$(wildcard designs/*/config.json))
 TINY         := vision_all_lit vision_block text_sentiment
+# every design, in the order make all-designs hardens them (macros before the wrapper that instantiates them)
+ALL_DESIGNS  := user_proj_example vision_all_lit vision_block text_sentiment tiny_ai_core user_project_wrapper \
+                audio_pitch audio_onset image_text_match prec_bin prec_tern prec_int4 prec_int8 prec_fp8 prec_fp16 prec_bf16
+# model directories (model/<dir>/); model/examples/ holds standalone teaching scripts, not generated files
+MODELS       := tiny_ai audio_pitch audio_onset image_text_match precision_hw
 DDIR         := designs/$(DESIGN)
 PDK_ROOT     ?= $(HOME)/.volare
 DOCKER_IMAGE := ghcr.io/librelane/librelane:3.0.2
@@ -77,15 +84,15 @@ VIEWS_OF := $(if $(filter file,$(origin DESIGN)),tiny_ai_core,$(DESIGN))
 SIM_PLUS := $(if $(SIM_VEC),+VEC=$(abspath $(SIM_VEC)))
 GL_DESC  := $(if $(SIM_VEC),every case of tb/vectors.hex,committed tb)
 
-.PHONY: help doctor test views macro-views wrapper simulate gds flow check gl gl-final collect view flow-all tiny generate check-generated model-check clean
+.PHONY: help doctor test views macro-views wrapper simulate gds flow check gl gl-final collect view flow-all tiny all-designs designs table generate check-generated model-check clean
 .DEFAULT_GOAL := help
 
 help:
 	@echo "open-ai-chip: sky130A, LibreLane 3.0.2 in Docker. DESIGN=$(DESIGN) (designs: $(DESIGNS))"
 	@echo ""
-	@echo "  generate         re-fit the tiny AI model, regenerate ROMs and vectors (model/tiny_ai/)"
-	@echo "  check-generated  fail if regenerating changes any generated file"
-	@echo "  model-check      the model matches every truth-table label (16, 512, 256 cases)"
+	@echo "  generate         re-fit and regenerate ROMs, vectors, weights.json of every model dir: $(MODELS)"
+	@echo "  check-generated  fail if regenerating changes any generated file of any model dir"
+	@echo "  model-check      golden.py --check of tiny_ai, image_text_match, precision_hw (audio_* have no --check; the testbench is the check)"
 	@echo "  doctor     host tools, Docker daemon, LibreLane image, PDK"
 	@echo "  test       fast repository checks (structure, configs, RTL lint), no Docker"
 	@echo "  simulate   RTL simulation, self-checking testbench (iverilog)"
@@ -99,6 +106,8 @@ help:
 	@echo "  view       summary of collected results (ARGS=--no-gui for text only)"
 	@echo "  flow-all   the one command: simulate, gds, check, gl, gl-final, collect; prints a summary"
 	@echo "  tiny       flow-all for $(TINY), then a table"
+	@echo "  all-designs  flow-all for all $(words $(ALL_DESIGNS)) designs in order (alias: designs), then the results table"
+	@echo "  table      regenerate the results tables in README.md (scripts/docs/tables.py)"
 	@echo "  clean      remove $(DDIR)/runs/ and build/"
 	@echo ""
 	@echo "  Options: PROFILE=tight|actions  CPUSET=0-1  DOCKER_HOST=unix://...  PDK_ROOT=$(PDK_ROOT)"
@@ -209,12 +218,34 @@ tiny:
 	python3 scripts/flow/tiny_table.py $(TINY); \
 	if [ -n "$$fail" ]; then echo "tiny: FAILED:$$fail"; exit 1; fi; echo "tiny: all passed"
 
-# ---- tiny AI model and generated files ----
+# ---- model fitting and generated files (every model dir) ----
+# generators: tiny_ai train.py + gen_rom.py; audio_pitch, audio_onset, image_text_match train.py + gen_rom.py;
+# precision_hw gen.py (no fitting step). golden.py --check exists in tiny_ai, image_text_match, precision_hw;
+# audio_pitch and audio_onset have none (their testbenches compare against golden.py instead).
 generate:
 	cd model/tiny_ai && python3 train.py && python3 gen_rom.py
+	cd model/audio_pitch && python3 train.py && python3 gen_rom.py
+	cd model/audio_onset && python3 train.py && python3 gen_rom.py
+	cd model/image_text_match && python3 train.py && python3 gen_rom.py
+	cd model/precision_hw && python3 gen.py
 
 model-check:
 	cd model/tiny_ai && python3 golden.py --check
+	cd model/image_text_match && python3 golden.py --check
+	cd model/precision_hw && python3 golden.py --check
+
+# ---- every design, one after another; then the results table ----
+all-designs:
+	@fail=""; for d in $(ALL_DESIGNS); do \
+	  echo "##### $$d #####"; $(MAKE) --no-print-directory flow-all DESIGN=$$d || fail="$$fail $$d"; \
+	done; \
+	python3 scripts/docs/tables.py; \
+	if [ -n "$$fail" ]; then echo "all-designs: FAILED:$$fail"; exit 1; fi; echo "all-designs: all passed"
+
+designs: all-designs
+
+table:
+	@python3 scripts/docs/tables.py
 
 check-generated:
 	@bash scripts/check_generated.sh

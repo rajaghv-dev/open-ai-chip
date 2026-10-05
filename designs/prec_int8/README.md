@@ -12,7 +12,7 @@ Output: beat 0 = `{6'b0, error, class}`, beat 1 = XOR-fold of the raw 17-bit acc
 
 **Ports (24 pins):** `clk`, `rst` (synchronous, active high), `s_valid`, `s_data[7:0]`, `s_last`, `s_ready`, `m_valid`, `m_data[7:0]`, `m_last`, `m_ready`.
 
-**Status:** RTL verified; not hardened yet.
+**Status:** Hardened: `make flow-all` passed all 5 stages (simulate, gds, check, gate-level, collect). 642 std cells, 120 x 120 um die (`config.json`), 25 ns clock, worst setup slack 11.39 ns, hold 0.111 ns, DRC/LVS/antenna clean, 931-case RTL and gate-level simulation PASS (`output/metrics.json`, `NOTES.md`).
 
 ## Run
 
@@ -24,7 +24,7 @@ make simulate DESIGN=prec_int8    # 931 cases, iverilog
 
 | Path | Contents |
 |---|---|
-| `config.json` | LibreLane configuration (80 x 80 um, 25 ns clock) |
+| `config.json` | LibreLane configuration (120 x 120 um (resized: 80 x 80 um needed 115% of the core), 25 ns clock) |
 | `rtl/prec_int8.v` | the engine |
 | `rtl/prec_int8_rom.v` | **generated** by `model/precision_hw/gen.py` (do not edit) |
 | `tb/prec_int8_tb.v` | testbench; body shared in `shared/tb/stream_tb.vh` |

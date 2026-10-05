@@ -12,8 +12,8 @@
     "DIE_AREA": [
         0,
         0,
-        80,
-        80
+        120,
+        120
     ],
     "VDD_NETS": [
         "vccd1"
@@ -29,6 +29,8 @@
     "RUN_POST_GRT_DESIGN_REPAIR": true,
     "ERROR_ON_SYNTH_CHECKS": true,
     "MAX_FANOUT_CONSTRAINT": 8,
-    "PL_RESIZER_MAX_SLEW_MARGIN": 40,
-    "GRT_DESIGN_REPAIR_MAX_SLEW_PCT": 40
+    "PL_RESIZER_MAX_SLEW_MARGIN": 20,
+    "GRT_DESIGN_REPAIR_MAX_SLEW_PCT": 20,
+    "//DIE_AREA": "120 x 120 um: at 80 x 80 um (copied from vision_block) placement reached 82% utilisation and the repair step ran out of memory; 120 um gives about 36%.",
+    "//SLEW": "Slew margins 20 (not the 40 copied from vision_block): with 40 the post-placement repair step ran out of the 8 GB container memory twice (at 80 and at 120 um); tiny_ai_core showed the same pattern and was fixed the same way."
 }

@@ -1,6 +1,6 @@
 # image_text_match
 
-Status: **RTL verified; not hardened yet** (`make simulate DESIGN=image_text_match` passes; no `make flow-all` run yet).
+Status: **hardened** (`make flow-all DESIGN=image_text_match` passed all 5 stages; sky130A, 120 x 120 um die, 25 ns clock, 39 flip-flops, 551 standard cells, utilisation 0.363; setup WNS +13.42 ns, hold +0.107 ns; DRC 0, LVS match, antenna 0; RTL and both gate-level simulations PASS 2,079 cases; known: 61 max-slew violations in the ss corners and 6 max-fanout violations in `metrics.json`; details in [NOTES.md](NOTES.md)).
 
 **Property:** Multimodal matching: an image encoder and a text encoder put a picture and a word into one shared vector space, and a similarity decides whether they agree (CLIP at toy scale).
 

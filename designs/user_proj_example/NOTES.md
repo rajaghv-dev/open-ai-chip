@@ -2,6 +2,9 @@
 
 All numbers below come from the files under `output/` (named next to each number), from `config.json`,
 `pin_order.cfg`, `rtl/user_proj_example.v` or `rtl/UPSTREAM.txt`. Anything a file does not contain is marked "not reported".
+Re-verified on 2026-10-06 against the current `output/` (run directory `designs/user_proj_example/runs/RUN_2026-10-05_18-17-43`,
+`output/resources.json` `run_dir`). The testbench and checks are in the "Verification" section. The Reproduce commands are in the "Reproduce" section below; the last section is
+"Intuitions and insights".
 
 ## What it is
 
@@ -132,6 +135,46 @@ sequenceDiagram
     M->>U: cyc=0, stb=0
 ```
 
+## Verification
+
+Testbench: `designs/user_proj_example/tb/user_proj_example_tb.v`, written for this repository from the RTL's
+behaviour (it is not part of the upstream template) and committed; there is no generator, no vectors file and
+no shared include. It drives the Wishbone slave port and the logic analyser of the 16-bit counter and checks:
+reset state, the free-running count, Wishbone read, full write, byte writes and a write with no byte enables,
+LA load of the count (full and partial mask), LA clock and reset override, and the
+`io_out`/`io_oeb`/`la_data_out`/`irq` outputs (`la_data_out[127:16]` must be zero). Every Wishbone access must
+be acknowledged within 8 cycles. Comparisons use `===`/`!==` so X never passes; hard timeout of 100,000 ns
+(the test needs about 120 clock cycles); `$fatal(1, "FAIL ...")` on the first wrong value.
+Fresh `make simulate DESIGN=user_proj_example`: `PASS user_proj_example_tb: 28 checks (reset, count, Wishbone
+read/write, LA load/clock/reset)`
+
+Vectors: none to generate; the expected values are computed in the testbench from the counter's definition
+(increment by 1, byte-wise `wstrb` merge, LA mask), not from a model script. Model-level checks do not apply
+(no `golden.py`, not in `make check-generated`).
+Scope limit stated in the testbench header: the unit alone. The template's own tests (io_ports, la_test1,
+la_test2) need a full Caravel simulation with management-core firmware and are out of scope, as is the
+wrapper.
+
+Gate-level: the same testbench file runs on the synthesised netlist (`make gl DESIGN=user_proj_example`:
+synthesis-only run, netlist `build/gl/user_proj_example/runs/gl/final/nl/user_proj_example.nl.v`, 332 cells)
+and on the routed post-PnR netlist (`make gl-final DESIGN=user_proj_example`:
+`designs/user_proj_example/runs/RUN_2026-10-05_18-17-43/final/nl/user_proj_example.nl.v`, 8727 cells),
+compiled by `scripts/flow/gl_sim.sh` against the sky130_fd_sc_hd functional models with a unit gate delay of
+`#0.01` (`GL_UNIT_DELAY`, default in gl_sim.sh; it must be above 0 to avoid flip-flop races and below the 1 ns
+sample point). Results on disk: `build/flow/user_proj_example/stage_gl_synth.log` and `stage_gl_final.log`
+both end `gl_sim: user_proj_example PASS`; `build/gl/user_proj_example/result.txt` reads `user_proj_example |
+final:user_proj_example.nl.v | committed tb | PASS | 0 s`. `build/gl/user_proj_example/synth_checks.txt` reads
+`synthesis__check_error__count = 0`.
+
+Signoff checks that are verification (`scripts/flow/check_signoff.py user_proj_example`,
+`build/flow/user_proj_example/stage_check.log`): no logic lost, RTL 33 registers (16 + 16 + 1), 33 surviving
+sequential cells, allowance 0; there is no FSM to recode, so the hand count matches; Yosys driver warnings
+(multiple drivers / no driver) 0, synthesis check errors 0 (`synth_checks.txt`).
+
+Negative tests (`tests/run_tests.sh`, "negative"): the counter RTL is copied with `count <= count + 1'b1;`
+mutated to `count <= count + 2'd2;`; the testbench exits non-zero with a `FAIL co...` message and no PASS line
+(mutation asserted to have applied). The README/NOTES record no other negative test for this design.
+
 ## Layout (GDSII)
 
 ![layout](output/layout.png)
@@ -175,7 +218,7 @@ lint errors 0, lint warnings 8 (`metrics.json`). Report: [synth_stat.rpt](output
 ### Floorplan
 Absolute sizing: die 0 0 200 200, core 5.52 10.88 194.12 187.68 um, 65 rows of 410 sites, core area 33344.48
 um^2, instance area 2587.48 um^2, utilisation 0.078, 332 instances (`floorplan.txt`). Tap cells then bring the
-fixed instances to 599 (`placement_global.txt`, GPL-0009). Report: [floorplan.txt](output/reports/floorplan.txt).
+fixed instances to 599 (`placement_global.txt`, GPL-0008: fixed instances 599). Report: [floorplan.txt](output/reports/floorplan.txt).
 
 ### Placement
 Global placement is routability driven at target density 0.2952 (`placement_global.txt`, GPL-0023) with 931
@@ -236,26 +279,97 @@ Antenna effect: long wires can collect charge during manufacturing and damage a 
 0 pins (`antenna__violating__nets`, `route__antenna_violation__count`), with 254 antenna/diode cells present
 (`design__instance__count__class:antenna_cell`; `antenna_diodes_count` 2). Max-slew violations 482, max-cap
 1, max-fanout 3 at the worst corner (`metrics.json`, `timing_summary.rpt`; zero max-cap at the tt and ff
-corners). These are **reported, not failed**: as the root README says (line 85), they come from the template's
-input-transition constraints on 541 unbuffered pins, not from real logic problems, and `make check` reports
-them without failing. `flow.log` ends "No max cap violations found" for the last corner it lists and "Flow
-complete". Also: 286 disconnected pins, 0 critical (`design__disconnected_pin__count`), and 2 floating nets.
+corners). These are **reported, not failed**: the root README ("Not covered") attributes them to the template's
+input-transition constraints, not to real logic problems, and `make check` reports them without failing
+(`scripts/flow/check_signoff.py`). `flow.log` lists the corners with max-slew violations (all nine) and with
+max-cap violations (the three ss corners), each list followed by the checker line "No max slew / max cap
+violations found" (the check does not fail the flow), and ends "Flow complete". The "Intuitions and insights"
+section below refines the cause of the 482. Also: 286 disconnected pins, 0 critical (`design__disconnected_pin__count`), and 2 floating nets.
 
 ## Run time and memory
 
 From `output/resources.json` (profile `tight`: 2 CPUs, 8 GB; exit code 0):
 
-- Total wall time: **74 s** for 79 steps.
-- Peak container memory: **0.763 GB** (819384320 bytes); highest single-process RSS 638.6 MB (detailed routing).
-- Three slowest steps: `47-openroad-detailedrouting` 13.19 s, `71-magic-spiceextraction` 8.44 s,
-  `68-klayout-drc` 6.10 s (next: `35-openroad-cts` 4.16 s).
+- Total wall time: **77 s** for 79 steps (`wall_s_total` 77).
+- Peak container memory: **0.764 GB** (819916800 bytes); highest single-process RSS 637.5 MB (637534208 bytes, detailed routing).
+- Three slowest steps: `47-openroad-detailedrouting` 13.7 s, `71-magic-spiceextraction` 8.739 s,
+  `68-klayout-drc` 6.515 s (next: `35-openroad-cts` 4.287 s).
 
 ## Reproduce
 
 ```sh
-make flow-all      # DESIGN defaults to user_proj_example; runs the whole flow in Docker
+make flow-all      # DESIGN defaults to user_proj_example (Makefile: DESIGN ?= user_proj_example); runs the whole flow in Docker
 make collect       # refreshes output/ (metrics.json, resources.json, reports/, layout.png, flow.log)
+make simulate      # RTL simulation only; prints PASS user_proj_example_tb: 28 checks (...)
 ```
 
-To choose the design explicitly: `make flow-all DESIGN=user_proj_example`. The run directory name is recorded in
-`output/resources.json` (`run_dir`).
+To choose the design explicitly: `make flow-all DESIGN=user_proj_example` and `make simulate DESIGN=user_proj_example`
+(both targets exist in the current `Makefile`; `make simulate DESIGN=user_proj_example` was re-run on 2026-10-06 and
+passed). `make flow-all` runs simulate, gds, check, gl (synthesised netlist), gl-final (routed netlist) and collect.
+The run directory name is recorded in `output/resources.json` (`run_dir`).
+
+## Intuitions and insights
+
+Plain-language lessons, each tied to a file. See also `docs/WHY_AI.md` (why the other designs are neural networks),
+`docs/ARCHITECTURE.md` and the "Intuitions and insights" section of `SPEC.md`.
+
+**Why this is the baseline.** It is a deliberately non-AI design: a 16-bit counter with a Wishbone port and a
+logic-analyser override (`rtl/UPSTREAM.txt`), 33 flip-flops that all survive synthesis (`metrics.json`
+`design__instance__count__class:sequential_cell` 33; RTL 16 + 16 + 1) and no FSM to recode. Everything signoff checks is
+0 (`metrics.json`: Magic and KLayout DRC, LVS, XOR, antenna, setup and hold violations) and the whole flow takes 77 s
+(`output/resources.json`). That makes it the control experiment: a known-good, boring design that proves the toolchain,
+so a later failure on an AI engine points at the engine, not the flow. The check that the testbench can fail also
+started here: `tests/run_tests.sh` swaps `count + 1` for `count + 2` in a copy of the RTL and requires the testbench to
+reject it.
+
+**Why 200 x 200 um and not 2800 x 1760 um.** The template's die is the slot reserved inside `user_project_wrapper` for a
+large user design (`rtl/UPSTREAM.txt`, local change 1), not what a counter needs: 332 synthesised cells, 2587.48 um^2
+(`synth_stat.rpt`). 2800 x 1760 is 4,928,000 um^2, 123 times the 40000 um^2 die used here (arithmetic from the two die
+sizes), and at that size the run was still unfinished after 44+ minutes with 69,228 tap cells (`UPSTREAM.txt`, measured in
+the sibling repository). At 200 x 200 the flow takes 77 s. Even so the die is mostly empty: utilisation 0.241 and 7306
+fill cells covering 25298 um^2, about 3.1 times the 8046.47 um^2 of real cells (`metrics.json`). The floor on the die is
+the pin count, not the logic: 541 port bits had to be re-spread over all four edges (`UPSTREAM.txt`, local change 2;
+`pin_order.cfg`).
+
+**Where the area goes.** After place and route the standard cells total 1421 (8046.47 um^2) against 332 synthesised
+(2587.48 um^2). By class (`metrics.json`): 358 timing-repair buffers 4052.64 um^2 (50.4 % of standard-cell area), the 252
+multi-input gates 1676.61 um^2 (20.8 %), 33 flip-flops 701.92 um^2 (8.7 %), 254 antenna diode cells 635.61 um^2 (7.9 %),
+469 tap cells 586.81 um^2 (7.3 %), 8 clock cells 176.42 um^2 (2.2 %). The repair buffers outweigh the logic they serve; the
+largest groups in `cell_usage.rpt` are 166 `dlygate4sd3_1`, 66 `buf_4`, 65 `buf_12` and 58 `clkdlybuf4s25_1`. The
+files do not say which nets each group serves, so tying them to the 541-pin interface is an expectation, not a measurement.
+The 131 `conb_1` tie cells (491.72 um^2 in `synth_stat.rpt`) hold constant-0 outputs for pins the counter does not use.
+
+**The 482 max-slew violations, then and now.** The README first attributed them to "the template's input-transition
+constraints on 541 unbuffered pins". The SDC lets us be more exact (`base_user_proj_example.sdc`, `flow.log`): the maximum
+transition is 0.75 ns, while the declared input transitions are 0.84 ns on `wbs_dat_i`, 0.86 on `la_data_in`, 0.92 on
+`wbs_adr_i` and 0.97 on `la_oenb`. That is 32 + 128 + 32 + 128 = 320 input bits that start out above the limit, so no
+repair can bring a net driven straight from such a port under it: the constraint comes from the environment, not the
+design. This is the same conclusion the repository reached later for `tiny_ai_core` (`designs/tiny_ai_core/config.json`
+note "//SLEW": environment-limited; a 70 % repair margin ran out of memory chasing these nets). Two cautions: 320 is not
+482, and the repository holds no per-net list of the violators, so the other roughly 160 are unexplained; and this
+design's `config.json` sets no slew margin (only `MAX_FANOUT_CONSTRAINT` 16), so how many of the 482 repair could remove
+was never tried. Max-fanout 3 and max-cap 1 (ss corners only) are likewise reported, not failed.
+
+**Why the AI engines show 0 where this shows 482.** The AI engines have no SDC override in `config.json`; their floorplan
+log shows the flow default ("Setting input delay to: 5", `vision_all_lit/output/reports/floorplan.txt`), with no 0.84 to
+0.97 ns input transitions, and they report 0 max-slew in every corner. This design carries the template's Caravel-style
+SDC. So the difference is mostly the constraints each design was given, not the quality of the logic. That is an inference
+from the two config and SDC sets; no run swapped the SDC to confirm it.
+
+**Timing headroom is I/O-limited.** Worst setup slack is 5.9947 ns of a 25 ns clock (`timing_summary.rpt`, corner
+`max_ss_100C_1v60`), and the path is `wb_rst_i` to a flop with a 12.5 ns input delay (half the period, in the SDC) and 5.57
+ns clock latency in front of it (`timing_paths_max_ss.rpt`). Register-to-register setup is reported as infinity
+(`timing__setup_r2r__ws`), so a 16-bit increment is not the limit at 25 ns. The thin side is hold: 0.404 ns worst
+(`min_ff_n40C_1v95`), where the AI engines have 0.108 to 0.110 ns (their `timing_summary.rpt`).
+
+**Verification.** `make simulate` prints "PASS user_proj_example_tb: 28 checks" and the same testbench passes on the
+synthesised and the routed netlist (`build/flow/user_proj_example/stage_gl_synth.log`, `stage_gl_final.log`). A write
+returns the old count, which the testbench checks explicitly ("write returns old count", `tb/user_proj_example_tb.v` line
+115); that is easy to get wrong because the read data is captured before the new value lands.
+
+**What it contributed to the flow.** The local changes recorded in `rtl/UPSTREAM.txt` became the shared recipe: absolute
+die sizing, `@bit_major` pin ordering, LibreLane 3 key names, `ERROR_ON_SYNTH_CHECKS` true, no
+`MAX_TRANSITION_CONSTRAINT` override. The three AI engines reuse the same keys (`FP_SIZING` absolute, `RT_MAX_LAYER` met4,
+`PDN_MULTILAYER` false, `MAGIC_DRC_USE_GDS` true, `ERROR_ON_SYNTH_CHECKS` true in their `config.json`). It also set the
+reporting rule that max-slew and max-cap are printed, not failed, until the cause is understood
+(`scripts/flow/check_signoff.py`).

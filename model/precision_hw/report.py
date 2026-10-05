@@ -123,6 +123,130 @@ def hw_table():
     print("vision_block (1-bit, 80x80 um die) for scale: see designs/vision_block/output/metrics.json")
 
 
+def _read(f, *parts):
+    try:
+        with open(os.path.join(REPO, "designs", "prec_%s" % f, *parts)) as fh:
+            return fh.read()
+    except OSError:
+        return None
+
+
+def _synth(f):
+    """(cell count, {cell type: count}, chip area um2) from output/reports/synth_stat.rpt, or None."""
+    txt = _read(f, "output", "reports", "synth_stat.rpt")
+    if txt is None:
+        return None
+    types, total, area = {}, None, None
+    for ln in txt.splitlines():
+        w = ln.split()
+        if len(w) == 3 and w[2] == "cells":
+            total = int(w[0])
+        elif len(w) == 3 and w[2].startswith("sky130_fd_sc_hd__"):
+            types[w[2][len("sky130_fd_sc_hd__"):].rsplit("_", 1)[0]] = int(w[0])
+        elif ln.strip().startswith("Chip area for module"):
+            area = float(w[-1])
+    return total, types, area
+
+
+def _latency(f):
+    txt = _read(f, "README.md")
+    if txt:
+        for ln in txt.splitlines():
+            i = ln.find("Latency")
+            if i >= 0:
+                w = ln[i:].replace("*", " ").split()
+                if len(w) > 1 and w[1].isdigit():
+                    return int(w[1])
+    return None
+
+
+def study_table():
+    """Combined per-format table: model results (golden.py) + hardware files. Printed as two blocks of columns."""
+    p = g.params()
+    (_, _), (tex, tey) = g.dataset()
+    ref = [g.ref_fp32(x, p)[0] for x in tex]
+    rows = []
+    for f in g.FMTS:
+        pred = [g.infer(f, x, p, {"inexact": 0, "ftz": 0, "mul": 0, "add": 0})[0] for x in tex]
+        acc = 100.0 * sum(c == y for c, y in zip(pred, tey)) / len(tey)
+        same = 100.0 * sum(c == r for c, r in zip(pred, ref)) / len(ref)
+        pbits = 9 * g.WBITS[f] + g.BIAS_BITS[f]
+        m = {}
+        mt = _read(f, "output", "metrics.json")
+        if mt:
+            m = json.loads(mt)
+        res = {}
+        rt = _read(f, "output", "resources.json")
+        if rt:
+            res = json.loads(rt)
+        sy = _synth(f)
+        rows.append(dict(f=f, acc=acc, same=same, pbits=pbits, moved=9 * IN_BITS[f] + pbits, m=m,
+                         wall=res.get("wall_s_total"), sy=sy, lat=_latency(f)))
+
+    def v(d, k, fmt, scale=1.0):
+        x = d.get(k)
+        return "-" if x is None else fmt % (x * scale)
+
+    A = [("format", "%-6s"), ("acc %", "%7s"), ("=fp32 %", "%8s"), ("param b", "%8s"), ("moved b", "%8s"),
+         ("accum", "%12s"), ("latency", "%8s"), ("flow s", "%7s")]
+    print()
+    print("Study table A (accuracy, memory, latency; test set of 2000 images)")
+    print(" ".join(fm % c for c, fm in A))
+    for r in rows:
+        print(" ".join(fm % c for (_, fm), c in zip(A, [
+            r["f"], "%.2f" % r["acc"], "%.2f" % r["same"], r["pbits"], r["moved"], ACC_DESC[r["f"]],
+            "-" if r["lat"] is None else "%d" % r["lat"], "-" if r["wall"] is None else "%d" % r["wall"]])))
+    B = [("format", "%-6s"), ("std cells", "%9s"), ("synth cells", "%11s"), ("flops", "%6s"), ("cell um2", "%9s"),
+         ("die um", "%8s"), ("util %", "%7s"), ("wire um", "%8s"), ("vias", "%6s"),
+         ("setup@ss", "%9s"), ("hold ns", "%8s"), ("power mW", "%9s")]
+    print()
+    print("Study table B (hardened layout; setup@ss = setup slack at max_ss_100C_1v60, ns; clock 25 ns)")
+    print(" ".join(fm % c for c, fm in B))
+    for r in rows:
+        m = r["m"]
+        bb = m.get("design__die__bbox")
+        try:
+            q = [float(x) for x in (bb.split() if isinstance(bb, str) else bb)]
+            die = "%gx%g" % (q[2] - q[0], q[3] - q[1])
+        except (AttributeError, TypeError, ValueError, IndexError):
+            die = "-"
+        vals = [r["f"], v(m, "design__instance__count__stdcell", "%d"),
+                "-" if r["sy"] is None else "%d" % r["sy"][0],
+                v(m, "design__instance__count__class:sequential_cell", "%d"),
+                v(m, "design__instance__area__stdcell", "%.0f"), die,
+                v(m, "design__instance__utilization", "%.1f", 100),
+                v(m, "route__wirelength", "%.0f"), v(m, "route__vias", "%d"),
+                v(m, "timing__setup__ws__corner:max_ss_100C_1v60", "%.3f"),
+                v(m, "timing__hold__ws", "%.3f"), v(m, "power__total", "%.3f", 1e3)]
+        print(" ".join(fm % c for (_, fm), c in zip(B, vals)))
+    base = rows[0]["m"].get("design__instance__area__stdcell")
+    if base:
+        print()
+        print("std-cell area relative to bin: " + "  ".join(
+            "%s %.1fx" % (r["f"], r["m"]["design__instance__area__stdcell"] / base) for r in rows
+            if r["m"].get("design__instance__area__stdcell")))
+    groups = [("xor/xnor", ("xor2", "xor3", "xnor2", "xnor3")), ("mux", ("mux2", "mux4")),
+              ("flop", ("dfxtp", "dfrtp")), ("inv/buf", ("inv", "buf", "clkbuf", "clkinv"))]
+    print()
+    print("Synthesised cell mix (output/reports/synth_stat.rpt, before placement; no full/half-adder cells are used,")
+    print("yosys builds adders from xor/xnor + and-or-invert gates)")
+    cols = [g_[0] for g_ in groups] + ["other gates", "total"]
+    print("%-6s " % "format" + " ".join("%11s" % c for c in cols))
+    for r in rows:
+        if r["sy"] is None:
+            print("%-6s " % r["f"] + " ".join("%11s" % "-" for _ in cols))
+            continue
+        tot, types, _ = r["sy"]
+        cnt, used = [], 0
+        for _, names in groups:
+            n = sum(types.get(k, 0) for k in names)
+            cnt.append(n)
+            used += n
+        other = sum(types.values()) - used
+        print("%-6s " % r["f"] + " ".join("%11d" % c for c in cnt + [other, tot]))
+
+
 if __name__ == "__main__":
     model_table()
     hw_table()
+    study_table()

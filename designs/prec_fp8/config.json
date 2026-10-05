@@ -1,0 +1,42 @@
+{
+    "PDK": "sky130A",
+    "STD_CELL_LIBRARY": "sky130_fd_sc_hd",
+    "DESIGN_NAME": "prec_fp8",
+    "VERILOG_FILES": [
+        "dir::rtl/prec_fp8_rom.v",
+        "dir::rtl/prec_fp8.v"
+    ],
+    "CLOCK_PERIOD": 25,
+    "CLOCK_PORT": "clk",
+    "FP_SIZING": "absolute",
+    "//DIE_AREA": "Square 170 x 170 um (28900 um2 die, 60% core-side margin included). Estimate: one fp16 add + 4x4 multiply + ROM mux + ~45 flops is roughly 1200-1600 sky130 hd cells, about 9000-12000 um2 of cells; 170 um gives ~35-40% utilisation, leaving routing room for the long adder path. Revisit after the first synthesis report.",
+    "DIE_AREA": [
+        0,
+        0,
+        170,
+        170
+    ],
+    "VDD_NETS": [
+        "vccd1"
+    ],
+    "GND_NETS": [
+        "vssd1"
+    ],
+    "RT_MAX_LAYER": "met4",
+    "PDN_MULTILAYER": false,
+    "MAGIC_DRC_USE_GDS": true,
+    "RUN_HEURISTIC_DIODE_INSERTION": true,
+    "RUN_ANTENNA_REPAIR": true,
+    "RUN_POST_GRT_DESIGN_REPAIR": true,
+    "ERROR_ON_SYNTH_CHECKS": true,
+    "MAX_FANOUT_CONSTRAINT": 8,
+    "PL_RESIZER_MAX_SLEW_MARGIN": 40,
+    "GRT_DESIGN_REPAIR_MAX_SLEW_PCT": 40,
+    "RUN_POST_GRT_RESIZER_TIMING": true,
+    "PL_RESIZER_SETUP_SLACK_MARGIN": 0.5,
+    "GRT_RESIZER_SETUP_SLACK_MARGIN": 0.5,
+    "PL_RESIZER_SETUP_BUFFERING": true,
+    "PL_RESIZER_SETUP_GATE_CLONING": true,
+    "GRT_RESIZER_SETUP_BUFFERING": true,
+    "GRT_RESIZER_SETUP_GATE_CLONING": true
+}

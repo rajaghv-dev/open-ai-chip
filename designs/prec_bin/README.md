@@ -26,4 +26,4 @@ make simulate DESIGN=prec_bin    # iverilog; PASS prec_bin_tb: 931 cases
 
 ## Status
 
-RTL verified; not hardened yet.
+Hardened: `make flow-all` passed all 5 stages (simulate, gds, check, gate-level, collect). 199 std cells, 80 x 80 um die, 25 ns clock, worst setup slack 16.40 ns, hold 0.114 ns, DRC/LVS/antenna clean, 931-case RTL and gate-level simulation PASS (`output/metrics.json`, `NOTES.md`).

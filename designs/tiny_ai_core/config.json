@@ -45,5 +45,5 @@
     "SIGNOFF_SDC_FILE": "dir::base_tiny_ai_core.sdc",
     "DIODE_ON_PORTS": "in",
     "//IO_PIN_ORDER_CFG": "109 signal pins on the S side, ordered left to right like the wrapper DEF Wishbone pads (x 3..624 um) so macro-to-pad wires do not cross; irq at the right end. One explicit regex per pin. (In pin_order.cfg every line starting with # is a direction marker, so the note lives here.)",
-    "//SLEW": "Slew margins 20 (not 70): with the Caravel macro SDC some inputs arrive at 0.84-0.97 ns, above the 0.75 ns limit; a 70% margin made repair chase those unfixable nets until the container ran out of memory, and 40% gave more violations (247) than 20% (195). Most remaining max-slew violations are on nets driven by the wbs_adr_i / wbs_dat_i input ports (environment-limited); see designs/user_project_wrapper/README.md."
+    "//SLEW": "Slew margins 20 (not 70): with the Caravel macro SDC wbs_dat_i / wbs_adr_i arrive at 0.84 / 0.92 ns, above the 0.75 ns limit; a 70% margin made repair chase those unfixable nets until the container ran out of memory, and 40% gave more violations (247) than 20% (195). Most remaining max-slew violations are on nets driven by the wbs_adr_i / wbs_dat_i input ports (environment-limited); see designs/user_project_wrapper/README.md."
 }

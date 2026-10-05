@@ -12,8 +12,8 @@
     "DIE_AREA": [
         0,
         0,
-        80,
-        80
+        120,
+        120
     ],
     "VDD_NETS": [
         "vccd1"
@@ -30,5 +30,6 @@
     "ERROR_ON_SYNTH_CHECKS": true,
     "MAX_FANOUT_CONSTRAINT": 8,
     "PL_RESIZER_MAX_SLEW_MARGIN": 40,
-    "GRT_DESIGN_REPAIR_MAX_SLEW_PCT": 40
+    "GRT_DESIGN_REPAIR_MAX_SLEW_PCT": 40,
+    "//DIE_AREA": "120 x 120 um: at 80 x 80 um the 8x5-bit multiplier and 17-bit accumulator needed 115% of the core (global placement refused); 120 um gives about 36%. Compare formats by standard-cell area, which does not depend on the die."
 }

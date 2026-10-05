@@ -7,7 +7,7 @@
 # samples the container's cgroup memory.peak while it runs, then reads the
 # flow's own per-step statistics from the newest run directory and writes
 # resources.json (default designs/<design>/output/resources.json).
-# Honors DOCKER_HOST / DOCKER_CONTEXT from the environment.
+# Honors DOCKER_HOST / DOCKER_CONTEXT from the environment. FLOW_TIMEOUT (default 600 s) stops a runaway run.
 set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$REPO_ROOT"
@@ -42,7 +42,12 @@ MAKE_PID=$!
 
 # Sample the container's cgroup while it runs: "epoch current_bytes peak_bytes"
 : > "$WORK/samples.txt"
+FLOW_TIMEOUT="${FLOW_TIMEOUT:-600}"   # seconds; these designs are tiny, so a run past 10 minutes is a runaway (e.g. repair thrash)
 while kill -0 "$MAKE_PID" 2>/dev/null; do
+  if [ $(( $(date +%s) - T0 )) -gt "$FLOW_TIMEOUT" ]; then
+    echo "run_capped: TIMEOUT after ${FLOW_TIMEOUT} s: stopping container $CNAME (raise FLOW_TIMEOUT only if the design really needs it)" >&2
+    docker rm -f "$CNAME" >/dev/null 2>&1; kill "$MAKE_PID" 2>/dev/null; break
+  fi
   line=$(docker exec "$CNAME" sh -c \
     'cat /sys/fs/cgroup/memory.current /sys/fs/cgroup/memory.peak 2>/dev/null || cat /sys/fs/cgroup/memory/memory.usage_in_bytes /sys/fs/cgroup/memory/memory.max_usage_in_bytes 2>/dev/null' \
     2>/dev/null | tr '\n' ' ') || line=""

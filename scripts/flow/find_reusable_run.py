@@ -83,6 +83,8 @@ def walk(path, out):
         for dp, dn, fn in os.walk(path):
             dn[:] = [x for x in dn if x not in skip]
             for f in fn:
+                if f.endswith(".md"):          # documentation (README.md, NOTES.md) cannot change the silicon
+                    continue
                 out.add(os.path.join(dp, f))
 
 

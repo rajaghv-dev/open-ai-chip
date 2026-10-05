@@ -42,7 +42,13 @@ LOCAL CHANGES
     verilog/gl/user_proj_example.v. For the later ChipFoundry precheck only; LibreLane does not read it. Other keys unchanged.
     The precheck's layout is $UPRJ_ROOT/gds/user_project_wrapper.gds and the layout needs the standard Caravel tree.
 
-MACRO PLACEMENT (mprj at [59.8, 16.32], N; macro 400 x 400 um, so it occupies x 59.8..459.8, y 16.32..416.32)
+MACRO PLACEMENT (CURRENT, 2026-10-06): mprj at [189.06, 87.04], N; the simplified macro is 250 x 250 um
+  (x 189.06..439.06, y 87.04..337.04), all 109 pins on its S edge above the Wishbone pads. Strap group k=1
+  (first net at y = 195.88, last net ending at 329.18) lies fully inside the macro's y-range, so all 8 PDN nets,
+  including vccd1 and vssd1, cross it. The block below records the FIRST placement (400 x 400 um macro), kept
+  for history; see README.md for why it changed.
+
+HISTORY: MACRO PLACEMENT (mprj at [59.8, 16.32], N; macro 400 x 400 um, so it occupies x 59.8..459.8, y 16.32..416.32)
   Fixed DEF (die 2920 x 3520, 1 um = 1000 DBU): ALL Wishbone pins (wb_rst_i, wbs_*) sit on the bottom edge (y = 0) at
   x = 3.0 (wb_clk_i)..623.5, and la_data_in/out/oenb on the bottom edge at x = 629.5..2893.2 (user_irq 2905..2917, user_clock2 2899
   also bottom). The pads io_*/analog_io are on

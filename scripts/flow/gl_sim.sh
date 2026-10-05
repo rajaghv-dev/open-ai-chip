@@ -119,7 +119,8 @@ def inputs():
     for dd in dirs:
         for dp, dn, fn in os.walk(dd):
             dn[:] = [x for x in dn if x not in ("runs", "gds", "output", "model", "tb", ".git")]
-            for f in fn: yield os.path.join(dp, f)
+            for f in fn:
+                if not f.endswith(".md"): yield os.path.join(dp, f)   # docs cannot change the silicon
 def stale_after_name(name):
     m = re.match(r"RUN_(\d+)-(\d+)-(\d+)_(\d+)-(\d+)-(\d+)$", name or "")
     if not m: return "cannot read the run start time from its name"

@@ -22,7 +22,7 @@ from fractions import Fraction as F
 FMTS = ("bin", "tern", "int4", "int8", "fp8", "fp16", "bf16")
 N = 9                  # inputs (3x3 image, raster order)
 PIX_MAX = 15           # 4-bit unsigned pixel
-LATENCY = {f: 2 for f in FMTS}   # spec.md section 6: canonical schedule, identical for all formats
+LATENCY = {f: (3 if f in ("fp8", "fp16", "bf16") else 2) for f in FMTS}   # spec.md section 6: float MAC = 2 stages
 
 # ------------------------------------------------------------------------------------------------ data
 SEED_TRAIN, SEED_TEST = 1, 2

@@ -1,0 +1,42 @@
+{
+    "PDK": "sky130A",
+    "STD_CELL_LIBRARY": "sky130_fd_sc_hd",
+    "DESIGN_NAME": "prec_fp16",
+    "VERILOG_FILES": [
+        "dir::rtl/prec_fp16_rom.v",
+        "dir::rtl/prec_fp16.v"
+    ],
+    "CLOCK_PERIOD": 25,
+    "CLOCK_PORT": "clk",
+    "FP_SIZING": "absolute",
+    "DIE_AREA": [
+        0,
+        0,
+        220,
+        220
+    ],
+    "//DIE_AREA": "Square die sized for ~40% utilisation of one serial float MAC (multiplier + RNE rounder + aligner + adder + LZC + normaliser + 2nd rounder), roughly 3-5k sky130 cells (~0.03-0.05 mm2 of cells); 80x80 um (vision_block) is far too small. Start 220 um; revisit after the first synthesis.",
+    "VDD_NETS": [
+        "vccd1"
+    ],
+    "GND_NETS": [
+        "vssd1"
+    ],
+    "RT_MAX_LAYER": "met4",
+    "PDN_MULTILAYER": false,
+    "MAGIC_DRC_USE_GDS": true,
+    "RUN_HEURISTIC_DIODE_INSERTION": true,
+    "RUN_ANTENNA_REPAIR": true,
+    "RUN_POST_GRT_DESIGN_REPAIR": true,
+    "ERROR_ON_SYNTH_CHECKS": true,
+    "MAX_FANOUT_CONSTRAINT": 8,
+    "PL_RESIZER_MAX_SLEW_MARGIN": 40,
+    "GRT_DESIGN_REPAIR_MAX_SLEW_PCT": 40,
+    "RUN_POST_GRT_RESIZER_TIMING": true,
+    "PL_RESIZER_SETUP_SLACK_MARGIN": 0.5,
+    "GRT_RESIZER_SETUP_SLACK_MARGIN": 0.5,
+    "PL_RESIZER_SETUP_BUFFERING": true,
+    "PL_RESIZER_SETUP_GATE_CLONING": true,
+    "GRT_RESIZER_SETUP_BUFFERING": true,
+    "GRT_RESIZER_SETUP_GATE_CLONING": true
+}
