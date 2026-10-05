@@ -4,6 +4,40 @@ This document specifies a private GitHub project that places three deliberately 
 
 The key decision is to build one hard macro named `tiny_ai_core`. It contains three one-neuron examples behind one Wishbone register interface. The fixed Caravel `user_project_wrapper` contains only one instance of that macro. This is much smaller and easier to verify than the MNIST accelerators in the sibling repository while still exercising dense inference, convolution with weight reuse, and embedding lookup.
 
+## Status (as of 2026-10-05)
+
+This specification was written before any implementation. The requirements below are unchanged. Where the
+implementation refines or deviates, an indented "Implemented" or "Decision" note sits under the item; where a budget
+is missed, a "Proposed amendment (owner to decide)" note records the options. Nothing in a note changes a requirement.
+Evidence for every number is named the first time it appears. `build/` is git-ignored, so logs under it are local
+evidence that `make` regenerates; everything else named is tracked.
+
+| Phase | Status | Evidence |
+|---|---|---|
+| 0 Private repository | Done (human). `origin` is `github.com/rajaghv-dev/open-ai-chip`, visibility PRIVATE | `git remote -v`; `gh repo view` reports PRIVATE |
+| 1 Baseline and version lock | Done locally with LibreLane 3.0.2, not the official ChipFoundry `cf` flow. `user_proj_example` (the template module, `chipfoundry/caravel_user_project` @ `b510613`) hardened clean. No template-wrapper smoke test and no `cf`-selected lock: `versions.lock` is the sibling repository's pin set | `versions.lock`, `provenance/SOURCES.md`, `designs/user_proj_example/output/metrics.json`, `README.md` |
+| 2 Golden model and generators | Done. Exhaustive fit over each complete truth table; golden model; generated ROMs and vectors; regeneration check; negative tests | `model/tiny_ai/{spec.json,train.py,golden.py,gen_rom.py,weights.json}`, `scripts/check_generated.sh`, `tests/run_tests.sh` |
+| 3 Three engines | Done. Three standalone stream modules, each verified alone on RTL and on both gate-level netlists | `designs/{vision_all_lit,vision_block,text_sentiment}/{rtl,tb,output}/`, `docs/ARCHITECTURE.md` |
+| 4 Wishbone core | Done. `tiny_ai_core` with the register map below; 784 cases, 65,642 checks through Wishbone on the RTL, the synthesised netlist and the routed netlist | `designs/tiny_ai_core/{rtl,tb}/`, `build/flow/tiny_ai_core/stage_{simulate,gl_synth,gl_final}.log` |
+| 5 Human `cf` initialization checkpoint | NOT STARTED (human only) | none |
+| 6 Macro physical configuration | Done for `tiny_ai_core` standalone with LibreLane, clean. Cell budget exceeded as written (see Physical budgets) | `designs/tiny_ai_core/{config.json,output/metrics.json,output/reports/}`, `README.md` |
+| 7 Wrapper integration | NOT STARTED: no `user_project_wrapper` RTL, no wrapper hardening, no `user_defines.v`, no LVS config | none |
+| 8 Caravel verification | NOT STARTED: no Cocotb package, no management firmware, no full-Caravel RTL or GL run | none |
+| 9 Local precheck and candidate bundle | NOT STARTED: no `cf precheck`, no `release/manifest.json`, no bundle | none |
+| 10 Independent verification | NOT STARTED: no fresh-clone reproduction | none |
+| 11 Human submission checkpoint | NOT STARTED (human only; not part of agent execution) | none |
+
+What is next, in order:
+
+1. Phase 5 (human): `cf` initialization and GPIO configuration for the private repository. Until then no agent runs
+   `cf login`, `cf init`, `cf push`, or `cf confirm`.
+2. Owner decision on the cell-count budget (proposed amendment under Physical budgets).
+3. Phase 7: wrapper with exactly one `tiny_ai_core mprj`, no glue logic, macro placed against the wrapper PDN, then
+   wrapper hardening (this also decides whether the 400 x 400 micrometre macro really lines up with the wrapper straps).
+4. Phase 8: Caravel Cocotb test with management firmware at RTL, then gate level.
+5. Phase 9: local `cf precheck` with LVS and Magic DRC enabled; `release/manifest.json`.
+6. Phase 10: independent fresh-clone reproduction. Phase 11 stays human-only.
+
 ## Project decision
 
 | Item | Decision |
@@ -22,6 +56,19 @@ The key decision is to build one hard macro named `tiny_ai_core`. It contains th
 | Physical flow | Harden child macro first, then fixed wrapper, then local `cf precheck` |
 | Submission | Out of scope; all `cf push`, submit, reservation, and `cf confirm` actions are human-only |
 
+> **Implemented (2026-10-05):** Process, macro, examples, interface, clock, arithmetic and the standalone
+> verification rows are implemented as written; the Physical flow row is implemented only for the first step (child
+> macro, hardened with LibreLane 3.0.2 in Docker, `versions.lock`). The wrapper, `cf precheck` and the Caravel
+> tests are not started. Clock: 40 MHz is met at all nine corners with worst setup slack +6.99 ns
+> (`designs/tiny_ai_core/output/reports/timing_summary.rpt`).
+>
+> **Decision (2026-10-05):** the three examples are three standalone 24-pin stream modules taken from the sibling
+> `ARCH_STUDY_PLAN.md` conventions, instantiated unchanged in `tiny_ai_core` (`u_vision_all_lit`, `u_vision_block`,
+> `u_text_sentiment`). Reason: each engine can be verified, hardened and read on its own (80 x 80 micrometre macros
+> in `designs/<engine>/`), and the Wishbone core adds no learned values, so a retrained network changes only the
+> generated `*_rom.v` files. This replaces the original picture of one monolithic controller owning the three
+> engines; the register-level behaviour the spec requires is unchanged.
+
 ## Source projects and provenance
 
 The implementation must be self-contained in the private target repository. Do not use a filesystem symlink or Git submodule that would make a clean clone depend on `../open-ai-silicon`.
@@ -36,6 +83,12 @@ Use these sources only as references or as explicitly copied, attributed buildin
 6. The current official ChipFoundry template, inspected at `chipfoundry/caravel_user_project` commit `b510613cec367828966b37583f9090ac5ddb6491` on 2026-10-05.
 
 Create `provenance/SOURCES.md` in the target repository. It must record every copied file, its source repository and commit, its license, and all local changes. Do not copy generated outputs or historical metrics and present them as new results.
+
+> **Implemented:** `provenance/SOURCES.md` exists (the path the spec names). It records the sibling commit
+> `78fa678829cdfca02a6fea747bf1f43b9eb1c743`, the template commit `b510613cec367828966b37583f9090ac5ddb6491`, the
+> license of each copied file, and the local changes; files written new in this repository are listed as new.
+> `tests/upstream.sha256` pins the template RTL byte for byte. The three tiny engines, the model and the core are
+> new work in this repository, designed from the sibling documents, not copied.
 
 ## Scope
 
@@ -71,7 +124,7 @@ The sibling architecture study contains eight good candidates. These three form 
 | `vision_block` | Convolution and max pooling | 512 images | 1 reused four times | Kernel weights stay constant while buffering and control handle different windows. |
 | `text_sentiment` | Embedding lookup and accumulation | 256 four-token sentences | 1 | Most model state is a tiny lookup table; the arithmetic remains one accumulator and threshold. |
 
-Together they require only three neuron-equivalent compute blocks. The convolution example must reuse one block serially rather than instantiate four parallel copies. This makes “few nodes” an architectural rule rather than a documentation claim.
+Together they require only three neuron-equivalent compute blocks. The convolution example must reuse one block serially rather than instantiate four parallel copies. This makes "few nodes" an architectural rule rather than a documentation claim.
 
 The following sibling examples remain future work: `audio_pitch`, `audio_onset`, `text_bigram`, `text_attention`, and `neuron_precision`. Do not add them until the three-example MVP passes all gates.
 
@@ -87,6 +140,10 @@ The following sibling examples remain future work: `audio_pitch`, `audio_onset`,
 - Verification: all 16 input images.
 - Debug score: unsigned lit-pixel count from 0 through 4.
 
+> **Implemented:** `designs/vision_all_lit/rtl/vision_all_lit.v`. Fitted weights 1,1,1,1 and threshold 4
+> (`model/tiny_ai/weights.json`, produced by `train.py`). Engine latency is 1 cycle after the last input beat
+> (`model/tiny_ai/spec.json`). At the core, CYCLES counts 6 for this mode (see CYCLES under Register map).
+
 ### Vision block
 
 - Input: nine one-bit pixels representing a 3 by 3 image in raster order.
@@ -96,6 +153,10 @@ The following sibling examples remain future work: `audio_pitch`, `audio_onset`,
 - Execution: evaluate one window per cycle with the same threshold node; OR each window result into the pooled result.
 - Verification: all 512 images.
 - Debug score: maximum lit-pixel count seen in a 2 by 2 window, from 0 through 4.
+
+> **Implemented:** `designs/vision_block/rtl/vision_block.v`: one neuron, one window selector, four window cycles,
+> a 9-bit frame register. Engine latency 5 (`spec.json`, the accepting edge plus four window cycles); CYCLES at the
+> core is 15, the longest mode (9 buffered inputs streamed, then compute).
 
 ### Text sentiment
 
@@ -107,6 +168,10 @@ The following sibling examples remain future work: `audio_pitch`, `audio_onset`,
 - Verification: all 256 four-token sentences.
 - Debug score: signed sentiment sum, exposed as an eight-bit two's-complement value.
 
+> **Implemented:** `designs/text_sentiment/rtl/text_sentiment.v`. Fitted embeddings PAD 0, GOOD +1, FINE 0, BAD -1
+> (`weights.json`); 3-bit signed embeddings (range -4..3) and a 5-bit signed accumulator, which covers the sum range
+> -16..12 without overflow (header of `text_sentiment.v`). Engine latency 1; CYCLES at the core is 6.
+
 ## Numeric rules
 
 - All RTL widths must be explicit. Unsized literals are forbidden in arithmetic expressions.
@@ -116,6 +181,10 @@ The following sibling examples remain future work: `audio_pitch`, `audio_onset`,
 - Arithmetic wraps nowhere. Any narrowing conversion must be explicit and accompanied by a range assertion in the testbench.
 - Comparison tie behavior must be specified even if a current example does not create a tie.
 - The Python golden model must implement the same widths, signedness, and cycle-visible behavior as RTL.
+
+> **Implemented:** widths come from `model/tiny_ai/spec.json`; `golden.py` computes class, score and the CYCLES
+> value that `gen_rom.py` writes into `designs/tiny_ai_core/tb/vectors.hex`, and the testbench compares against it.
+> A score tie (text sum of 0) is negative: class is `sum > 0`.
 
 ## Chip hierarchy
 
@@ -134,6 +203,13 @@ flowchart TD
 
 The macro uses `vccd1` and `vssd1`. `analog_io` and `user_clock2` are unused. The wrapper keeps the official port list, fixed DEF, pin geometry, ring, and do-not-edit configuration from the pinned ChipFoundry template.
 
+> **Implemented:** the left-hand half of the diagram only. `tiny_ai_core` has the template's macro port list
+> (Wishbone, `la_*`, `io_*`, `irq`, optional `vccd1`/`vssd1` under `USE_POWER_PINS`) and drives every output,
+> including constants on unused bits (176 `conb_1` tie cells in `designs/tiny_ai_core/output/reports/synth_stat.rpt`).
+> Inside it the "Wishbone registers and controller" box of the diagram is one register block plus a four-state
+> sequencer (IDLE, FEED, BEAT0, BEAT1), which feeds a buffered copy of the inputs into the selected engine one item
+> per clock (see `docs/ARCHITECTURE.md`). The wrapper (`mprj`) does not exist yet.
+
 ## Wishbone interface
 
 ### Bus behavior
@@ -149,6 +225,19 @@ The macro uses `vccd1` and `vssd1`. `analog_io` and `user_clock2` are unused. Th
 - `DONE` is sticky until `CLEAR` or the next valid `START`.
 - `user_irq[0]` pulses for one clock when a result becomes valid. `user_irq[2:1]` are zero.
 
+> **Implemented** (header of `designs/tiny_ai_core/rtl/tiny_ai_core.v`, checked by `tb/tiny_ai_core_tb.v`):
+> every transaction gets exactly one one-clock `wbs_ack_o` (checked: never wider, never without a request); reads
+> are masked by `wbs_sel_i`; unmapped offsets inside the window and every address outside the 256-byte window read 0
+> and acknowledge; unmapped writes acknowledge and do nothing.
+>
+> **Decision (2026-10-05) -- protocol errors.** An input outside the mode's range is rejected when it is pushed
+> (not stored, sticky `ERROR` set), instead of being stored and flagged at `START`. Reason: the buffer then only ever
+> holds legal values, so `START` needs only a count check and the engine never sees a bad item from software (the
+> engines still flag bad items themselves). Also decided: `CLEAR` while busy sets `ERROR` and does not abort the
+> run (a run cannot be cancelled half-way, so it cannot leave the engine in an unknown state); `START` and `CLEAR`
+> in one write: `CLEAR` wins and `START` is ignored; an input when the buffer already holds 9 sets `ERROR`;
+> `ERROR` stays set until `CLEAR`; `DONE` stays set until `CLEAR` or the next valid `START`.
+
 ### Register map
 
 | Offset | Name | Access | Definition |
@@ -162,12 +251,25 @@ The macro uses `vccd1` and `vssd1`. `analog_io` and `user_clock2` are unused. Th
 | `0x18` | `CAPS` | R | supported mode bitmap, maximum input length, and RTL version |
 | `0x1C` | `DEBUG` | R | mode-specific stored input summary for simulation and board diagnosis |
 
+> **Implemented, exact fields:** `CTRL` bits 1:0 are written through byte lane 0 and `START`/`CLEAR` (bits 8 and 9)
+> through byte lane 1; both are self-clearing and read 0. `STATUS` is as specified. `INPUT` is accepted only on byte
+> lane 0 while idle. `CAPS` = supported modes `3'b111` in bits 2:0, maximum inputs 9 in bits 11:8, RTL version 1 in
+> bits 23:16. `DEBUG` = the input buffer, 2 bits per input, input 0 in bits 1:0, 18 bits used.
+>
+> **Decision (2026-10-05) -- CYCLES.** `CYCLES` is the number of clock edges from the edge that accepts `START` to
+> the edge that commits the result (feed, the engine's compute, both result beats). It uses 8 bits and saturates at
+> 255; the longest run needs 15. Measured and checked per case against `golden.py`: 6 cycles in mode 0, 15 in
+> mode 1, 6 in mode 2 (decoded from `designs/tiny_ai_core/tb/vectors.hex`, byte 13 of each of the 784 records). All
+> are within the 16-cycle latency budget, which the testbench asserts for every case.
+
 Mode assignments are fixed:
 
 - `0`: `vision_all_lit`, exactly four input pushes.
 - `1`: `vision_block`, exactly nine input pushes.
 - `2`: `text_sentiment`, exactly four input pushes; token values above 3 set `ERROR`.
 - `3`: reserved; `START` sets `ERROR` and does not assert `BUSY`.
+
+> **Implemented:** as written. Mode 2 token values above 3 are rejected at `INPUT` (see the decision above).
 
 The design accepts a valid `START` only when the exact expected number of inputs has been loaded. `CLEAR` resets `DONE`, `ERROR`, input count, result, score, and cycle count without requiring a global reset.
 
@@ -187,6 +289,12 @@ GPIO 0 through 4 remain fixed system pins. GPIO 5 and 6 remain management UART p
 | 22 to 37 | user input without pull | reserved |
 
 Mirror `RESULT[15:0]`, `STATUS[15:0]`, and `CYCLES[31:0]` into the low 64 bits of `la_data_out`. Drive the remaining logic-analyzer outputs to zero. The MVP does not accept control through `la_data_in`; all inference control uses Wishbone.
+
+> **Implemented in the macro:** `io_out[8]` class, `[9]` DONE, `[10]` BUSY, `[11]` ERROR, `[13:12]` active mode,
+> `[21:14]` score, with `io_oeb = 0` on exactly those pads; every other pad has `io_oeb = 1` and `io_out = 0`.
+> `la_data_out[15:0]` = RESULT, `[31:16]` = STATUS, `[63:32]` = CYCLES (the register is 8 bits, the rest zero), the
+> upper 64 bits are 0; `la_data_in` is unused. Not done: GPIO startup modes for pads 5 to 37 live in
+> `user_defines.v` and the `cf gpio-config` step (Phases 5 and 7), so GPIO 5 to 37 are not yet configured.
 
 ## Physical budgets
 
@@ -210,6 +318,40 @@ These are design budgets to be verified, not measured claims:
 | Max slew and max capacitance violations in child macro | 0 |
 
 The initial 400 by 400 micrometre macro size is chosen so the wrapper's approximately 180 micrometre PDN pitch can cross it with more than one strap pair. The physical-design agent must verify actual power connectivity and may enlarge or shrink the macro only after recording utilization, congestion, strap intersections, and timing.
+
+> **Implemented -- measured against the table** (`designs/tiny_ai_core/output/metrics.json` and
+> `output/reports/timing_summary.rpt`; LibreLane 3.0.2, 400 x 400 micrometre die, `RT_MAX_LAYER` met4):
+>
+> | Metric | Budget | Measured | Result |
+> |---|---|---|---|
+> | AI compute nodes | exactly 3 | 3 instances in `tiny_ai_core.v` | met |
+> | Standard cells, excluding fill | at most 2,500 | 3,521 (2,115 tap + 1,406 other) | exceeded as written |
+> | Sequential cells | at most 128 | 109 (RTL 109, all survive) | met |
+> | Die | 400 x 400, adjust with evidence | 400 x 400 kept; instance utilization 0.0998 | kept |
+> | Routing layer | met4 maximum | met4 | met |
+> | Clock | 40 MHz, all corners | worst setup +6.99 ns (max_ss), worst hold +0.108 ns (min_ff), 0 violating endpoints | met |
+> | Latency | at most 16 cycles | 6 / 15 / 6 | met |
+> | Magic DRC, KLayout DRC, LVS, XOR, antenna | 0 | 0, 0, 0, 0, 0 | met |
+> | Max slew, max cap | 0 | 0, 0 at every corner (max fanout also 0) | met |
+>
+> **Proposed amendment (owner to decide, not decided here):** the 2,500 budget was written before the die size was
+> chosen, and 2,115 of the 3,521 cells are tap cells (`design__instance__count__class:tap_cell`), placed on a fixed
+> grid by die area, not by the design. Excluding tap cells the macro has 1,406 cells, within budget. Option A:
+> amend the budget to "at most 2,500, excluding fill and tap cells". Option B: keep the budget as written and shrink
+> the die, with evidence that the wrapper PDN still crosses it (this reopens the strap-pair question above and cannot
+> be settled before the wrapper exists). Either way the original line stays in this document until the owner
+> chooses.
+>
+> **Decision (2026-10-05) -- die and layers:** the 400 x 400 micrometre die and met4 are kept. Utilization of 0.0998
+> shows the die is far larger than the logic needs; it is held at this size for the wrapper PDN reason in the
+> paragraph above. This is unverified until Phase 7 shows the strap intersections.
+>
+> **Decision (2026-10-05) -- physical repair settings** (`designs/tiny_ai_core/config.json`, README): the zero
+> slew/cap/fanout counts come from tightening repair, not from loosening limits (no `MAX_TRANSITION_CONSTRAINT`,
+> `DISABLE_LVS` or relaxed timing; `tests/run_tests.sh` rejects those keys). `RUN_HEURISTIC_DIODE_INSERTION` is
+> false (it added a diode on buffer outputs; antenna repair stays on and antenna is 0), `PL_RESIZER_MAX_SLEW_MARGIN`
+> and `GRT_DESIGN_REPAIR_MAX_SLEW_PCT` are 70, `MAX_FANOUT_CONSTRAINT` is 8, and `CTS_DISTANCE_BETWEEN_BUFFERS` is
+> 30 with sink clustering size 8 and diameter 20 (a deeper clock tree).
 
 The wrapper remains the fixed 2920 by 3520 micrometre Caravel user area. Do not change any configuration explicitly marked fixed or do not edit in the template.
 
@@ -238,6 +380,15 @@ Requirements:
 7. Agents never hand-edit generated weights, ROM RTL, or vector files.
 
 No network access or dataset download is allowed during training, generation, simulation, or CI.
+
+> **Implemented:** the directory holds `spec.json`, `common.py`, `train.py`, `golden.py`, `gen_rom.py`,
+> `weights.json` and `model/examples/` (computed worked examples for `docs/WHY_AI.md`, not chips). There is no
+> `model/tiny_ai/vectors/` directory: `gen_rom.py` writes vectors next to each testbench
+> (`designs/<name>/tb/vectors.hex`) and the 784-case core vectors (`designs/tiny_ai_core/tb/vectors.hex`), each with a
+> generated-file header carrying the source hash. `train.py` fits by exhaustive search (96, 96 and 4,096 parameter
+> settings), so no randomness is used; the seed is recorded in `spec.json`. `make check-generated`
+> (`scripts/check_generated.sh`) fails if regeneration changes any tracked file; `gen_rom.py` writes a file only if its
+> content changed.
 
 ## Private repository layout
 
@@ -282,6 +433,32 @@ release/
 
 The repository must not contain absolute paths, symlinks into `../open-ai-silicon`, credentials, API keys, SFTP keys, Docker sockets, local PDKs, tool installations, run directories, or intermediate GDS files.
 
+> **Implemented -- actual layout today.** The repository is not yet based on the `cf init` template, so the
+> template paths above (`verilog/rtl/`, `openlane/`, `lvs/`, `release/`) do not exist; each design is self-contained
+> under `designs/<name>/`:
+>
+> ```text
+> SPEC.md  README.md  Makefile  versions.lock
+> provenance/SOURCES.md
+> docs/ARCHITECTURE.md  docs/WHY_AI.md  docs/slides/ (reference deck from the sibling repository, unchanged)
+> model/tiny_ai/{spec.json,common.py,train.py,golden.py,gen_rom.py,weights.json}   model/examples/
+> shared/tb/stream_tb.vh                      shared stream testbench for the three engines
+> designs/user_proj_example/                  template baseline (RTL, config.json, pin_order.cfg, sdc, tb, NOTES.md)
+> designs/{vision_all_lit,vision_block,text_sentiment}/
+>     rtl/<d>.v  rtl/<d>_rom.v (generated)  tb/<d>_tb.v  tb/vectors.hex (generated)  config.json  README.md  NOTES.md
+> designs/tiny_ai_core/{rtl/tiny_ai_core.v, tb/tiny_ai_core_tb.v, tb/vectors.hex, config.json}
+> designs/*/output/   metrics.json resources.json flow.log *.lef layout.png reports/   (committed, from make collect)
+> scripts/{doctor.sh,check_generated.sh}  scripts/flow/{run_capped.sh,find_reusable_run.py,gl_sim.sh,
+>     check_signoff.py,collect.sh,summary.py,design_info.py,tiny_table.py,signoff_allowances.json}
+> tests/{run_tests.sh,upstream.sha256}
+> ```
+>
+> Mapping to the spec's names: `tiny_ai_regs.v` and `tiny_ai_weights.v` do not exist (the register block is inside
+> `tiny_ai_core.v`; the weights are the three generated `<d>_rom.v`); `verilog/dv/unit/` is `designs/*/tb/`;
+> `openlane/tiny_ai_core/config.json` is `designs/tiny_ai_core/config.json`. `package_candidate.sh`,
+> `release/manifest.json`, `user_project_wrapper.v`, `user_defines.v`, the Cocotb package and the wrapper LVS config
+> are not written. Run directories and GDS stay out of Git (`.gitignore`; GDS is under `build/results/`).
+
 During development, do not commit GDS. `package_candidate.sh` creates a local release bundle and SHA-256 manifest. If the owner later chooses ChipFoundry's HTTPS upload mode, the final GDS can remain outside Git. If the owner instead chooses remote GitHub upload, the owner must explicitly decide whether the final wrapper GDS may be committed to the private release branch because that mode requires push-critical files at GitHub `HEAD`.
 
 ## Required developer commands
@@ -306,6 +483,24 @@ make candidate         all non-account gates and a local release bundle
 
 Every target must return nonzero on failure. No target may convert a failed check into a warning. `make candidate` must stop before any upload or account-linked operation.
 
+> **Implemented -- commands that exist** (`Makefile`; `DESIGN=<name>` selects the design, default
+> `user_proj_example`; `PROFILE=tight` caps the container at 2 CPUs and 8 GB):
+>
+> | Spec command | Today |
+> |---|---|
+> | `make doctor` | exists: host tools, Docker, LibreLane image, sky130A PDK at the pinned commit |
+> | `make generate`, `make check-generated` | exist |
+> | `make simulate` | exists, per design (`DESIGN=`); exhaustive for each engine and for the core through Wishbone |
+> | `make test` | exists, no Docker: structure, no symlinks or absolute paths, upstream hashes, config guards, RTL lint with `-Wall`, model check, regeneration check, RTL sims, negative tests |
+> | `make synth-check` | does not exist; equivalent: the synthesis check inside `make gds` (`ERROR_ON_SYNTH_CHECKS` is true; `synth_checks.rpt`) and the flip-flop survival check in `make check` |
+> | `make harden-macro`, `make check-macro` | do not exist; equivalents: `make gds DESIGN=tiny_ai_core` and `make check DESIGN=tiny_ai_core` (`scripts/flow/check_signoff.py`: DRC, LVS, XOR, antenna, slack at every corner, synthesis check errors, surviving flip-flops) |
+> | exhaustive gate-level runs | `make gl` (synthesised netlist) and `make gl-final` (routed, powered netlist) |
+> | `make harden-wrapper`, `make verify-caravel`, `make verify-caravel-gl`, `make precheck`, `make candidate` | do not exist yet (Phases 7 to 9) |
+> | extra targets | `make flow-all` (simulate, gds, check, gl, gl-final, collect), `make tiny` (the three engines plus comparison table), `make collect`, `make view`, `make model-check`, `make clean`, `make help` |
+>
+> `make check` reports max-slew and max-cap counts for the baseline template module without failing on them (the
+> template's input-transition constraints on unbuffered pins); for `tiny_ai_core` both are 0 and are budgets above.
+
 ## Verification plan
 
 ### Model checks
@@ -323,12 +518,26 @@ Every target must return nonzero on failure. No target may convert a failed chec
 - Check `CLEAR`, exact input counts, extra inputs, invalid token, invalid mode, `START` while busy, input while busy, back-to-back runs, unmapped addresses, and every byte-select pattern.
 - Compile with warnings enabled. Treat latches, multiple drivers, width truncation, undriven outputs, and synthesis check errors as failures.
 
+> **Implemented:** `designs/tiny_ai_core/tb/tiny_ai_core_tb.v` drives everything through the Wishbone ports only, so
+> the same file runs unchanged on the RTL and on both netlists. Result: 784 cases, 65,642 checks, 24,060 Wishbone
+> transactions (`build/flow/tiny_ai_core/stage_simulate.log`). It covers every case (class, score, CYCLES, STATUS,
+> DEBUG, one one-clock `irq[0]`, GPIO and LA mirrors), registers and byte-select masking, unmapped and
+> out-of-window addresses, every protocol negative, `START`+`CLEAR`, back-to-back runs without `CLEAR`, and reset at
+> many points of a run in every mode. Comparisons use `!==` so X can never pass. `tests/run_tests.sh` compiles every
+> design with `iverilog -Wall` (only `-Wno-timescale`, because the template RTL has no `timescale`).
+
 ### Standalone gate-level checks
 
 - Run the same exhaustive testbench on the synthesized netlist.
 - Run it again on the final routed powered netlist.
 - Assert that expected sequential state survives synthesis.
 - Require zero functional mismatches.
+
+> **Implemented:** the same testbench passes (same 784 cases, 65,642 checks) on the synthesised netlist
+> (`stage_gl_synth.log`) and on the routed powered netlist (`stage_gl_final.log`). `make check` confirms 109 RTL
+> registers and 109 surviving sequential cells (`stage_check.log`). The flip-flop count is checked against what
+> Yosys produces, not against raw RTL register bits, because Yosys recodes finite state machines as one-hot (see
+> Intuitions).
 
 ### Caravel checks
 
@@ -342,6 +551,8 @@ Full-Caravel simulation is slower, so it is representative rather than exhaustiv
 
 Run this test at RTL and again after wrapper hardening with the gate-level project files.
 
+> **Not implemented:** no Cocotb package, no management firmware, no full-Caravel run (Phase 8).
+
 ### Physical and precheck gates
 
 - Child macro artifact set: GDS, LEF, powered netlist, SDC, SPEF, LIB, metrics, and reports.
@@ -349,6 +560,12 @@ Run this test at RTL and again after wrapper hardening with the gate-level proje
 - Review metrics directly; do not accept a green flow banner without checking DRC, LVS, XOR, antenna, timing, slew, capacitance, cell count, and sequential count.
 - Run all required local precheck checks, including LVS and Magic DRC. Do not use a disable-LVS result as release evidence.
 - Hash the final wrapper GDS and record the hash, tool versions, PDK commit, template commit, source commit, and test log hashes in `release/manifest.json`.
+
+> **Implemented for the child macro only:** `designs/tiny_ai_core/output/` holds `metrics.json`, `resources.json`,
+> `flow.log`, the LEF and `reports/` (synthesis, floorplan, placement, clock tree, routing, cell usage, timing at the
+> slow and fast corners, Magic and KLayout DRC, Netgen LVS, IR drop, manufacturability), plus `layout.png`. The
+> GDS, powered netlist, SPEF and LIB views are produced under `build/results/tiny_ai_core/` and are not committed.
+> The wrapper artifacts, local precheck and manifest do not exist.
 
 ## Agent execution plan
 
@@ -377,6 +594,14 @@ Agents run these phases sequentially. A later phase cannot start until the earli
 
 **Gate:** clean clone, no secret files, exact version record, template smoke test passes. Do not start AI RTL if the baseline fails.
 
+> **Implemented (partial):** done locally with LibreLane 3.0.2 and the template's `user_proj_example` module, not
+> through the official `cf` flow. `versions.lock` records LibreLane 3.0.2 (image `ghcr.io/librelane/librelane:3.0.2`),
+> the sky130A PDK commit `8afc8346a57fe1ab7934ba5a6056ea8b43078e71` and template commit `b510613`; `tests/upstream.sha256`
+> guards the copied RTL. The baseline hardened clean (`designs/user_proj_example/output/metrics.json`: 1,421 cells,
+> 33 flip-flops, 200 x 200 micrometre die, DRC/LVS/XOR/antenna 0). Missing relative to the Gate: a CLI version and
+> Caravel tag in the lock, and a template RTL smoke test through `cf`. AI RTL was started before those existed; the
+> owner may wish to record that.
+
 ### Phase 2 Golden models and generators
 
 **Agent owns:** `model/tiny_ai/` only.
@@ -384,6 +609,10 @@ Agents run these phases sequentially. A later phase cannot start until the earli
 **Agent produces:** model spec, deterministic fitter, bit-exact golden model, weights, vectors, and generation check.
 
 **Gate:** zero model mismatches across 16, 512, and 256 cases; regeneration has no diff; a deliberately corrupted vector makes the checker fail.
+
+> **Implemented:** done. `tests/run_tests.sh` runs `golden.py --check`, `check_generated.sh`, and negative tests
+> (a corrupted expected value in each `vectors.hex`, a broken RTL copy per engine, a mutated threshold in a copy of
+> the model); each mutation is asserted to have applied, so a check cannot "pass" a no-op.
 
 ### Phase 3 Three inference engines
 
@@ -393,6 +622,9 @@ Agents run these phases sequentially. A later phase cannot start until the earli
 
 **Gate:** all truth tables pass at engine level; lint and Yosys checks are clean; hierarchy inspection confirms exactly three compute nodes in the complete design intent.
 
+> **Implemented:** done (engine testbenches: 29, 540 and 269 cases per `README.md`, each also on both netlists).
+> `vision_block` has one threshold neuron and a window counter. Three instances appear in `tiny_ai_core.v`.
+
 ### Phase 4 Wishbone core integration
 
 **Agent owns:** `tiny_ai_core.v`, `tiny_ai_regs.v`, top-level unit test, and include lists.
@@ -400,6 +632,9 @@ Agents run these phases sequentially. A later phase cannot start until the earli
 **Agent produces:** register map, loading rules, controller, status, GPIO, logic analyzer, and interrupt behavior.
 
 **Gate:** the exhaustive 784-case suite passes through Wishbone; every protocol negative test passes; all outputs are driven; synthesis retains the expected state.
+
+> **Implemented:** done, with the file layout and decisions noted above (`tiny_ai_regs.v` and `include lists` are
+> not separate files).
 
 ### Phase 5 Human ChipFoundry initialization checkpoint
 
@@ -423,6 +658,11 @@ This checkpoint authorizes local technical work only. It does not authorize `cf 
 
 **Gate:** child hardening finishes; all physical and timing budgets pass; both exhaustive gate-level runs pass. If area or PDN must change, record evidence before editing the budget or geometry.
 
+> **Implemented:** hardening finished clean and both gate-level runs pass. "All budgets pass" is not literally true:
+> the cell budget is exceeded as written (see the proposed amendment under Physical budgets), and the PDN
+> crossing of the wrapper straps is unverified until Phase 7. The Gate's own rule applies: the budget and the geometry
+> are not edited until the owner decides. Status: Phase 6 done, one budget decision open.
+
 ### Phase 7 Fixed wrapper integration
 
 **Agent owns:** wrapper RTL, wrapper macro configuration, `user_defines.v`, and LVS configuration.
@@ -430,6 +670,8 @@ This checkpoint authorizes local technical work only. It does not authorize `cf 
 **Agent produces:** a wrapper with exactly one `tiny_ai_core mprj` instance and no glue logic. The macro placement must align with the wrapper PDN and keep Wishbone routes short.
 
 **Gate:** wrapper elaborates, has the exact golden port list, respects the fixed DEF and PDN settings, connects macro power, and hardens without fatal violations.
+
+> **Not started.**
 
 ### Phase 8 Caravel verification
 
@@ -439,6 +681,8 @@ This checkpoint authorizes local technical work only. It does not authorize `cf 
 
 **Gate:** official `cf verify` flow passes at RTL and GL. No test may pass only because of a timeout, missing assertion, or ignored return code.
 
+> **Not started.**
+
 ### Phase 9 Local precheck and candidate bundle
 
 **Agent owns:** local scripts and release manifest only.
@@ -447,6 +691,8 @@ This checkpoint authorizes local technical work only. It does not authorize `cf 
 
 **Gate:** every required precheck passes, all earlier test logs are present, the final Git working tree has no unexplained change, and the candidate command performs no network upload.
 
+> **Not started.**
+
 ### Phase 10 Independent verification
 
 **Verifier starts from:** a fresh clone of the private candidate commit with no build directories.
@@ -454,6 +700,8 @@ This checkpoint authorizes local technical work only. It does not authorize `cf 
 **Verifier reruns:** generation, exhaustive RTL, synthesis check, macro hardening, exhaustive gate-level, wrapper hardening, Caravel RTL and GL, and local precheck.
 
 **Gate:** results match the release manifest and every acceptance item below is supported by a file. A second run is not optional for tapeout readiness.
+
+> **Not started.**
 
 ### Phase 11 Human ChipFoundry submission checkpoint
 
@@ -504,23 +752,100 @@ Next phase allowed: yes | no
 The project is locally ChipIgnite-ready only when all items pass:
 
 - [ ] The GitHub repository is private and self-contained.
-- [ ] Source and template provenance are recorded by commit and license.
-- [ ] There are exactly three logical inference nodes as specified.
-- [ ] All 784 functional inputs pass the bit-exact model.
-- [ ] All 784 inputs pass standalone RTL through Wishbone.
-- [ ] All 784 inputs pass synthesized and routed gate-level macro simulation.
-- [ ] Protocol, reset, invalid-input, and back-to-back tests pass.
+  Private: `gh repo view` reports PRIVATE as of 2026-10-05, but only the owner can confirm and keep it; self-contained:
+  `tests/run_tests.sh` structure check (no symlinks, no absolute home paths, no sibling-repository names). Left
+  unticked until the owner confirms; the Phase 10 fresh clone is the real test of self-containment.
+- [x] Source and template provenance are recorded by commit and license. Evidence: `provenance/SOURCES.md`, `tests/upstream.sha256`.
+- [x] There are exactly three logical inference nodes as specified. Evidence: three instances in `designs/tiny_ai_core/rtl/tiny_ai_core.v`; `vision_block` reuses one neuron (`designs/vision_block/rtl/vision_block.v`).
+- [x] All 784 functional inputs pass the bit-exact model. Evidence: `model/tiny_ai/golden.py --check` in `tests/run_tests.sh`; the 784-record `designs/tiny_ai_core/tb/vectors.hex` is generated from it.
+- [x] All 784 inputs pass standalone RTL through Wishbone. Evidence: `build/flow/tiny_ai_core/stage_simulate.log` (784 cases, 65,642 checks).
+- [x] All 784 inputs pass synthesized and routed gate-level macro simulation. Evidence: `stage_gl_synth.log`, `stage_gl_final.log` in the same directory.
+- [x] Protocol, reset, invalid-input, and back-to-back tests pass. Evidence: same logs; cases listed in the testbench header.
 - [ ] `tiny_ai_core` meets the cell, state, latency, layer, timing, DRC, LVS, XOR, antenna, slew, and capacitance budgets.
-- [ ] `user_project_wrapper` contains one macro instance and preserves the golden wrapper interface and geometry.
-- [ ] GPIO 5 through 37 all have valid startup modes.
-- [ ] Full-Caravel representative RTL and GL tests pass.
-- [ ] Wrapper-level setup and hold pass at every required corner.
-- [ ] Local ChipFoundry precheck passes with LVS and Magic DRC enabled.
-- [ ] The release manifest identifies the exact source, tools, PDK, template, GDS hash, and evidence logs.
-- [ ] An independent fresh-clone reproduction matches the candidate.
+  Met: state (109 <= 128), latency (6, 15, 6 <= 16), layer (met4), timing, DRC, LVS, XOR, antenna, slew, capacitance
+  (`designs/tiny_ai_core/output/metrics.json`). Missing: the cell budget (3,521 against 2,500 as written) awaits the
+  owner's decision on the proposed amendment.
+- [ ] `user_project_wrapper` contains one macro instance and preserves the golden wrapper interface and geometry. Missing: the wrapper (Phase 7).
+- [ ] GPIO 5 through 37 all have valid startup modes. Missing: `user_defines.v` and `cf gpio-config` (Phases 5 and 7); the macro's pad directions exist but are not startup modes.
+- [ ] Full-Caravel representative RTL and GL tests pass. Missing: Phase 8.
+- [ ] Wrapper-level setup and hold pass at every required corner. Missing: wrapper hardening (macro-level timing passes at nine corners).
+- [ ] Local ChipFoundry precheck passes with LVS and Magic DRC enabled. Missing: Phase 9. (Macro-level Magic DRC and LVS are 0, but that is not the precheck.)
+- [ ] The release manifest identifies the exact source, tools, PDK, template, GDS hash, and evidence logs. Missing: `release/manifest.json`.
+- [ ] An independent fresh-clone reproduction matches the candidate. Missing: Phase 10.
 - [ ] No agent has uploaded, submitted, reserved, confirmed, published, or changed repository visibility.
+  Nothing in the repository history shows such an action (four commits, local work only), but this is the owner's
+  attestation to make, so it is left unticked.
 
 Passing these items means the design is technically prepared for the owner to review for ChipIgnite submission. It does not mean the design has been submitted or fabricated.
+
+## Intuitions and insights
+
+Why the design is the way it is, in plain terms. Every number comes from the file named; see also
+`docs/WHY_AI.md` (why these are neural networks) and `docs/ARCHITECTURE.md` (block diagrams).
+
+**These are neural networks, not programs.** The three engines contain no rule such as "all four pixels lit". Each is
+a generic engine (compare to a weight, count matches, test a threshold; or look up a number and add it), and the
+knowledge sits in a generated ROM that `model/tiny_ai/train.py` fits from labelled examples. Training found weights
+1,1,1,1 with threshold 4 for the vision examples and PAD 0, GOOD +1, FINE 0, BAD -1 for text (`weights.json`). Feed the
+same RTL different labels and the same circuit computes a different rule (`docs/WHY_AI.md` section 4: "at least three
+lit" is threshold 3; "any lit" is threshold 1). A hand-wired AND gate cannot be re-taught; this can, by regenerating
+`*_rom.v`. The converse matters as much: a structure can represent only what it has the capacity for. A single
+neuron cannot learn "exactly two pixels lit" (an XOR-like rule needs a second layer), and a sum of word scores cannot
+learn "GOOD right before BAD" because adding ignores word order (`docs/WHY_AI.md` section 5; the fitter finds no
+solution for either). Choosing the structure is the real design decision, which is the point of the sibling
+architecture study.
+
+**Why one neuron, used serially.** `vision_block` evaluates four 2 x 2 windows with one neuron over four cycles
+instead of four neurons in one cycle: one-quarter the arithmetic hardware for four times the compute time
+(`docs/WHY_AI.md` section 3.2). It is the cheapest choice that still fits the 16-cycle budget, and it makes "three
+nodes" a property of the RTL (three instances) rather than a claim. The price shows in latency: the longest mode
+takes 15 cycles at the core, counted from the accepted START to the committed result
+(`designs/tiny_ai_core/tb/vectors.hex`; the core streams the buffered image into the engine one item per clock).
+
+**Where the area really goes.** `tiny_ai_core` has 3,521 standard cells (`metrics.json`), but only 900 cells leave
+synthesis (`output/reports/synth_stat.rpt`): 109 flip-flops, 176 tie cells that hold constant outputs for unused
+Caravel pins, and a few hundred combinational cells that include the Wishbone glue. The three engines alone are 169,
+297 and 200 cells including their own tap cells (`README.md`). Physical design then adds 2,115 tap cells
+(a fixed grid over a 400 x 400 micrometre die), 468 timing-repair buffers, 54 hold buffers and 34 clock buffers.
+Utilization is 0.0998: the die is about nine-tenths empty. The lesson is the one the Risks table anticipated: a tiny
+AI is dominated by the SoC interface (607 port bits on a 17-port module, buffering and taps), so the cell count says
+little about the AI itself. Do not compare cell counts across dies of different size without separating taps.
+
+**Why a 400 micrometre die, and what it costs.** The size is chosen so the wrapper's roughly 180 micrometre PDN
+pitch crosses the macro with more than one strap pair (Physical budgets). It is a connectivity decision, not a
+logic one. Its costs are visible: the taps scale with area, and the longest routed net is 356 micrometres
+(`route__wirelength__max`), so a few signals are long and weakly driven, which is where slew trouble starts. Whether
+the choice was right can only be checked once the wrapper exists.
+
+**Lessons from the physical flow** (`designs/tiny_ai_core/config.json` and README). First, heuristic diode insertion
+added a diode on buffered outputs, which inflated the fanout of those nets; turning it off (antenna repair stays on,
+antenna violations are 0) removed the fanout violations. Second, the repair steps work at the typical corner, so a
+signal that looks fine there can still exceed the maximum slew at the slow corner (ss, 100 C, 1.60 V); the cure was to
+repair with margin (`PL_RESIZER_MAX_SLEW_MARGIN` and `GRT_DESIGN_REPAIR_MAX_SLEW_PCT` 70) and not to loosen the
+limit. Third, the clock root fans out to all 109 flip-flops, so the clock tree was made deeper
+(`CTS_DISTANCE_BETWEEN_BUFFERS` 30, sink clustering size 8, diameter 20); the config records the setting, the repository does not record the before-state. The repository's guard in `tests/run_tests.sh`
+forbids the shortcuts (`MAX_TRANSITION_CONSTRAINT`, `DISABLE_LVS`) so a clean number cannot be bought by relaxing a
+check. The typical-corner statement is an explanation of the mechanism taken from the flow behaviour; it is not
+separately proven by a file in the repository.
+
+**Verification lessons.** Exhaustive truth tables are possible only because the tasks are tiny: 16 + 512 + 256 = 784
+inputs, so "tested" means "every input", not "a sample". The same Wishbone testbench runs on the RTL, the
+synthesised netlist and the routed netlist, so a netlist that differs from the RTL fails the same checks. A failure
+worth remembering: the first ROM was an `always @(*)` block whose inputs never changed, so the simulator never evaluated
+it and it kept its initial value; `model/tiny_ai/gen_rom.py` now emits continuous assignments only and says why in a
+comment. Negative tests exist so that each check is shown able to fail (`tests/run_tests.sh`: a corrupted vector, a
+broken RTL copy, a mutated threshold, a counter that increments by 2), and every mutation asserts it applied. And flip-flop
+counts must be read with synthesis in mind: Yosys recodes small FSMs as one-hot, so `vision_block` has 22 RTL register
+bits but 24 flip-flops (22 - 2 + 4), and `check_signoff.py` compares against the elaborated count, not the source
+count (`designs/vision_block/NOTES.md`).
+
+**Precision.** `docs/WHY_AI.md` section 8 trains one small model and quantises it afterwards
+(`model/examples/precision.py`): fp32 reaches 93.25% test accuracy and int4 93.40%, so down to 4 bits nothing is lost
+here; a 1-bit post-training copy falls to 82.70%, about ten points. The chips here use 1-bit weights and lose nothing
+because they were fitted at 1 bit from the start and their truth tables are fully enumerated; the table's 1-bit row
+is the harder "squeeze afterwards" case. For future engines (`audio_*`, `text_*`, MNIST-scale): a model that is
+quantised after training should plan on int4 or int8 weights and keep 1 bit for networks trained for it; the weight
+memory shrinks 32x going from fp32 to 1 bit (800 to 25 bits there), but accuracy has to be measured, not assumed.
 
 ## Risks and responses
 
@@ -534,6 +859,12 @@ Passing these items means the design is technically prepared for the owner to re
 | A trivial model is optimized away | Require exhaustive GL simulation and check surviving sequential and combinational logic against the RTL intent. |
 | Private GitHub blocks remote ChipFoundry access | Use local precheck and, if the owner proceeds, HTTPS direct upload; do not make the repository public as a workaround. |
 | Official CLI requires account initialization before hardening | Complete model, RTL, unit verification, and offline synthesis first; pause at the explicit human checkpoint before account-linked flow steps. |
+
+> **Implemented (risk review):** "Tiny logic is dominated by the full Caravel pin interface" proved right: see
+> Intuitions. "A trivial model is optimized away" did not happen: 109 of 109 flip-flops survive and both gate-level
+> runs pass. "A 400 micrometre macro misses wrapper power straps" is still open (Phase 7). A new risk: the cell budget
+> was written before tap cells were counted (proposed amendment above). A second new risk: the Phase 1 baseline did
+> not go through `cf`, so `cf`-pinned tool versions may differ from `versions.lock`; Phase 5 resolves this.
 
 ## References
 

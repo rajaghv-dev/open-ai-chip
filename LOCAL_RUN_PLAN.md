@@ -2,6 +2,20 @@
 
 > **Status:** Legacy baseline reference only. This plan reproduces the older Efabless `caravel_user_project` example. For the private tiny-AI project using the current ChipFoundry flow, follow [SPEC.md](SPEC.md); it supersedes this document where the two differ.
 
+> **Outcome (2026-10-05): this plan was not executed as written.** The `user_proj_example` baseline was instead
+> reproduced with the LibreLane 3.0.2 Docker flow ported from `../open-ai-silicon` (exercise 1), on the existing arm64
+> Colima VM `osl`, not the x86-64 `chipignite` profile of Phase A. Against this plan's completion levels:
+> 1. *RTL proof (`verify-io_ports-rtl`)*: **not run.** The Caravel management-core test needs the full template;
+>    instead the macro's own self-checking unit testbench passes (28 checks, `make simulate`).
+> 2. *Complete RTL proof (official Cocotb list)*: **not run.**
+> 3. *Physical-design proof*: **partly.** The `user_proj_example` macro is hardened clean on a 200 x 200 um die (DRC,
+>    LVS, XOR, antenna 0; non-negative slack at all corners; `designs/user_proj_example/output/`), and the unit
+>    testbench passes on the synthesised and routed netlists. `user_project_wrapper`, Caravel gate-level tests and the
+>    precheck were **not run**.
+>
+> Evidence and commands: `README.md`, `designs/user_proj_example/NOTES.md`. The tiny-AI work that followed is tracked
+> in `SPEC.md` (Status section).
+
 ## 1. Goal and definition of done
 
 Use the official Efabless `caravel_user_project` template to reproduce the bundled `user_proj_example` counter on the local machine.
