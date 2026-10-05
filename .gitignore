@@ -11,3 +11,7 @@ designs/*/runs/
 # Slide deck build (docs/slides/README.md)
 docs/slides/node_modules/
 docs/slides/package-lock.json
+
+# macro views exported by `make views` and the pinned ChipFoundry template (both regenerated; never committed)
+build/macros/
+build/template/

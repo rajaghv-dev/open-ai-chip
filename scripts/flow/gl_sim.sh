@@ -16,6 +16,8 @@
 #   --pre FILE             file compiled first (macro definitions the testbench uses)
 #   -I DIR                 include directory (repeatable)
 #   --tb-extra FILE        extra source compiled after the testbench (repeatable)
+#   --netlist-extra FILE   extra gate-level source compiled right after the design's netlist (repeatable): the macro netlists
+#                          of an elaborate-only wrapper, whose own netlist only instantiates them
 #   --timeout SECONDS      kill the simulation after this long (default 900)
 #   --delay-cell NAME[:NS] give the combinational cell sky130_fd_sc_hd__NAME a propagation delay (default 1 ns): the
 #                          library's gates have none, so a ring oscillator built from cells would loop at time 0
@@ -36,7 +38,7 @@ UNIT_DELAY="${GL_UNIT_DELAY:-#0.01}"
 LIB="$PDK_ROOT/sky130A/libs.ref/sky130_fd_sc_hd/verilog"
 
 die() { echo "gl_sim: $*" >&2; exit 1; }
-[ $# -ge 2 ] || { sed -n 2,25p "$0"; exit 2; }
+[ $# -ge 2 ] || { sed -n 2,28p "$0"; exit 2; }
 CMD="$1"; DESIGN="$2"; shift 2
 DDIR="designs/$DESIGN"
 [ -f "$DDIR/config.json" ] || die "no designs/$DESIGN/config.json"
@@ -68,12 +70,12 @@ checks)
   python3 -c "import json,sys; print(json.load(open(sys.argv[1])).get('synthesis__check_error__count','missing'))" "$m"
   ;;
 run)
-  MAKENAME=""; TB=""; TOP=""; SRC=synth; TMO=900; PASS_RE='PASS|passed'; DESC=""; PLUS=(); FLAGS=(); EXTRA=(); DCELLS=(); PRE=(); INCS=()
+  MAKENAME=""; TB=""; TOP=""; SRC=synth; TMO=900; PASS_RE='PASS|passed'; DESC=""; PLUS=(); FLAGS=(); EXTRA=(); NLX=(); DCELLS=(); PRE=(); INCS=()
   while [ $# -gt 0 ]; do
     case "$1" in
       --tb) TB="$2"; shift 2 ;;        --top) TOP="$2"; shift 2 ;;
       --source) SRC="$2"; shift 2 ;;   --plus) PLUS+=("$2"); shift 2 ;;
-      --flag) FLAGS+=("$2"); shift 2 ;; --tb-extra) EXTRA+=("$2"); shift 2 ;; --pre) PRE+=("$2"); shift 2 ;; -I) INCS+=("-I$2"); shift 2 ;;
+      --flag) FLAGS+=("$2"); shift 2 ;; --tb-extra) EXTRA+=("$2"); shift 2 ;; --netlist-extra) NLX+=("$2"); shift 2 ;; --pre) PRE+=("$2"); shift 2 ;; -I) INCS+=("-I$2"); shift 2 ;;
       --name) MAKENAME="gl-$2"; shift 2 ;; --timeout) TMO="$2"; shift 2 ;; --desc) DESC="$2"; shift 2 ;; --delay-cell) DCELLS+=("$2"); shift 2 ;;  --pass-re) PASS_RE="$2"; shift 2 ;;
       *) die "unknown option $1" ;;
     esac
@@ -82,6 +84,7 @@ run)
   [ -n "$TOP" ] || die "--top is required"
   command -v iverilog >/dev/null || die "iverilog not found"
   [ -f "$LIB/sky130_fd_sc_hd.v" ] && [ -f "$LIB/primitives.v" ] || die "cell models not found in $LIB (PDK_ROOT=$PDK_ROOT)"
+  for x in "${NLX[@]+"${NLX[@]}"}"; do [ -s "$x" ] || die "--netlist-extra file not found: $x (run make views DESIGN=<macro>)"; done
   DNAME=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['DESIGN_NAME'])" "$DDIR/config.json")
   NL=""
   case "$SRC" in
@@ -191,7 +194,7 @@ PY
     [ $? -eq 0 ] || die "could not build the delayed cell library"
   fi
   if ! iverilog -g2012 -DFUNCTIONAL "-DUNIT_DELAY=$UNIT_DELAY" "${FLAGS[@]+"${FLAGS[@]}"}" -s "$TOP" -o "$VVP" \
-        "${INCS[@]+"${INCS[@]}"}" "${PRE[@]+"${PRE[@]}"}" "$LIB/primitives.v" "$LIBV" "$NL" "$TBG" "${EXTRA[@]+"${EXTRA[@]}"}" > "$GL/sim/iverilog.log" 2>&1; then
+        "${INCS[@]+"${INCS[@]}"}" "${PRE[@]+"${PRE[@]}"}" "$LIB/primitives.v" "$LIBV" "$NL" "${NLX[@]+"${NLX[@]}"}" "$TBG" "${EXTRA[@]+"${EXTRA[@]}"}" > "$GL/sim/iverilog.log" 2>&1; then
     cat "$GL/sim/iverilog.log"; die "iverilog failed for $DESIGN"
   fi
   # Python's subprocess timeout kills vvp and leaves no helper process (a `sleep` watchdog child outlived the

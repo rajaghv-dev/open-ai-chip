@@ -5,6 +5,8 @@
 #
 #   make flow-all [DESIGN=<name>]   simulate -> gds -> check -> gl (synthesised) -> gl-final (routed) -> collect
 #   make tiny                       flow-all for the three tiny AI engines, then a table
+#   make views [DESIGN=<macro>]     export a hardened macro's views (gds lef nl pnl spef lib) to build/macros/<macro>/
+#   make wrapper                    views of every macro of user_project_wrapper, then flow-all DESIGN=user_project_wrapper
 #   make help                       every target
 
 SHELL        := /bin/bash
@@ -56,14 +58,24 @@ endef
 ifeq ($(wildcard $(DDIR)/config.json),)
   $(error unknown DESIGN '$(DESIGN)'; designs: $(DESIGNS))
 endif
-SIM_RTL  := $(shell python3 scripts/flow/design_info.py $(DESIGN) files)
+# MACROS: the designs named in the design's config.json MACROS (an elaborate-only wrapper). Their exported views live in
+# build/macros/<macro>/ (make views); simulation compiles the macro RTL too, gate-level simulation adds the macro netlist.
+MACROS    := $(shell python3 scripts/flow/find_reusable_run.py --macros $(DESIGN))
+# duplicates removed, order kept (a wrapper's config may already list some macro files)
+SIM_RTL  := $(shell { python3 scripts/flow/design_info.py $(DESIGN) files; $(foreach m,$(MACROS),python3 scripts/flow/design_info.py $(m) files;) } | awk '!s[$$0]++')
+SIM_INCS := $(addprefix -I,$(shell python3 scripts/flow/design_info.py $(DESIGN) incs))
 SIM_TB   := $(DDIR)/tb/$(DESIGN)_tb.v
-# generated vectors (tiny AI engines): passed as +VEC=; their testbench body is shared/tb/stream_tb.vh
-SIM_VEC  := $(wildcard $(DDIR)/tb/vectors.hex)
+# generated vectors (tiny AI engines): passed as +VEC=; their testbench body is shared/tb/stream_tb.vh. Override: SIM_VEC=<file>;
+# default: the design's tb/vectors.hex, else the first macro's (the wrapper drives the macro with the macro's vectors)
+SIM_VEC  ?= $(firstword $(wildcard $(DDIR)/tb/vectors.hex $(foreach m,$(MACROS),designs/$(m)/tb/vectors.hex)))
+MACRO_VIEWS_DIRS := $(foreach m,$(MACROS),build/macros/$(m))
+GL_NLX   := $(foreach m,$(MACROS),--netlist-extra build/macros/$(m)/nl/$(m).nl.v)
+# `make views` takes the macro as DESIGN=<macro>; default tiny_ai_core
+VIEWS_OF := $(if $(filter file,$(origin DESIGN)),tiny_ai_core,$(DESIGN))
 SIM_PLUS := $(if $(SIM_VEC),+VEC=$(abspath $(SIM_VEC)))
 GL_DESC  := $(if $(SIM_VEC),every case of tb/vectors.hex,committed tb)
 
-.PHONY: help doctor test simulate gds flow check gl gl-final collect view flow-all tiny generate check-generated model-check clean
+.PHONY: help doctor test views macro-views wrapper simulate gds flow check gl gl-final collect view flow-all tiny generate check-generated model-check clean
 .DEFAULT_GOAL := help
 
 help:
@@ -75,6 +87,8 @@ help:
 	@echo "  doctor     host tools, Docker daemon, LibreLane image, PDK"
 	@echo "  test       fast repository checks (structure, configs, RTL lint), no Docker"
 	@echo "  simulate   RTL simulation, self-checking testbench (iverilog)"
+	@echo "  views      export the hardened macro's views to build/macros/<macro>/ (DESIGN=<macro>, default tiny_ai_core)"
+	@echo "  wrapper    views, then flow-all DESIGN=user_project_wrapper"
 	@echo "  gds        RTL to GDSII under PROFILE (default tight); reuses the newest complete, current run"
 	@echo "  check      signoff: DRC, LVS, XOR, antenna, slack at all corners, no logic lost"
 	@echo "  gl         gate-level simulation of the synthesised netlist (NETLIST=final: routed netlist)"
@@ -97,7 +111,7 @@ test:
 # -Wno-timescale: the upstream RTL has no `timescale (kept byte-identical) and no delays.
 $(SIM_DIR)/tb.vvp: $(SIM_RTL) $(SIM_TB) $(wildcard shared/tb/*.vh)
 	@mkdir -p $(SIM_DIR)
-	iverilog -g2012 -Wall -Wno-timescale -I shared/tb -o $@ $(SIM_RTL) $(SIM_TB)
+	iverilog -g2012 -Wall -Wno-timescale -I shared/tb $(SIM_INCS) -o $@ $(SIM_RTL) $(SIM_TB)
 
 simulate: $(SIM_DIR)/tb.vvp
 	cd $(SIM_DIR) && set -o pipefail && vvp -n tb.vvp $(SIM_PLUS) | tee sim.log
@@ -108,7 +122,20 @@ simulate: $(SIM_DIR)/tb.vvp
 flow:
 	$(call run_librelane,$(DDIR),)
 
-gds:
+# ---- macro views (build/macros/<macro>/) ----
+# views: copy final/{gds,lef,nl,pnl,spef,lib} of the macro's CURRENT run (find_reusable_run.py); fails with a hint when there is none
+views:
+	@python3 scripts/flow/find_reusable_run.py --export-views $(VIEWS_OF)
+
+# macro-views: every macro of $(DESIGN), re-exported only when its current run changed (SOURCE.txt names the run + hashes)
+macro-views:
+	@for m in $(MACROS); do python3 scripts/flow/find_reusable_run.py --export-views --if-needed $$m || exit 1; done
+
+wrapper:
+	@for m in $$(python3 scripts/flow/find_reusable_run.py --macros user_project_wrapper); do $(MAKE) --no-print-directory views DESIGN=$$m || exit 1; done
+	@$(MAKE) --no-print-directory flow-all DESIGN=user_project_wrapper
+
+gds: $(if $(MACROS),macro-views)
 	@mkdir -p $(DDIR)/output $(TMP)
 	@if run=$$(python3 scripts/flow/find_reusable_run.py $(DESIGN) 2>$(TMP)/reuse.err); then \
 	  echo "gds: REUSED $$run (complete, inputs unchanged since it started); no flow run"; \
@@ -124,7 +151,7 @@ check:
 
 # ---- gate-level simulation ----
 # NETLIST=synth: a synthesis-only LibreLane run on a copy of the config (build/gl/<design>/); NETLIST=final: the routed netlist.
-gl:
+gl: $(if $(MACROS),macro-views)
 ifeq ($(NETLIST),final)
 	@echo "=== gl: post-route netlist ==="
 else
@@ -134,7 +161,7 @@ else
 	@echo "synthesis__check_error__count = $$(bash scripts/flow/gl_sim.sh checks $(DESIGN))" | tee build/gl/$(DESIGN)/synth_checks.txt
 endif
 	@bash scripts/flow/gl_sim.sh run $(DESIGN) --source $(NETLIST) --name $(DESIGN) --tb $(SIM_TB) --top $(DESIGN)_tb \
-	  -I shared/tb $(if $(SIM_PLUS),--plus $(SIM_PLUS)) --desc "$(GL_DESC)" --timeout $(GL_TIMEOUT)
+	  -I shared/tb $(GL_NLX) $(if $(SIM_PLUS),--plus $(SIM_PLUS)) --desc "$(GL_DESC)" --timeout $(GL_TIMEOUT)
 
 gl-final:
 	@$(MAKE) --no-print-directory gl NETLIST=final

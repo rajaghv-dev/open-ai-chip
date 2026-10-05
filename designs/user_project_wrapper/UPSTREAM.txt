@@ -1,0 +1,62 @@
+Source:   https://github.com/chipfoundry/caravel_user_project  (the ChipFoundry / ChipIgnite template)
+Commit:   b510613cec367828966b37583f9090ac5ddb6491  (checked out read-only at build/template)
+License:  Apache-2.0 (rtl/LICENSE is the template's LICENSE; the .v files carry SPDX-License-Identifier: Apache-2.0)
+
+Files and how they were taken:
+  verilog/rtl/user_project_wrapper.v   -> rtl/user_project_wrapper.v   MODIFIED (body only, see below)
+  verilog/rtl/defines.v                -> rtl/defines.v                unchanged (MPRJ_IO_PADS = 38)
+  verilog/rtl/user_defines.v           -> rtl/user_defines.v           unchanged (GPIO power-up defaults)
+  openlane/user_project_wrapper/fixed_dont_change/user_project_wrapper.def -> fixed_dont_change/   unchanged
+  openlane/user_project_wrapper/signoff.sdc  -> signoff.sdc            unchanged
+  openlane/user_project_wrapper/config.json  -> config.json            ADAPTED to LibreLane 3.0.2 (see below)
+  lvs/user_project_wrapper/lvs_config.json   -> lvs_config.json        ADAPTED (see below)
+  LICENSE                              -> rtl/LICENSE                  unchanged
+
+LOCAL CHANGES
+ 1. rtl/user_project_wrapper.v: license header, module header, parameter, power ports, every port and the
+    MPRJ_IO_PADS use are byte-identical to upstream (checked by diffing the module header through the port list). The
+    user_proj_example instance is replaced by exactly one tiny_ai_core instance named mprj (SPEC.md), every port
+    connected to the same-named wrapper port, irq -> user_irq, power pins vccd1/vssd1 under USE_POWER_PINS.
+    The io_* buses are connected whole (the template sliced {io[37:30], io[7:0]} for its 16-bit example); no glue logic.
+    analog_io and user_clock2 stay unconnected (SPEC). A "LOCAL CHANGE" note was added to the header comment.
+ 2. config.json, LibreLane 2 -> 3 key translation (names from the LibreLane 3.0.2 package, deprecated_names lists):
+      FP_PDN_ENABLE_RAILS                 -> PDN_ENABLE_RAILS
+      FP_PDN_{V,H}OFFSET/WIDTH/SPACING/PITCH -> PDN_{V,H}OFFSET/WIDTH/SPACING/PITCH
+      FP_PDN_CORE_RING                    -> PDN_CORE_RING
+      FP_PDN_CORE_RING_{V,H}{WIDTH,OFFSET,SPACING} -> PDN_CORE_RING_{V,H}{WIDTH,OFFSET,SPACING}
+    Values are unchanged. All other template keys exist under the same name in LibreLane 3 and are kept as is
+    (SYNTH_ELABORATE_ONLY, RUN_*, DESIGN_REPAIR_BUFFER_INPUT_PORTS, ERROR_ON_*, FP_SIZING, DIE_AREA, FP_DEF_TEMPLATE,
+    VDD/GND_NETS, CLOCK_*, MAGIC_*, SIGNOFF_SDC_FILE, PNR_SDC_FILE, DRT_THREADS, MACROS, PDN_MACRO_CONNECTIONS, meta).
+    Duplicate "//" comment keys became "//1".."//6" (LibreLane skips keys starting with "//").
+    Added: PDK sky130A and STD_CELL_LIBRARY sky130_fd_sc_hd set explicitly. VERILOG_FILES now dir::rtl/.
+    Not set (as in the template): RT_MAX_LAYER, DISABLE_LVS, MAX_FANOUT_CONSTRAINT (LibreLane default is used by signoff.sdc).
+    MAX_TRANSITION_CONSTRAINT 1.5 and ERROR_ON_SYNTH_CHECKS false are the template's wrapper-level settings, not our change.
+ 3. MACROS: user_proj_example replaced by tiny_ai_core. Views come from build/macros/tiny_ai_core/ (created by
+    'make views DESIGN=tiny_ai_core'; absent until then). The template maps lib "*" to one file; here lib is mapped per
+    corner (*_tt_*, *_ss_*, *_ff_* -> nom_tt_025C_1v80, nom_ss_100C_1v60, nom_ff_n40C_1v95) so STA at every corner uses
+    the matching library; spef keys min_*/nom_*/max_* as upstream. If the export lacks the ss/ff libs, use the single
+    "*" entry for nom_tt_025C_1v80 instead.
+ 4. PDN_MACRO_CONNECTIONS "mprj vccd1 vssd1 vccd1 vssd1": the template example uses vccd2/vssd2 for its macro; tiny_ai_core
+    is on vccd1/vssd1 per SPEC (user area 1 supply), so both the wrapper net and the macro pin are vccd1/vssd1.
+ 5. lvs_config.json: LVS_VERILOG_FILES names build/macros/tiny_ai_core/nl/tiny_ai_core.nl.v instead of
+    verilog/gl/user_proj_example.v. For the later ChipFoundry precheck only; LibreLane does not read it. Other keys unchanged.
+    The precheck's layout is $UPRJ_ROOT/gds/user_project_wrapper.gds and the layout needs the standard Caravel tree.
+
+MACRO PLACEMENT (mprj at [59.8, 16.32], N; macro 400 x 400 um, so it occupies x 59.8..459.8, y 16.32..416.32)
+  Fixed DEF (die 2920 x 3520, 1 um = 1000 DBU): ALL Wishbone pins (wb_rst_i, wbs_*) sit on the bottom edge (y = 0) at
+  x = 3.0 (wb_clk_i)..623.5, and la_data_in/out/oenb on the bottom edge at x = 629.5..2893.2 (user_irq 2905..2917, user_clock2 2899
+  also bottom). The pads io_*/analog_io are on
+  the other three edges. Placing the macro at the bottom-left puts it directly above the Wishbone pins (x 8..623) and the
+  low-numbered LA pins. Template value [60,15] snapped to the grid: x = 130 * 0.46 (site pitch), y = 6 * 2.72 =
+  16.32 (core rows start at y = 10.88, row pitch 2.72).
+  Wrapper met5 horizontal straps (PDN_HOFFSET 5, PDN_HPITCH 180, width 3.1, spacing 15.5): first strap group starts at
+  core y0 (10.88) + 5 = 15.88, then every 180 um: 15.88, 195.88, 375.88 ... Eight nets share a pitch, 18.6 um apart, so
+  group k covers roughly y = 15.88 + 180k .. +148.8. Groups at 15.88 (partly under the macro bottom edge) , 195.88 and
+  375.88 all intersect y 16.32..416.32: at least two (195.88 and 375.88) cross it fully and a third starts inside it.
+  Vertical met5 straps similarly at x = 5.52 + 5 + 180k = 10.52, 190.52, 370.52, which cross x 59.8..459.8 at 190.52
+  and 370.52. These positions are estimates from the config arithmetic; confirm in the PDN step output (e.g. 
+  the OpenROAD pdn report / final DEF) after the first run. Whether each strap carries vccd1/vssd1 depends on net ordering.
+
+GPIO startup modes: rtl/user_defines.v is the template's, unchanged. The GPIO startup modes for pads 5..37 required by
+SPEC "External observability" are NOT yet set (pads 8..21 are tiny_ai_core outputs; the defaults must be set to output
+modes there before tape-out).

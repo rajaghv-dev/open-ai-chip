@@ -28,6 +28,12 @@ resolved MAX_TRANSITION_CONSTRAINT when it is not the PDK default.
 RTL count: computed afresh on every run (no cache). Cells of the sky130_fd_sc_hd library that the RTL instantiates directly
 are given to Yosys as black-box stubs generated from the RTL itself, so no PDK is needed (and the PDK is not read);
 instantiated sequential library cells (df*/sdf*/edf*/dl*) are added to the count one each.
+Macros: a design with MACROS in its config.json (an elaborate-only wrapper) has each macro that is a design of this repository read
+with `read_verilog -lib`, i.e. as a black box with the ports of its RTL module header; the macro's own files are dropped from the
+design's file list if the config lists them. The macro's registers are not counted (they are checked in the macro's own run), so an
+elaborate-only wrapper has 0 RTL registers. Only when the design has SYNTH_ELABORATE_ONLY true AND the metric is absent are these
+skipped (noted, never silently): synthesis check / unmapped / inferred-latch counts, and the sequential-cell count (taken as 0).
+DRC, LVS, XOR, antenna and setup/hold timing are never skipped.
 Yosys: `yosys` on PATH when USE_DOCKER=0, otherwise the LibreLane image (honours DOCKER_HOST, CPUSET).
 """
 import argparse, glob, json, os, re, subprocess, sys
@@ -42,6 +48,15 @@ ALIAS = {"upe": "user_proj_example"}
 
 def rel(p):
     return os.path.relpath(p, REPO)
+
+
+def macro_designs(cfg):
+    """MACROS keys that are designs of this repository (their RTL is black-boxed in the wrapper)."""
+    return [k for k in (cfg.get("MACROS") or {}) if os.path.isfile(os.path.join(REPO, "designs", k, "config.json"))]
+
+
+def elaborate_only(cfg):
+    return cfg.get("SYNTH_ELABORATE_ONLY") is True
 
 
 # ---------------------------------------------------------------- RTL register count
@@ -105,6 +120,12 @@ def rtl_registers(design):
     """(register_bits, driver_warnings, breakdown): the flip-flop / latch bits in the elaborated, flattened RTL, plus one
     per instantiated sequential library cell. Computed on every call (no cache)."""
     cfg, top, files, incs, defs = read_config(design)
+    macro_files = []                                   # RTL of the macros: black boxes (header only), never counted
+    for m in macro_designs(cfg):
+        _, _, mf, mi, md = read_config(m)
+        macro_files.append((mf, mi, md))
+    mset = {os.path.realpath(f) for mf, _, _ in macro_files for f in mf}
+    files = [f for f in files if os.path.realpath(f) not in mset]
     work = os.path.join(REPO, "build", "check", "rtl_ff", design)
     os.makedirs(work, exist_ok=True)
     ys = os.path.join(work, "ff.ys")
@@ -117,6 +138,9 @@ def rtl_registers(design):
     if stubs:
         open(os.path.join(work, "lib_stubs.v"), "w").write(stubs)
         lib = f"read_verilog -lib {os.path.join(work, 'lib_stubs.v')}\n"
+    for n, (mf, mi, md) in enumerate(macro_files):
+        mopts = " ".join(["-sv"] + [f"-I{i}" for i in mi] + [f"-D{d}" for d in md])
+        lib += f"read_verilog -lib {mopts} {' '.join(mf)}\n"
     open(ys, "w").write(
         lib + f"read_verilog {opts} {' '.join(files)}\n"
         f"hierarchy -check -top {top}\n"
@@ -192,10 +216,15 @@ def check(design, explicit=None, quiet=False):
     def val(k):
         return m.get(k)
 
-    def must_zero(keys, what):
+    cfg0 = read_config(design)[0]
+    elab = elaborate_only(cfg0)
+
+    def must_zero(keys, what, skippable=False):
         for k in keys:
             v = val(k)
-            if v is None:
+            if v is None and skippable and elab:
+                notes.append(f"{what}: {k} absent; skipped (SYNTH_ELABORATE_ONLY design)")
+            elif v is None:
                 fails.append(f"{what}: {k} missing from metrics (not a complete flow result)")
             elif v != 0:
                 fails.append(f"{what}: {k} = {v}")
@@ -222,12 +251,15 @@ def check(design, explicit=None, quiet=False):
         if (val(k) or 0) < 0:
             fails.append(f"timing: {k} = {val(k)}")
 
-    must_zero(["synthesis__check_error__count"], "synthesis checks")
-    must_zero(["design__instance_unmapped__count"], "unmapped cells")
-    must_zero(["design__inferred_latch__count"], "inferred latches")
+    must_zero(["synthesis__check_error__count"], "synthesis checks", True)
+    must_zero(["design__instance_unmapped__count"], "unmapped cells", True)
+    must_zero(["design__inferred_latch__count"], "inferred latches", True)
 
     # no logic lost
     seq = val("design__instance__count__class:sequential_cell")
+    if seq is None and elab:
+        seq = 0
+        notes.append("sequential cells: metric absent in an elaborate-only design; counted as 0 (the macro's registers are in the macro)")
     info["seq"] = seq
     try:
         rtl, drvwarn, bd = rtl_registers(design)
@@ -263,7 +295,7 @@ def check(design, explicit=None, quiet=False):
     if res:
         notes.append(f"peak memory {res.get('container_peak_mem_gb')} GB, wall time {res.get('wall_s_total')} s (resources.json)")
     mt = None
-    cfg = read_config(design)[0]
+    cfg = cfg0
     for rj in ([os.path.join(rundir, "resolved.json")] if rundir else []):
         if os.path.exists(rj):
             mt = json.load(open(rj)).get("MAX_TRANSITION_CONSTRAINT")
@@ -273,9 +305,11 @@ def check(design, explicit=None, quiet=False):
         notes.append(f"MAX_TRANSITION_CONSTRAINT = {mt} (PDK default {PDK_MAX_TRANSITION})")
     # stale metrics: RTL or config edited after the run that produced them
     try:
-        newest = max(os.path.getmtime(f) for f in read_config(design)[2] + [os.path.join(REPO, "designs", design, "config.json")])
+        views = [os.path.join(REPO, "build", "macros", m, "SOURCE.txt") for m in macro_designs(cfg0)]
+        newest = max(os.path.getmtime(f) for f in read_config(design)[2] + [os.path.join(REPO, "designs", design, "config.json")]
+                     + [v for v in views if os.path.exists(v)])
         if newest > os.path.getmtime(mpath):
-            notes.append("RTL/config newer than these metrics: re-run the flow before trusting this result")
+            notes.append("RTL/config/macro views newer than these metrics: re-run the flow before trusting this result")
     except OSError:
         pass
     info["notes"] = notes

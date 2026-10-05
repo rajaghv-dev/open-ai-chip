@@ -11,7 +11,11 @@
 #
 # build/results/<design>/ holds: <top>.gds  <top>.lef  final/{nl,pnl}/  layout.png  layout_flow.png  metrics.json
 #   resources.json  flow.log  steps.txt  final_listing.txt  meta.json  reports/*
-# Environment: PDK_ROOT (default ~/.volare), OPEN_CMD (override image opener),
+# Wrapper runs (elaborate-only, no CTS/fill/...): rpt() matches report steps by name and skips the ones a run does not have, so a
+# missing step is not an error. layout.png: KLayout renders with RENDER_PX as the LONG edge (default 2400, so the 2920 x 3520 um
+# user_project_wrapper comes out 1991 x 2400); if that is slow, lower it:  RENDER_PX=1200 make collect DESIGN=user_project_wrapper
+# (a failed render falls back to the flow's own layout_flow.png).
+# Environment: PDK_ROOT (default ~/.volare), OPEN_CMD (override image opener), RENDER_PX (layout.png long edge, default 2400),
 #   RESULTS_DIR (default build/results), DOCKER_HOST (used by --collect).
 set -uo pipefail
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -104,7 +108,7 @@ collect() {
   [ -f "$run/final/render/$top.png" ] && cp "$run/final/render/$top.png" "$out/layout_flow.png"
   # human-readable reports the flow leaves behind
   # matched by step name, not number: the numbers shift with the flow configuration
-  rpt() { local f; f=$(ls "$run"/[0-9]*-"$1"/$2 2>/dev/null | tail -1); [ -n "$f" ] && cp "$f" "$out/reports/$3"; }
+  rpt() { local f; f=$(ls "$run"/[0-9]*-"$1"/$2 2>/dev/null | tail -1); if [ -n "$f" ]; then cp "$f" "$out/reports/$3"; fi; return 0; }
   rpt openroad-stapostpnr        summary.rpt                    timing_summary.rpt
   rpt openroad-irdropreport      irdrop.rpt                     irdrop.rpt
   rpt misc-reportmanufacturability manufacturability.rpt        manufacturability.rpt
