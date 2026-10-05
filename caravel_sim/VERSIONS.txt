@@ -1,0 +1,5 @@
+template: chipfoundry/caravel_user_project @ b510613cec367828966b37583f9090ac5ddb6491 (build/template)
+caravel: chipfoundry/caravel-lite tag CC2509 = 58c8c7782973f5350b8535d21c6a8c10118fd76c  (template Makefile: CARAVEL_LITE=1, MPW_TAG=CC2509)
+mgmt core: chipfoundry/caravel_mgmt_soc_litex (VexRiscv) tag CC2509 = 503eda0790085712ffef7f4ad8934c7daed3237f
+sky130A PDK: ~/.volare (pin SKY130_PDK_COMMIT=8afc8346a57fe1ab7934ba5a6056ea8b43078e71 in versions.lock)
+riscv64-elf-gcc 16.2.0 (brew), iverilog 13, host: macOS arm64 native

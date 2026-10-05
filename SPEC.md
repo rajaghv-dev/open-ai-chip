@@ -6,6 +6,18 @@ The key decision is to build one hard macro named `tiny_ai_core`. It contains th
 
 ## Status (as of 2026-10-05)
 
+> **Update 2026-10-06 (SoC):** Phase 8 is partly done, with evidence (all native on macOS, iverilog + riscv64-elf-gcc):
+> - `make soc-sim`: PicoRV32 firmware against `user_project_wrapper` RTL, all 784 cases on the accelerator and in pure C,
+>   15 protocol negatives, irq; PASS (`firmware/README.md`, about 25 s). This is not Caravel's management core.
+> - `make caravel-rtl`: complete Caravel RTL, real VexRiscv firmware, one case per mode; PASS (about 53 s).
+> - `make caravel-gl`: hybrid gate-level (routed wrapper and macro netlists inside RTL Caravel, unit delay); PASS (about 58 s).
+>   Details: `docs/CARAVEL_SIM.md`.
+> - `shared/rtl/wb_stream_adapter.v` verified with all 13 stream engines (`make adapter-test`); `designs/soc_image_text_match`
+>   (adapter + `image_text_match`, 109 pins) hardened clean.
+> - Acceptance item "Full-Caravel representative RTL and GL tests pass" stays unticked: RTL is met, but GL is partial (Caravel
+>   and the management core stay RTL, no SDF, one case per mode, and the wrapper under test holds `tiny_ai_core`, not yet
+>   the final wrapper build). Also still open: `cf precheck`, wrapper hardening with the adapter macro, GPIO startup modes.
+
 > **Update 2026-10-06 (owner decisions and results):**
 > - `tiny_ai_core` simplified for learning: only the Wishbone bus and the interrupt leave the core (109 signal pins;
 >   the GPIO and logic-analyser mirrors of "External observability" are removed); 250 x 250 um die; hardened against

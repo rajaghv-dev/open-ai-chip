@@ -19,6 +19,13 @@ was learned); the numbers are in the generated tables below.
   (`SPEC.md` register map and interrupt); only the Wishbone bus and the interrupt leave the core.
 - [`user_project_wrapper`](designs/user_project_wrapper/NOTES.md): Caravel's fixed user-area wrapper with `tiny_ai_core`
   as its single macro `mprj`; chip-level evidence in its README.
+- [`soc_image_text_match`](designs/soc_image_text_match/NOTES.md): the generic Wishbone-to-stream adapter
+  (`shared/rtl/wb_stream_adapter.v`) plus `image_text_match` as one 109-pin macro with `tiny_ai_core`'s port list; the
+  first "one build per experiment" macro of `docs/SOC_PLAN.md`.
+- [`user_project_wrapper_soc_itm`](designs/user_project_wrapper_soc_itm/NOTES.md): the same fixed Caravel wrapper with
+  `soc_image_text_match` as `mprj` instead of `tiny_ai_core`: the second wrapper build, signoff-clean, its testbench
+  passing through the wrapper's ports on both gate-level netlists (`make views DESIGN=soc_image_text_match`, then
+  `make flow-all DESIGN=user_project_wrapper_soc_itm`).
 
 **Audio** (streaming)
 - [`audio_pitch`](designs/audio_pitch/NOTES.md): zero-crossing count over a window, high or low tone (`model/audio_pitch/`).
@@ -34,6 +41,31 @@ was learned); the numbers are in the generated tables below.
   [`prec_int4`](designs/prec_int4/NOTES.md), [`prec_int8`](designs/prec_int8/NOTES.md),
   [`prec_fp8`](designs/prec_fp8/NOTES.md), [`prec_fp16`](designs/prec_fp16/NOTES.md), [`prec_bf16`](designs/prec_bf16/NOTES.md).
 
+## Running on the SoC
+
+All of this runs natively with iverilog (no Docker); `make test` includes the adapter tests and the firmware SoC sim.
+
+- `make soc-sim` (about 25 s; needs `riscv64-elf-gcc`): a PicoRV32 runs RISC-V C firmware (`firmware/`, `soc_sim/`)
+  against the real `user_project_wrapper` RTL. All 784 cases go through the accelerator and through pure-C software,
+  plus 15 protocol negatives and the interrupt; it prints this cycle table and `PASS` (`firmware/README.md`):
+
+      mode            cases  sw_cpu  accel_roundtrip  (write+wait+read)  accel_CYCLES_reg  sw/accel
+      vision_all_lit     16  153.0  490.0  (327.0+79.0+84.0)  6.0  0.3x
+      vision_block      512  1318.6  728.0  (565.0+79.0+84.0)  15.0  1.8x
+      text_sentiment    256  351.0  490.0  (327.0+79.0+84.0)  6.0  0.7x
+
+  Key insight: bus transactions dominate. The accelerator computes in 6 to 15 clocks, but each Wishbone write costs
+  about 55 CPU clocks, so for the 4-input networks plain software is faster; only `vision_block` (the most work per
+  input) wins, 1.8x. This is for tiny networks on a slow CPU with a one-input-per-write interface.
+- `make adapter-test` (about 9 s): `shared/rtl/wb_stream_adapter.v`, a generic Wishbone-to-stream adapter, verified
+  with all 13 stream engines against their own vectors (`tests/adapter/`). `designs/soc_image_text_match` hardens it with
+  `image_text_match` as a macro (`make flow-all DESIGN=soc_image_text_match`).
+- `make caravel-rtl` (about 53 s) and `make caravel-gl` (about 58 s): the complete Caravel RTL with the real VexRiscv
+  management core booting firmware from a flash model and talking to `tiny_ai_core` through the real Wishbone path; the
+  GL run is hybrid (our routed wrapper and macro netlists inside RTL Caravel). They need about 5 GB of downloads in
+  `build/caravel/` and are not part of `make test`; see [docs/CARAVEL_SIM.md](docs/CARAVEL_SIM.md) and
+  `caravel_sim/README.md`.
+
 Background and plans:
 - [docs/WHY_AI.md](docs/WHY_AI.md): how and why these are AI rather than ordinary code or logic, with worked examples.
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): architecture and block diagrams of every engine and of `tiny_ai_core`.
@@ -41,7 +73,7 @@ Background and plans:
 - [docs/PRECISION_STUDY.md](docs/PRECISION_STUDY.md): number formats compared in hardware.
 
 The flow and the checks are ported from `../open-ai-silicon` (its exercise 1); see `provenance/SOURCES.md`.
-Next in `SPEC.md`: full-Caravel simulation with management firmware, and the ChipFoundry precheck.
+Next in `SPEC.md`: full-chip gate-level simulation, the wrapper build with the adapter macro, and the ChipFoundry precheck.
 
 ## Run
 
@@ -50,7 +82,7 @@ make doctor      # tools, Docker daemon, LibreLane image, sky130A PDK at the pin
 make test        # fast checks, no Docker: structure, configs, lint, model, RTL sims, negative tests
 make flow-all    # user_proj_example: simulate -> gds -> check -> gl (synthesised) -> gl-final (routed) -> collect
 make tiny        # the same for the three tiny AI engines, then a comparison table
-make all-designs # the same for all 16 designs in a fixed order (hours), then `make table`
+make all-designs # the same for all 17 designs in a fixed order (hours), then `make table`
 make table       # regenerate the results tables below from designs/*/output (no Docker)
 make flow-all DESIGN=tiny_ai_core   # the combined Wishbone macro
 ```
@@ -96,6 +128,8 @@ Slack is the worst over all 9 corners (the corner is named). Max-slew / max-cap 
 | [prec_fp8](designs/prec_fp8/NOTES.md) | 1,404 | 49 | 170 x 170 | +0.26 (max_ss_100C_1v60) | +0.11 (min_ff_n40C_1v95) | 0/0/0/0 | 82/0/29 | 101 | 0.821 |
 | [prec_fp16](designs/prec_fp16/NOTES.md) | 1,932 | 52 | 220 x 220 | +0.11 (max_ss_100C_1v60) | +0.11 (min_ff_n40C_1v95) | 0/0/0/0 | 36/0/26 | 104 | 0.707 |
 | [prec_bf16](designs/prec_bf16/NOTES.md) | 1,754 | 51 | 220 x 220 | +0.04 (max_ss_100C_1v60) | +0.11 (min_ff_n40C_1v95) | 0/0/0/0 | 45/0/29 | 93 | 0.832 |
+| [soc_image_text_match](designs/soc_image_text_match/NOTES.md) | 3,201 | 393 | 250 x 250 | +2.96 (max_ss_100C_1v60) | +0.11 (min_ff_n40C_1v95) | 0/0/0/0 | 421/0/0 | 165 | 0.802 |
+| [user_project_wrapper_soc_itm](designs/user_project_wrapper_soc_itm/NOTES.md) | 0 | - | 2920 x 3520 | +2.96 (max_ss_100C_1v60) | +0.11 (min_ff_n40C_1v95) | 0/0/0/0 | 0/0/0 | 59 | 0.800 |
 <!-- results:end signoff -->
 
 Area, power and clock:
@@ -119,6 +153,8 @@ Area, power and clock:
 | prec_fp8 | 25 | 9225 | 39.6 | 1016.8 | 16 | 21106 |
 | prec_fp16 | 25 | 11913 | 29.1 | 1928.9 | 13 | 28736 |
 | prec_bf16 | 25 | 10170 | 24.9 | 1271.5 | 14 | 23952 |
+| soc_image_text_match | 25 | 29686 | 55.1 | 2459.7 | 269 | 61165 |
+| user_project_wrapper_soc_itm | 25 | 0 | 0.6 | 2460.0 | - | 28359 |
 <!-- results:end budget -->
 
 Test coverage (what each testbench drives, on the RTL and again on both gate-level netlists) is in each design's NOTES.md,

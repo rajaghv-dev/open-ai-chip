@@ -6,6 +6,27 @@ under 10 minutes; (3) the Caravel RISC-V management core is the CPU, no RISC-V c
 a separate later study never mixed into the AI macro; (4) exactly one macro in `user_project_wrapper` (`SPEC.md`,
 "Project decision" and "Architecture").
 
+## Status (2026-10-06)
+
+Ladder of section 4, all measured on this Mac without Docker:
+
+| Step | State | Evidence |
+|---|---|---|
+| (i) RTL unit tests | Done | `make test` |
+| (ii) wrapper RTL + GL with our Wishbone testbench | Done (784 cases, RTL, synthesised and routed) | `designs/user_project_wrapper/README.md` |
+| (iii) fake management core | Done, as a real PicoRV32 running compiled RISC-V firmware instead of a replay testbench: all 784 cases on accelerator and in pure C, 15 protocol negatives, irq; about 25 s | `make soc-sim`, `firmware/README.md`, `soc_sim/` |
+| (iv) full-Caravel RTL with real firmware | Done with iverilog and the real VexRiscv core instead of cocotb: one case per mode, PASS in about 53 s | `make caravel-rtl`, `caravel_sim/`, `docs/CARAVEL_SIM.md` |
+| (v) full-Caravel GL | Partly done: hybrid (routed wrapper and macro netlists inside RTL Caravel, unit delay), PASS in about 58 s | `make caravel-gl`, `docs/CARAVEL_SIM.md` |
+| (vi) `cf precheck` | Not done | none |
+
+Also done: the generic adapter `shared/rtl/wb_stream_adapter.v` is verified with all 13 stream engines (`make adapter-test`,
+`tests/adapter/`), and `designs/soc_image_text_match` (adapter + `image_text_match`, 109 pins) is hardened clean
+(`designs/soc_image_text_match/output/`).
+
+Not done: full-chip gate-level simulation and SDF back-annotation; `cf precheck`; a `user_project_wrapper` build that
+instantiates the adapter macro (the committed wrapper holds `tiny_ai_core`); GPIO startup modes (`user_defines.v`).
+Finding: bus transactions dominate; software beats the accelerator for the 4-input networks and only `vision_block` wins (1.8x).
+
 ## 1. What "runs on the SoC" means
 
 The management core (a RISC-V CPU inside Caravel, not part of this repository) runs C firmware. For one example the

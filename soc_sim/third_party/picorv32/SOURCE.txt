@@ -1,0 +1,3 @@
+picorv32.v from https://github.com/YosysHQ/picorv32 (branch main)
+commit ef203c2b0a3fb793280f5114941416c425c5b461
+Fetched 2026-10-06 from raw.githubusercontent.com. License: ISC (see LICENSE, upstream COPYING). File unmodified.

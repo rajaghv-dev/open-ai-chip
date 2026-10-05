@@ -1,0 +1,17 @@
+25. Printing statistics.
+
+=== user_project_wrapper ===
+
+        +----------Local Count, excluding submodules.
+        | 
+       19 wires
+      637 wire bits
+       19 public wires
+      637 public wire bits
+       19 ports
+      637 port bits
+        1 cells
+        1   soc_image_text_match
+
+   Area for cell type \soc_image_text_match is unknown!
+

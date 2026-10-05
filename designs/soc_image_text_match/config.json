@@ -1,0 +1,46 @@
+{
+    "PDK": "sky130A",
+    "STD_CELL_LIBRARY": "sky130_fd_sc_hd",
+    "DESIGN_NAME": "soc_image_text_match",
+    "VERILOG_FILES": [
+        "dir::../../shared/rtl/wb_stream_adapter.v",
+        "dir::../image_text_match/rtl/image_text_match_rom.v",
+        "dir::../image_text_match/rtl/image_text_match.v",
+        "dir::rtl/soc_image_text_match.v"
+    ],
+    "CLOCK_PERIOD": 25,
+    "CLOCK_PORT": "wb_clk_i",
+    "FP_SIZING": "absolute",
+    "DIE_AREA": [
+        0,
+        0,
+        250,
+        250
+    ],
+    "VDD_NETS": [
+        "vccd1"
+    ],
+    "GND_NETS": [
+        "vssd1"
+    ],
+    "RT_MAX_LAYER": "met4",
+    "PDN_MULTILAYER": false,
+    "MAGIC_DRC_USE_GDS": true,
+    "RUN_HEURISTIC_DIODE_INSERTION": false,
+    "RUN_ANTENNA_REPAIR": true,
+    "RUN_POST_GRT_DESIGN_REPAIR": true,
+    "MAX_FANOUT_CONSTRAINT": 8,
+    "PL_RESIZER_MAX_SLEW_MARGIN": 20,
+    "GRT_DESIGN_REPAIR_MAX_SLEW_PCT": 20,
+    "ERROR_ON_SYNTH_CHECKS": true,
+    "CTS_SINK_CLUSTERING_SIZE": 8,
+    "CTS_SINK_CLUSTERING_MAX_DIAMETER": 20,
+    "CTS_DISTANCE_BETWEEN_BUFFERS": 30,
+    "//DIE_AREA": "250x250 um as tiny_ai_core: the 109 Wishbone + irq pins need ~2.3 um pitch on one 250 um edge. Estimated ~420 flops (two 16 x 9 FIFOs + registers + engine), far fewer cells than tiny_ai_core's ~13,650 instances, so the die is pin-limited, not area-limited.",
+    "IO_PIN_ORDER_CFG": "dir::pin_order.cfg",
+    "PNR_SDC_FILE": "dir::base_soc.sdc",
+    "SIGNOFF_SDC_FILE": "dir::base_soc.sdc",
+    "DIODE_ON_PORTS": "in",
+    "//IO_PIN_ORDER_CFG": "Same 109 signal pins on the S side, same order as tiny_ai_core (wrapper DEF Wishbone pad order); irq at the right end. In pin_order.cfg every line starting with # is a direction marker, so the note lives here.",
+    "//SLEW": "Slew margins 20 (not 70): with the Caravel macro SDC wbs_dat_i / wbs_adr_i arrive at 0.84 / 0.92 ns, above the 0.75 ns limit; a 70% margin made repair chase those unfixable nets until the container ran out of memory, and 40% gave more violations (247) than 20% (195). Most remaining max-slew violations are on nets driven by the wbs_adr_i / wbs_dat_i input ports (environment-limited); see designs/tiny_ai_core/config.json and designs/user_project_wrapper/README.md."
+}

@@ -8,6 +8,14 @@
         "la_data_out"
       ],
       "undriven_reason": "Owner decision 2026-10-06 (learning build): tiny_ai_core keeps only the Wishbone bus and the interrupt, and the wrapper may not contain glue logic, so the GPIO and logic-analyser outputs of the fixed Caravel interface are left unconnected. Tapeout caveat: a floating io_oeb leaves the pad output enable undefined; before tapeout either drive io_oeb high and io_out/la_data_out low from the macro, or confirm every user GPIO is configured as an input in user_defines.v."
+    },
+    "user_project_wrapper_soc_itm": {
+      "undriven_outputs": [
+        "io_out",
+        "io_oeb",
+        "la_data_out"
+      ],
+      "undriven_reason": "Owner decision 2026-10-06 (learning build): the macro (here soc_image_text_match, like tiny_ai_core) keeps only the Wishbone bus and the interrupt, and the wrapper may not contain glue logic, so the GPIO and logic-analyser outputs of the fixed Caravel interface are left unconnected. Tapeout caveat: a floating io_oeb leaves the pad output enable undefined; before tapeout either drive io_oeb high and io_out/la_data_out low from the macro, or confirm every user GPIO is configured as an input in user_defines.v."
     }
   }
 }

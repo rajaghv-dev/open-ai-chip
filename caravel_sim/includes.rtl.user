@@ -1,0 +1,8 @@
+-v @ROOT@/designs/user_project_wrapper/rtl/user_project_wrapper.v
+-v @ROOT@/designs/vision_all_lit/rtl/vision_all_lit_rom.v
+-v @ROOT@/designs/vision_all_lit/rtl/vision_all_lit.v
+-v @ROOT@/designs/vision_block/rtl/vision_block_rom.v
+-v @ROOT@/designs/vision_block/rtl/vision_block.v
+-v @ROOT@/designs/text_sentiment/rtl/text_sentiment_rom.v
+-v @ROOT@/designs/text_sentiment/rtl/text_sentiment.v
+-v @ROOT@/designs/tiny_ai_core/rtl/tiny_ai_core.v

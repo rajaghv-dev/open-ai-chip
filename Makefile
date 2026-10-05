@@ -17,7 +17,8 @@ DESIGNS      := $(patsubst designs/%/config.json,%,$(wildcard designs/*/config.j
 TINY         := vision_all_lit vision_block text_sentiment
 # every design, in the order make all-designs hardens them (macros before the wrapper that instantiates them)
 ALL_DESIGNS  := user_proj_example vision_all_lit vision_block text_sentiment tiny_ai_core user_project_wrapper \
-                audio_pitch audio_onset image_text_match prec_bin prec_tern prec_int4 prec_int8 prec_fp8 prec_fp16 prec_bf16
+                audio_pitch audio_onset image_text_match prec_bin prec_tern prec_int4 prec_int8 prec_fp8 prec_fp16 prec_bf16 soc_image_text_match \
+                user_project_wrapper_soc_itm
 # model directories (model/<dir>/); model/examples/ holds standalone teaching scripts, not generated files
 MODELS       := tiny_ai audio_pitch audio_onset image_text_match precision_hw
 DDIR         := designs/$(DESIGN)
@@ -84,7 +85,7 @@ VIEWS_OF := $(if $(filter file,$(origin DESIGN)),tiny_ai_core,$(DESIGN))
 SIM_PLUS := $(if $(SIM_VEC),+VEC=$(abspath $(SIM_VEC)))
 GL_DESC  := $(if $(SIM_VEC),every case of tb/vectors.hex,committed tb)
 
-.PHONY: help doctor test views macro-views wrapper simulate gds flow check gl gl-final collect view flow-all tiny all-designs designs table generate check-generated model-check clean
+.PHONY: help doctor test views macro-views wrapper simulate gds flow check gl gl-final collect view flow-all tiny all-designs designs table generate check-generated model-check clean soc-sim adapter-test caravel-rtl caravel-gl
 .DEFAULT_GOAL := help
 
 help:
@@ -107,6 +108,10 @@ help:
 	@echo "  flow-all   the one command: simulate, gds, check, gl, gl-final, collect; prints a summary"
 	@echo "  tiny       flow-all for $(TINY), then a table"
 	@echo "  all-designs  flow-all for all $(words $(ALL_DESIGNS)) designs in order (alias: designs), then the results table"
+	@echo "  soc-sim    PicoRV32 SoC sim: RISC-V firmware vs user_project_wrapper RTL, cycle table (make -C firmware sim, ~25 s)"
+	@echo "  adapter-test  Wishbone-to-stream adapter with all 13 stream engines (tests/adapter/run.sh, ~9 s)"
+	@echo "  caravel-rtl   full-Caravel RTL sim, VexRiscv firmware (needs build/caravel downloads, ~53 s; docs/CARAVEL_SIM.md)"
+	@echo "  caravel-gl    hybrid gate-level Caravel sim (needs build/caravel, ~58 s)"
 	@echo "  table      regenerate the results tables in README.md (scripts/docs/tables.py)"
 	@echo "  clean      remove $(DDIR)/runs/ and build/"
 	@echo ""
@@ -243,6 +248,18 @@ all-designs:
 	if [ -n "$$fail" ]; then echo "all-designs: FAILED:$$fail"; exit 1; fi; echo "all-designs: all passed"
 
 designs: all-designs
+
+# ---- SoC-level simulation (no Docker) ----
+soc-sim:
+	$(MAKE) -C firmware sim
+
+adapter-test:
+	bash tests/adapter/run.sh
+
+caravel-rtl caravel-gl:
+	@[ -d build/caravel/caravel ] && [ -d build/caravel/mgmt_core_wrapper ] || { \
+	  echo "$@: build/caravel/{caravel,mgmt_core_wrapper} missing: download them first (953 MB + 4.1 GB), see caravel_sim/README.md and caravel_sim/VERSIONS.txt"; exit 1; }
+	bash caravel_sim/run_$(if $(filter caravel-rtl,$@),rtl,gl).sh
 
 table:
 	@python3 scripts/docs/tables.py
