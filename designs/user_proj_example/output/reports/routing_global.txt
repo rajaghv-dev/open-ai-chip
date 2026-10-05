@@ -1,0 +1,80 @@
+Reading timing models for corner nom_tt_025C_1v80…
+Reading timing library for the 'nom_tt_025C_1v80' corner at '~/.volare/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__tt_025C_1v80.lib'…
+Reading OpenROAD database at '~/raja/open-ai-chip/designs/user_proj_example/runs/RUN_2026-10-05_16-01-41/37-openroad-resizertimingpostcts/user_proj_example.odb'…
+Reading design constraints file at '~/raja/open-ai-chip/designs/user_proj_example/base_user_proj_example.sdc'…
+[INFO]: Creating clock {clk} for port wb_clk_i with period: 25
+[INFO]: Setting clock uncertainity to: 0.25
+[INFO]: Setting clock transition to: 0.1499999999999999944488848768742172978818416595458984375
+[INFO]: Setting maximum transition to: 0.75
+[INFO]: Setting maximum fanout to: 16
+[INFO]: Setting timing derate to: 0 %
+[INFO]: Setting clock latency range: 4.65 : 5.57
+[INFO]: Setting clock transition: 0.61
+[WARNING STA-0366] port 'user_irq[*]' not found.
+[WARNING STA-0366] port 'user_irq[*]' not found.
+[INFO] Setting signal min routing layer to: met1 and clock min routing layer to met1. 
+[INFO] Setting signal max routing layer to: met4 and clock max routing layer to met4. 
++ global_route -congestion_iterations 50 -verbose
+[INFO GRT-0020] Min routing layer: met1
+[INFO GRT-0021] Max routing layer: met4
+[INFO GRT-0022] Global adjustment: 30%
+[INFO GRT-0023] Grid origin: (0, 0)
+[INFO GRT-0088] Layer li1     Track-Pitch = 0.4600  line-2-Via Pitch: 0.3400
+[INFO GRT-0088] Layer met1    Track-Pitch = 0.3400  line-2-Via Pitch: 0.3400
+[INFO GRT-0088] Layer met2    Track-Pitch = 0.4600  line-2-Via Pitch: 0.3500
+[INFO GRT-0088] Layer met3    Track-Pitch = 0.6800  line-2-Via Pitch: 0.6150
+[INFO GRT-0088] Layer met4    Track-Pitch = 0.9200  line-2-Via Pitch: 0.6150
+[INFO GRT-0003] Macros: 0
+[INFO GRT-0004] Blockages: 492
+[INFO GRT-0019] Found 7 clock nets.
+[INFO GRT-0001] Minimum degree: 2
+[INFO GRT-0002] Maximum degree: 17
+
+[INFO GRT-0053] Routing resources analysis:
+          Routing      Original      Derated      Resource
+Layer     Direction    Resources     Resources    Reduction (%)
+---------------------------------------------------------------
+li1        Vertical            0             0          0.00%
+met1       Horizontal      12082          8078          33.14%
+met2       Vertical        11303          7519          33.48%
+met3       Horizontal       7800          5351          31.40%
+met4       Vertical         5625          3381          39.89%
+---------------------------------------------------------------
+
+[INFO GRT-0197] Via related to pin nodes: 3002
+[INFO GRT-0198] Via related Steiner nodes: 47
+[INFO GRT-0199] Via filling finished.
+[INFO GRT-0111] Final number of vias: 4086
+[INFO GRT-0112] Final usage 3D: 15381
+
+[INFO GRT-0096] Final congestion report:
+Layer         Resource        Demand        Usage (%)    Max H / Max V / Total Overflow
+---------------------------------------------------------------------------------------
+li1                  0             0            0.00%             0 /  0 /  0
+met1              8078          1292           15.99%             0 /  0 /  0
+met2              7519          1710           22.74%             0 /  0 /  0
+met3              5351            91            1.70%             0 /  0 /  0
+met4              3381            30            0.89%             0 /  0 /  0
+---------------------------------------------------------------------------------------
+Total            24329          3123           12.84%             0 /  0 /  0
+
+[INFO GRT-0018] Total wirelength: 31112 um
+[INFO GRT-0014] Routed nets: 754
+[INFO GRT-0303] Global routing runtime = 00:00:00
+Setting global connections for newly added cells…
+[INFO] Setting global connections...
+[INFO ODB-0403] 0 connections made, 0 conflicts skipped.
+Updating metrics…
+Cell type report:                       Count       Area
+  Fill cell                               130     487.97
+  Tap cell                                469     586.81
+  Buffer                                   32     160.15
+  Clock buffer                              7     146.39
+  Timing Repair Buffer                    358    4068.90
+  Inverter                                 15      56.30
+  Clock inverter                            1      30.03
+  Sequential cell                          33     701.92
+  Multi-Input combinational cell          252    1676.61
+  Total                                  1297    7915.09
+Writing OpenROAD database to '~/raja/open-ai-chip/designs/user_proj_example/runs/RUN_2026-10-05_16-01-41/39-openroad-globalrouting/user_proj_example.odb'…
+Writing layout to '~/raja/open-ai-chip/designs/user_proj_example/runs/RUN_2026-10-05_16-01-41/39-openroad-globalrouting/user_proj_example.def'…

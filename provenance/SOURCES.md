@@ -20,3 +20,7 @@ Every file below was copied from `../open-ai-silicon` at commit `78fa678829cdfca
 
 Not copied: the MNIST designs, `designs/user_proj_example` of open-ai-silicon (an MNIST network that reused the
 template's module name), generated outputs, historical metrics. `designs/*/output/` is produced here.
+
+New in this repository (not copied): `designs/*/NOTES.md`; `docs/WHY_AI.md`; and `model/examples/{audio,transformer,precision}.py`,
+designed from `../open-ai-silicon/docs/ARCH_STUDY_PLAN.md` sections 4.3, 4.4, 4.6, 4.7 and 4.8 at the commit above.
+`designs/*/output/reports/` and `layout.png` are this repository's own flow outputs, collected by `scripts/flow/collect.sh`.

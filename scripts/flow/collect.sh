@@ -111,6 +111,24 @@ collect() {
   rpt magic-drc                  reports/drc.magic.rpt          drc_magic.rpt
   rpt klayout-drc                reports/drc.klayout.json       drc_klayout.json
   rpt netgen-lvs                 reports/lvs.netgen.rpt         lvs_netgen.rpt
+  # synthesis, floorplan, placement, clock tree, routing (step logs kept as .txt: *.log is git-ignored)
+  rpt yosys-synthesis            reports/stat.rpt               synth_stat.rpt
+  rpt yosys-synthesis            reports/pre_synth_chk.rpt      synth_checks.rpt
+  rpt openroad-floorplan         openroad-floorplan.log         floorplan.txt
+  rpt openroad-globalplacement   openroad-globalplacement.log   placement_global.txt
+  rpt openroad-detailedplacement openroad-detailedplacement.log placement_detailed.txt
+  rpt openroad-cts               cts.rpt                        cts.rpt
+  rpt openroad-globalrouting     openroad-globalrouting.log     routing_global.txt
+  rpt openroad-detailedrouting   openroad-detailedrouting.log   routing_detailed.txt
+  rpt odb-cellfrequencytables    cell.rpt                       cell_usage.rpt
+  rpt openroad-stapostpnr        max_ss_100C_1v60/max.rpt       timing_paths_max_ss.rpt
+  rpt openroad-stapostpnr        min_ff_n40C_1v95/min.rpt       timing_paths_min_ff.rpt
+  # the full path reports are long: keep the worst paths (the head) only
+  for f in timing_paths_max_ss.rpt timing_paths_min_ff.rpt; do
+    [ -f "$out/reports/$f" ] && { head -n 300 "$out/reports/$f" > "$out/reports/$f.tmp"; mv "$out/reports/$f.tmp" "$out/reports/$f"; }
+  done
+  # no absolute home paths in reports that may be committed
+  for f in "$out"/reports/*; do sed -i.bak "s#$HOME#~#g" "$f" && rm -f "$f.bak"; done
   python3 - "$d" "$top" "$profile" "$run" "$rc" "$out/meta.json" <<'PY'
 import json, sys, datetime
 d, top, profile, run, rc, path = sys.argv[1:7]

@@ -148,6 +148,9 @@ collect:
 	@sed 's#$(HOME)#~#g' build/results/$(DESIGN)/flow.log > $(DDIR)/output/flow.log
 	@cp build/results/$(DESIGN)/$(DESIGN).lef $(DDIR)/output/ 2>/dev/null || true
 	@cp build/results/$(DESIGN)/resources.json $(DDIR)/output/resources.json 2>/dev/null || true
+	@# reports and the GDSII render (KLayout, 2400 px), committed as evidence
+	@rm -rf $(DDIR)/output/reports; cp -R build/results/$(DESIGN)/reports $(DDIR)/output/reports
+	@cp build/results/$(DESIGN)/layout.png $(DDIR)/output/layout.png
 
 view:
 	@bash scripts/flow/collect.sh $(ARGS) $(DESIGN)

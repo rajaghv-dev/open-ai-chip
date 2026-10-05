@@ -12,6 +12,8 @@ Four designs, each taken from RTL to GDSII on sky130A with LibreLane 3.0.2 in Do
 
   Each has its own `designs/<name>/README.md`.
 
+How and why these are AI rather than ordinary code or logic, with worked examples: [docs/WHY_AI.md](docs/WHY_AI.md).
+
 The flow and the checks are ported from `../open-ai-silicon` (its exercise 1); see `provenance/SOURCES.md`.
 The next step in `SPEC.md` is to combine the three engines into one Caravel macro, `tiny_ai_core`.
 
@@ -70,6 +72,34 @@ From `designs/<name>/output/` (`make tiny`, PROFILE=tight, same VM). Cases = eve
 
 Max-slew reached 0 by tightening design repair, not by loosening the limit: `MAX_FANOUT_CONSTRAINT` 8,
 `PL_RESIZER_MAX_SLEW_MARGIN` 40, `GRT_DESIGN_REPAIR_MAX_SLEW_PCT` 40, `RUN_POST_GRT_DESIGN_REPAIR`.
+
+## Design notes and reports
+
+One page per design: architecture (block diagram, every register), data flow cycle by cycle, the GDSII layout
+picture, and what each step from RTL to GDSII did, read from that design's own reports.
+
+| Design | Notes | Layout | Reports |
+|---|---|---|---|
+| user_proj_example | [NOTES.md](designs/user_proj_example/NOTES.md) | [layout.png](designs/user_proj_example/output/layout.png) | [output/reports/](designs/user_proj_example/output/reports/) |
+| vision_all_lit | [NOTES.md](designs/vision_all_lit/NOTES.md) | [layout.png](designs/vision_all_lit/output/layout.png) | [output/reports/](designs/vision_all_lit/output/reports/) |
+| vision_block | [NOTES.md](designs/vision_block/NOTES.md) | [layout.png](designs/vision_block/output/layout.png) | [output/reports/](designs/vision_block/output/reports/) |
+| text_sentiment | [NOTES.md](designs/text_sentiment/NOTES.md) | [layout.png](designs/text_sentiment/output/layout.png) | [output/reports/](designs/text_sentiment/output/reports/) |
+
+`make collect DESIGN=<name>` refreshes `output/`: `metrics.json`, `resources.json`, `flow.log`, LEF, `layout.png`
+(KLayout render of the GDS) and `reports/`. The reports are synthesis (`synth_stat.rpt`, `synth_checks.rpt`), floorplan, placement (global, detailed),
+clock tree (`cts.rpt`), routing (global, detailed), cell usage, timing (summary and the worst paths at the slow and
+fast corners), DRC (Magic, KLayout), LVS (Netgen), IR drop and manufacturability. Home paths are written as `~`. The
+GDS itself stays out of Git (`build/results/<name>/<name>.gds`).
+
+## Worked AI examples beyond the chips
+
+[docs/WHY_AI.md](docs/WHY_AI.md) sections 6 to 8 add computed examples that are not built as chips yet. Each comes
+from a standard-library script whose output contains every number it quotes:
+- audio: pitch and onset detection on a stream (`model/examples/audio.py`);
+- a tiny transformer: bigram generation, attention, and a word-order task that bag-of-words cannot learn
+  (`model/examples/transformer.py`);
+- number precision: fp32, bf16, fp16, fp8 E4M3 and E5M2, int8, int4 and 1-bit on one trained model
+  (`model/examples/precision.py`).
 
 ## Slides
 
