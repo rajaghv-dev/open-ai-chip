@@ -2,7 +2,7 @@ Hermes + KLayout view demo (scripted model, offscreen backend)
 
 === scenario 1/5: wrapper_met45_mprj ===
 REQUEST  Open user_project_wrapper_soc_kv, show only met4 and met5, zoom to the macro mprj and take a snapshot.
-  [model] open_design({"design": "user_project_wrapper_soc_kv"})  (0.03s)
+  [model] open_design({"design": "user_project_wrapper_soc_kv"})  (0.04s)
         -> {"design": "user_project_wrapper_soc_kv", "top_cell": "user_project_wrapper", "gds": "build/results/user_project_wrapper_soc_kv/user_project_wrapper.gds", "bbox_um": [-43.63, -38.27, 2963.25, 3557.95], "n_layers": 43, "view_bbox_um": [-939.013, -39.958, 3855.947, 3556.262], "ok": true}
   [model] show_layers({"layers": ["met4", "met5"], "only": true})  (0.00s)
         -> {"visible": ["71/16 met4 pin", "71/20 met4 drawing", "72/16 met5 pin", "72/20 met5 drawing"], "ok": true}
@@ -12,9 +12,8 @@ REQUEST  Open user_project_wrapper_soc_kv, show only met4 and met5, zoom to the 
         -> {"png": "build/agent/klayout_gui/demo_wrapper_met45_mprj.png", "bytes": 54142, "size_px": [1200, 900], "view_bbox_um": [119.167, 71.867, 559.167, 401.867], "visible_layers": ["71/16 met4 pin", "71/20 met4 drawing", "72/16 met5 pin", "72/20 met5 drawing"], "markers": 0, "ok": true}
 ANSWER   (scripted answer) Done. Last tool result: {"png": "build/agent/klayout_gui/demo_wrapper_met45_mprj.png", "bytes": 54142, "size_px": [1200, 900], "view_bbox_um": [119.167, 71.867, 559.167, 401.867], "visible_layers": ["71/16 met4 pin", "71/20 met4 drawing", "72/16 met5 pin", "72/20 met5 drawing"], "markers": 0, "ok": true}
 PNG      build/agent/klayout_gui/demo_wrapper_met45_mprj.png
-STATS    0.06s, 5 steps, 4 tool calls (open_design > show_layers > zoom_to > snapshot)
+STATS    0.07s, 5 steps, 4 tool calls (open_design > show_layers > zoom_to > snapshot)
 CHECK    expected open_design > show_layers > zoom_to > snapshot -> PASS
-IMG      examples/hermes_klayout_gui/img/wrapper_met4_met5_mprj.png (54142 bytes)
 
 === scenario 2/5: kv8_li1_met1_corner ===
 REQUEST  Open kv_attn_n8, show li1 and met1, zoom to the lower-left 50x50 um and take a snapshot.
@@ -30,7 +29,6 @@ ANSWER   (scripted answer) Done. Last tool result: {"png": "build/agent/klayout_
 PNG      build/agent/klayout_gui/demo_kv8_li1_met1.png
 STATS    0.06s, 5 steps, 4 tool calls (open_design > show_layers > zoom_to > snapshot)
 CHECK    expected open_design > show_layers > zoom_to > snapshot -> PASS
-IMG      examples/hermes_klayout_gui/img/kv_attn_n8_li1_met1_corner.png (65312 bytes)
 
 === scenario 3/5: tiny_drc_honest ===
 REQUEST  Open tiny_ai_core and highlight the DRC markers.
@@ -49,13 +47,12 @@ REQUEST  Open tiny_ai_core and highlight demo markers so I can see the feature, 
         -> {"design": "tiny_ai_core", "top_cell": "tiny_ai_core", "gds": "build/results/tiny_ai_core/tiny_ai_core.gds", "bbox_um": [0.0, 0.0, 250.0, 250.0], "n_layers": 36, "view_bbox_um": [-41.667, 0.0, 291.667, 250.0], "ok": true}
   [model] highlight_drc({"design": "tiny_ai_core", "demo_markers": true})  (0.00s)
         -> {"source": "demo markers (NOT real DRC errors)", "demo": true, "n_markers": 5, "first_markers_um": [[41.667, 41.667, 51.667, 51.667], [83.333, 83.333, 93.333, 93.333], [125.0, 125.0, 135.0, 135.0]], "ok": true}
-  [model] snapshot({"path": "build/agent/klayout_gui/demo_tiny_markers.png"})  (0.15s)
+  [model] snapshot({"path": "build/agent/klayout_gui/demo_tiny_markers.png"})  (0.14s)
         -> {"png": "build/agent/klayout_gui/demo_tiny_markers.png", "bytes": 111784, "size_px": [1200, 900], "view_bbox_um": [-41.667, 0.0, 291.667, 250.0], "visible_layers": ["64/5", "64/16", "64/20 nwell drawing", "64/59", "65/20 diff drawing", "65/44 tap", "66/15", "66/20 poly drawing", "66/44 licon1", "67/5 li1 label", "67/16 li1 pin", "67/20 li1 drawing", "... +22 more (34 visible in total)"], "markers": 5, "ok": true}
 ANSWER   (scripted answer) Done. Last tool result: {"png": "build/agent/klayout_gui/demo_tiny_markers.png", "bytes": 111784, "size_px": [1200, 900], "view_bbox_um": [-41.667, 0.0, 291.667, 250.0], "visible_layers": ["64/5", "64/16", "64/20 nwell drawing", "64/59", "65/20 diff drawing", "65/44 tap", "66/15", "66/20 poly drawing", "66/44 licon1", "67/5 li1 label", "67/16 li1 pin", "67/20 li1 drawing", "... +22 more (34 visible in total)"], "markers"
 PNG      build/agent/klayout_gui/demo_tiny_markers.png
-STATS    0.17s, 4 steps, 3 tool calls (open_design > highlight_drc > snapshot)
+STATS    0.16s, 4 steps, 3 tool calls (open_design > highlight_drc > snapshot)
 CHECK    expected open_design > highlight_drc > snapshot -> PASS
-IMG      examples/hermes_klayout_gui/img/tiny_ai_core_demo_markers.png (111784 bytes)
 
 === scenario 5/5: vision_measure ===
 REQUEST  Open vision_block, zoom to the full design and measure the distance between (10, 10) and (70, 50) um.

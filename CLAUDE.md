@@ -39,6 +39,7 @@ Sibling `../open-ai-silicon` is reference material only: never edit it.
 - `make test-full` (`tests/test_full.sh`, about 5 min): per design run-state + simulate + check + gl-final, plus adapter,
   soc-sim, soc-kv, caravel-rtl/gl; never re-runs a physical flow. Coverage map: `tests/TEST_MATRIX.md`; results: `docs/VALIDATION.md`.
 - `make flow-all DESIGN=<d>`: simulate, gds, check, gl, gl-final, collect (the one command).
+- `bash scripts/run_all_mac.sh [--all]`: every stage in order from a Mac terminal (guide `docs/RUN_ON_MAC.md`).
 
 ## Workflows (project skills in `.claude/skills/`)
 - `harden-design`: RTL to clean GDSII, results, the failure table, what never to do.

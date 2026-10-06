@@ -1,75 +1,75 @@
-Hermes + KLayout view demo (live hermes3:8b model, live backend)
+Hermes + KLayout view demo (live hermes3:8b model, offscreen backend)
 
 === scenario 1/5: wrapper_met45_mprj ===
 REQUEST  Open user_project_wrapper_soc_kv, show only met4 and met5, zoom to the macro mprj and take a snapshot.
-  [model] open_design({"design": "user_project_wrapper_soc_kv"})  (0.24s)
-        -> {"design": "user_project_wrapper_soc_kv", "top_cell": "user_project_wrapper", "bbox_um": [-43.63, -38.27, 2963.25, 3557.95], "n_layers": 43, "ok": true}
-  [model] show_layers({"layers": ["met4", "met5"], "only": true})  (0.14s)
+  [model] open_design({"design": "user_project_wrapper_soc_kv"})  (0.06s)
+        -> {"design": "user_project_wrapper_soc_kv", "top_cell": "user_project_wrapper", "gds": "build/results/user_project_wrapper_soc_kv/user_project_wrapper.gds", "bbox_um": [-43.63, -38.27, 2963.25, 3557.95], "n_layers": 43, "view_bbox_um": [-939.013, -39.958, 3855.947, 3556.262], "ok": true}
+  [model] show_layers({"layers": ["met4", "met5"], "only": true})  (0.00s)
         -> {"visible": ["71/16 met4 pin", "71/20 met4 drawing", "72/16 met5 pin", "72/20 met5 drawing"], "ok": true}
-  [model] zoom_to({"target": {"cell": "mprj"}})  (0.15s)
-        -> {"view_bbox_um": [113.242, 71.905, 564.821, 401.905], "ok": true}
-  [model] snapshot({})  (0.15s)
-        -> {"png": "build/agent/klayout_gui/user_project_wrapper_soc_kv_01.png", "view_bbox_um": [113.242, 71.905, 564.821, 401.905], "visible_layers": ["71/16 met4 pin", "71/20 met4 drawing", "72/16 met5 pin", "72/20 met5 drawing"], "ok": true}
-ANSWER   The design user_project_wrapper_soc_kv has been opened. Only met4 and met5 layers are visible. The view has been zoomed to the macro mprj. A snapshot has been taken and saved as build/agent/klayout_gui/user_project_wrapper_soc_kv_01.png.
+  [model] zoom_to({"target": {"cell": "mprj"}})  (0.00s)
+        -> {"view_bbox_um": [119.167, 71.867, 559.167, 401.867], "resolved": "instance mprj of cell soc_kv_attn_n8", "ok": true}
+  [model] snapshot({})  (0.03s)
+        -> {"png": "build/agent/klayout_gui/user_project_wrapper_soc_kv_01.png", "bytes": 54142, "size_px": [1200, 900], "view_bbox_um": [119.167, 71.867, 559.167, 401.867], "visible_layers": ["71/16 met4 pin", "71/20 met4 drawing", "72/16 met5 pin", "72/20 met5 drawing"], "markers": 0, "ok": true}
+ANSWER   The user_project_wrapper_soc_kv design is open, showing only met4 and met5 layers. The view is zoomed to the mprj macro instance. A snapshot has been taken and saved as "build/agent/klayout_gui/user_project_wrapper_soc_kv_01.png". No DRC markers were found.
 PNG      build/agent/klayout_gui/user_project_wrapper_soc_kv_01.png
-STATS    11.48s, 2 steps, 4 tool calls (open_design > show_layers > zoom_to > snapshot)
+STATS    7.98s, 2 steps, 4 tool calls (open_design > show_layers > zoom_to > snapshot)
 CHECK    expected open_design > show_layers > zoom_to > snapshot -> PASS
 
 === scenario 2/5: kv8_li1_met1_corner ===
 REQUEST  Open kv_attn_n8, show li1 and met1, zoom to the lower-left 50x50 um and take a snapshot.
-  [model] open_design({"design": "kv_attn_n8"})  (0.14s)
-        -> {"design": "kv_attn_n8", "top_cell": "kv_attn_n8", "bbox_um": [0.0, 0.0, 260.0, 260.0], "n_layers": 37, "ok": true}
-  [model] show_layers({"layers": ["li1", "met1"], "only": true})  (0.15s)
+  [model] open_design({"design": "kv_attn_n8"})  (0.05s)
+        -> {"design": "kv_attn_n8", "top_cell": "kv_attn_n8", "gds": "build/results/kv_attn_n8/kv_attn_n8.gds", "bbox_um": [0.0, 0.0, 260.0, 260.0], "n_layers": 37, "view_bbox_um": [-43.333, 0.0, 303.333, 260.0], "ok": true}
+  [model] show_layers({"layers": ["li1", "met1"], "only": true})  (0.00s)
         -> {"visible": ["67/16 li1 pin", "67/20 li1 drawing", "68/16 met1 pin", "68/20 met1 drawing"], "ok": true}
-  [model] zoom_to({"target": {"bbox": [0, 0, 50, 50]}})  (0.15s)
-        -> {"view_bbox_um": [-9.211, 0.0, 59.211, 50.0], "ok": true}
-  [model] snapshot({})  (0.20s)
-        -> {"png": "build/agent/klayout_gui/kv_attn_n8_02.png", "view_bbox_um": [-9.211, 0.0, 59.211, 50.0], "visible_layers": ["67/16 li1 pin", "67/20 li1 drawing", "68/16 met1 pin", "68/20 met1 drawing"], "ok": true}
-ANSWER   kv_attn_n8 opened. Layers li1 and met1 are visible. Zoomed to lower-left 50x50 um. Snapshot taken, see kv_attn_n8_02.png.
+  [model] zoom_to({"target": {"bbox": [0, 0, 50, 50]}})  (0.00s)
+        -> {"view_bbox_um": [-8.333, 0.0, 58.333, 50.0], "ok": true}
+  [model] snapshot({})  (0.03s)
+        -> {"png": "build/agent/klayout_gui/kv_attn_n8_02.png", "bytes": 65312, "size_px": [1200, 900], "view_bbox_um": [-8.333, 0.0, 58.333, 50.0], "visible_layers": ["67/16 li1 pin", "67/20 li1 drawing", "68/16 met1 pin", "68/20 met1 drawing"], "markers": 0, "ok": true}
+ANSWER   kv_attn_n8 design opened. li1 and met1 layers are visible. The view is zoomed to the lower-left 50x50 um. A snapshot was taken and saved as kv_attn_n8_02.png.
 PNG      build/agent/klayout_gui/kv_attn_n8_02.png
-STATS    4.59s, 2 steps, 4 tool calls (open_design > show_layers > zoom_to > snapshot)
+STATS    4.48s, 2 steps, 4 tool calls (open_design > show_layers > zoom_to > snapshot)
 CHECK    expected open_design > show_layers > zoom_to > snapshot -> PASS
 
 === scenario 3/5: tiny_drc_honest ===
 REQUEST  Open tiny_ai_core and highlight the DRC markers.
-  [model] open_design({"design": "tiny_ai_core"})  (0.10s)
-        -> {"design": "tiny_ai_core", "top_cell": "tiny_ai_core", "bbox_um": [0.0, 0.0, 250.0, 250.0], "n_layers": 36, "ok": true}
-  [model] highlight_drc({"design": "tiny_ai_core"})  (0.11s)
-        -> {"n_markers": 0, "source": "designs/tiny_ai_core/runs/RUN_2026-10-05_20-33-28/66-klayout-drc/reports/drc.klayout.lyrdb", "ok": true}
-ANSWER   The tiny_ai_core design has been opened and the DRC markers have been highlighted. The design is DRC-clean, with 0 violations marked.
+  [model] open_design({"design": "tiny_ai_core"})  (0.04s)
+        -> {"design": "tiny_ai_core", "top_cell": "tiny_ai_core", "gds": "build/results/tiny_ai_core/tiny_ai_core.gds", "bbox_um": [0.0, 0.0, 250.0, 250.0], "n_layers": 36, "view_bbox_um": [-41.667, 0.0, 291.667, 250.0], "ok": true}
+  [model] highlight_drc({"design": "tiny_ai_core"})  (0.02s)
+        -> {"source": "designs/tiny_ai_core/runs/RUN_2026-10-05_20-33-28/66-klayout-drc/reports/drc.klayout.lyrdb", "rdb_items": 0, "note": "KLayout DRC report has 0 violations: the design is DRC-clean (matches output/reports/drc_klayout.json total 0)", "n_markers": 0, "ok": true}
+ANSWER   The design tiny_ai_core has been opened and the DRC markers have been highlighted. The design is DRC-clean, with 0 violations according to the KLayout DRC report.
 PNG      (none)
-STATS    2.34s, 2 steps, 2 tool calls (open_design > highlight_drc)
+STATS    2.58s, 2 steps, 2 tool calls (open_design > highlight_drc)
 CHECK    expected open_design > highlight_drc -> PASS
 
 === scenario 4/5: tiny_demo_markers ===
 REQUEST  Open tiny_ai_core and highlight demo markers so I can see the feature, then take a snapshot.
-  [model] open_design({"design": "tiny_ai_core"})  (0.12s)
-        -> {"design": "tiny_ai_core", "top_cell": "tiny_ai_core", "bbox_um": [0.0, 0.0, 250.0, 250.0], "n_layers": 36, "ok": true}
-  [model] highlight_drc({"design": "tiny_ai_core", "demo_markers": true})  (0.12s)
-        -> {"n_markers": 5, "source": "demo", "note": "demo boxes, NOT real DRC errors", "ok": true}
-  [model] snapshot({})  (0.34s)
-        -> {"png": "build/agent/klayout_gui/tiny_ai_core_03.png", "view_bbox_um": [-54.711, -6.355, 304.5, 256.145], "visible_layers": ["64/5", "64/16", "64/20 nwell drawing", "64/59", "65/20 diff drawing", "65/44 tap", "66/15", "66/20 poly drawing", "66/44 licon1", "67/5 li1 label", "67/16 li1 pin", "67/20 li1 drawing", "67/44 mcon", "68/5 met1 label", "68/16 met1 pin", "68/20 met1 drawing", "68/44 via", "69/5 met2 label", "69...
-ANSWER   The tiny_ai_core design was opened successfully. 5 demo markers were highlighted, these are not real DRC errors but just for demonstration. A snapshot was taken showing the current view. The visible layers are: 64/5, 64/16, 64/20 nwell drawing, 64/59, 65/20 diff drawing, 65/44 tap, 66/15, 66/20 poly drawing, 66/44 licon1, 67/5 li1 label, 67/16 li1 pin, 67/20 li1 drawing, 67/44 mcon, 68/5 met1 label, 68/16 met1 pin, 68/20 met1 drawing, 68/44 via, 69/5 met2 label, 69/16 met2 pin, 69/20 met2 drawing, 69/44 via2, 70/20 met3 drawing, 70/44 via3, 71/5 met4 label, 71/16 met4 pin, 71/20 met4 drawing, 78/44 pwell/ nwell contact, 81/4 areaid.sc, 81/23, 83/44 areaid.lvt, 93/44 nsdm, 94/20 psdm, 95/20 npc, 122/16 prBoundary-like, 235/4 areaid boundary, 236/0 areaid.
+  [model] open_design({"design": "tiny_ai_core"})  (0.04s)
+        -> {"design": "tiny_ai_core", "top_cell": "tiny_ai_core", "gds": "build/results/tiny_ai_core/tiny_ai_core.gds", "bbox_um": [0.0, 0.0, 250.0, 250.0], "n_layers": 36, "view_bbox_um": [-41.667, 0.0, 291.667, 250.0], "ok": true}
+  [model] highlight_drc({"design": "tiny_ai_core", "demo_markers": true})  (0.00s)
+        -> {"source": "demo markers (NOT real DRC errors)", "demo": true, "n_markers": 5, "first_markers_um": [[41.667, 41.667, 51.667, 51.667], [83.333, 83.333, 93.333, 93.333], [125.0, 125.0, 135.0, 135.0]], "ok": true}
+  [model] snapshot({})  (0.16s)
+        -> {"png": "build/agent/klayout_gui/tiny_ai_core_03.png", "bytes": 111784, "size_px": [1200, 900], "view_bbox_um": [-41.667, 0.0, 291.667, 250.0], "visible_layers": ["64/5", "64/16", "64/20 nwell drawing", "64/59", "65/20 diff drawing", "65/44 tap", "66/15", "66/20 poly drawing", "66/44 licon1", "67/5 li1 label", "67/16 li1 pin", "67/20 li1 drawing", "... +22 more (34 visible in total)"], "markers": 5, "ok": true}
+ANSWER   The tiny_ai_core design is open and showing 5 demo DRC violation markers. A snapshot has been taken and saved as "build/agent/klayout_gui/tiny_ai_core_03.png".
 PNG      build/agent/klayout_gui/tiny_ai_core_03.png
-STATS    9.78s, 2 steps, 3 tool calls (open_design > highlight_drc > snapshot)
+STATS    3.70s, 2 steps, 3 tool calls (open_design > highlight_drc > snapshot)
 CHECK    expected open_design > highlight_drc > snapshot -> PASS
 
 === scenario 5/5: vision_measure ===
 REQUEST  Open vision_block, zoom to the full design and measure the distance between (10, 10) and (70, 50) um.
-  [model] open_design({"design": "vision_block"})  (0.13s)
-        -> {"design": "vision_block", "top_cell": "vision_block", "bbox_um": [0.0, 0.0, 80.0, 80.0], "n_layers": 38, "ok": true}
-  [model] zoom_to({"target": {"full": true}})  (0.14s)
-        -> {"view_bbox_um": [-17.507, -2.034, 97.44, 81.966], "ok": true}
+  [model] open_design({"design": "vision_block"})  (0.02s)
+        -> {"design": "vision_block", "top_cell": "vision_block", "gds": "build/results/vision_block/vision_block.gds", "bbox_um": [0.0, 0.0, 80.0, 80.0], "n_layers": 38, "view_bbox_um": [-13.333, 0.0, 93.333, 80.0], "ok": true}
+  [model] zoom_to({"target": {"full": true}})  (0.00s)
+        -> {"view_bbox_um": [-13.333, 0.0, 93.333, 80.0], "ok": true}
   [model] measure({"a": [10, 10], "b": [70, 50]})  (0.00s)
         -> {"a": [10.0, 10.0], "b": [70.0, 50.0], "dx_um": 60.0, "dy_um": 40.0, "distance_um": 72.111, "manhattan_um": 100.0, "ok": true}
-ANSWER   The vision_block design is open, zoomed to full view, and the distance between (10, 10) and (70, 50) um is measured as 72.111 um. The Manhattan distance is 100.00 um.
+ANSWER   The vision_block design is open, zoomed to the full design, and the distance between (10, 10) and (70, 50) um is measured as 72.111 um. The Manhattan distance is 100.0 um.
 PNG      (none)
-STATS    3.71s, 2 steps, 3 tool calls (open_design > zoom_to > measure)
+STATS    3.57s, 2 steps, 3 tool calls (open_design > zoom_to > measure)
 CHECK    expected open_design > zoom_to > measure -> PASS
 
 SUMMARY  5/5 scenarios with the expected tool sequence
-  wrapper_met45_mprj     PASS    11.5s  4 calls  router=False rejected=0
-  kv8_li1_met1_corner    PASS     4.6s  4 calls  router=False rejected=0
-  tiny_drc_honest        PASS     2.3s  2 calls  router=False rejected=0
-  tiny_demo_markers      PASS     9.8s  3 calls  router=False rejected=0
-  vision_measure         PASS     3.7s  3 calls  router=False rejected=0
+  wrapper_met45_mprj     PASS     8.0s  4 calls  router=False rejected=0
+  kv8_li1_met1_corner    PASS     4.5s  4 calls  router=False rejected=0
+  tiny_drc_honest        PASS     2.6s  2 calls  router=False rejected=0
+  tiny_demo_markers      PASS     3.7s  3 calls  router=False rejected=0
+  vision_measure         PASS     3.6s  3 calls  router=False rejected=0

@@ -263,6 +263,7 @@ the Makefile uses it.
 
 Opening GUIs (KLayout, OpenROAD) and reading every log, macOS and Linux: [docs/GUI_AND_LOGS.md](docs/GUI_AND_LOGS.md).
 Running the Hermes agents from the Mac terminal (setup, every entry point, the KLayout GUI workflow with architecture and data flow): [docs/HERMES_FROM_TERMINAL.md](docs/HERMES_FROM_TERMINAL.md).
+Run everything from the MacBook terminal, step by step, and open every GUI: [docs/RUN_ON_MAC.md](docs/RUN_ON_MAC.md) (`bash scripts/run_all_mac.sh [--all]`).
 Validation of every run: [docs/VALIDATION.md](docs/VALIDATION.md), an independent re-validation of all 25 runs (current, evidence, signoff, RTL and both gate-level sims) and the system runs; tests: [tests/TEST_MATRIX.md](tests/TEST_MATRIX.md), `make test`, `make test-full`.
 
 | Stage | What passes means |
