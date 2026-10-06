@@ -8,7 +8,7 @@ OUT=build/adapter_tests
 mkdir -p "$OUT"
 # engine  format
 ENGINES="vision_all_lit:FRAME vision_block:FRAME text_sentiment:FRAME image_text_match:FRAME audio_pitch:PITCH audio_onset:ONSET
-         prec_bin:FRAME prec_tern:FRAME prec_int4:FRAME prec_int8:FRAME prec_fp8:FRAME prec_fp16:FRAME prec_bf16:FRAME"
+         prec_bin:FRAME prec_tern:FRAME prec_int4:FRAME prec_int8:FRAME prec_fp8:FRAME prec_fp16:FRAME prec_bf16:FRAME kv_attn_n8:KV"
 fail=0; n=0
 for e in $ENGINES; do
   d=${e%%:*}; f=${e##*:}
@@ -16,9 +16,10 @@ for e in $ENGINES; do
   n=$((n+1))
   nl=""
   if [ "$d" = audio_onset ] && [ -n "${NLIM_AUDIO_ONSET:-}" ]; then nl="+NLIM=$NLIM_AUDIO_ONSET"; fi
+  core=""; if [ "$f" = KV ]; then core=shared/rtl/kv_attn_core.v; fi   # the KV engines share one core
   vvp_file="$OUT/$d.vvp"; log="$OUT/$d.log"
   if iverilog -g2012 -Wall -Wno-timescale -D"ENG=$d" -D"$f" -D"NAME=\"$d\"" -o "$vvp_file" \
-        shared/rtl/wb_stream_adapter.v designs/$d/rtl/*.v tests/adapter/adapter_tb.v >"$log" 2>&1 \
+        shared/rtl/wb_stream_adapter.v $core designs/$d/rtl/*.v tests/adapter/adapter_tb.v >"$log" 2>&1 \
      && (cd "$OUT" && vvp -n "$d.vvp" +VEC="$PWD/../../designs/$d/tb/vectors.hex" $nl) >>"$log" 2>&1 \
      && grep -q '^PASS' "$log"; then
     grep -h '^PASS' "$log" | head -1

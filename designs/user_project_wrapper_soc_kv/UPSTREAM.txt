@@ -1,0 +1,21 @@
+Third "one build per experiment" Caravel wrapper (docs/SOC_PLAN.md): the same fixed user_project_wrapper as
+designs/user_project_wrapper, with soc_kv_attn_n8 (wb_stream_adapter + kv_attn_n8, the KV-cache attention engine)
+as the single macro mprj. Created with .claude/skills/wrapper-build/new_wrapper.sh's steps from
+designs/user_project_wrapper_soc_itm.
+
+Copied unchanged from designs/user_project_wrapper_soc_itm (which copied them from designs/user_project_wrapper, the
+pinned ChipFoundry caravel_user_project b510613cec367828966b37583f9090ac5ddb6491, Apache-2.0; see its UPSTREAM.txt):
+  rtl/defines.v, rtl/user_defines.v, rtl/LICENSE, fixed_dont_change/user_project_wrapper.def, signoff.sdc
+
+Changed:
+  rtl/user_project_wrapper.v  header comment and the one instance: "soc_kv_attn_n8 mprj (...)". Module name, port
+                              list, connections (same 109-pin macro interface; irq[2:0] -> user_irq) and the absence
+                              of glue logic are unchanged.
+  config.json                 MACROS key soc_kv_attn_n8 (views under ../../build/macros/soc_kv_attn_n8/, incl. pnl and
+                              per-corner libs); instance mprj at [189.06, 87.04], N. The macro is 300 x 300 um (not
+                              250): it spans x 189.06..489.06, y 87.04..387.04, still above the Wishbone pads; the
+                              wrapper met5 strap group k=1 (y about 195.88..344.68) crosses it fully.
+                              DESIGN_NAME stays user_project_wrapper (Caravel requires it).
+Not carried over: lvs_config.json (ChipFoundry precheck only; not used by LibreLane).
+Added: tb/user_project_wrapper_soc_kv_tb.v (the soc_kv_attn_n8 Wishbone testbench run through the wrapper ports),
+  tb/vectors.hex (copy of designs/kv_attn_n8/tb/vectors.hex).

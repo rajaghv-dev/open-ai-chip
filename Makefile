@@ -18,7 +18,8 @@ TINY         := vision_all_lit vision_block text_sentiment
 # every design, in the order make all-designs hardens them (macros before the wrapper that instantiates them)
 ALL_DESIGNS  := user_proj_example vision_all_lit vision_block text_sentiment tiny_ai_core user_project_wrapper \
                 audio_pitch audio_onset image_text_match prec_bin prec_tern prec_int4 prec_int8 prec_fp8 prec_fp16 prec_bf16 soc_image_text_match \
-                user_project_wrapper_soc_itm kv_attn_n4 kv_attn_n8 kv_attn_n16 kv_attn_n8_int4 kv_attn_n8_ring
+                user_project_wrapper_soc_itm kv_attn_n4 kv_attn_n8 kv_attn_n16 kv_attn_n8_int4 kv_attn_n8_ring \
+                soc_kv_attn_n8 user_project_wrapper_soc_kv
 # model directories (model/<dir>/); model/examples/ holds standalone teaching scripts, not generated files
 MODELS       := tiny_ai audio_pitch audio_onset image_text_match precision_hw kv_attention
 DDIR         := designs/$(DESIGN)
@@ -110,7 +111,7 @@ help:
 	@echo "  all-designs  flow-all for all $(words $(ALL_DESIGNS)) designs in order (alias: designs), then the results table"
 	@echo "  soc-sim    PicoRV32 SoC sim: RISC-V firmware vs user_project_wrapper RTL, cycle table (make -C firmware sim, ~25 s)"
 	@echo "  soc-kv     KV-cache attention firmware on the PicoRV32 SoC (make -C firmware/kv sim, ~14 s)"
-	@echo "  adapter-test  Wishbone-to-stream adapter with all 13 stream engines (tests/adapter/run.sh, ~9 s)"
+	@echo "  adapter-test  Wishbone-to-stream adapter with all 14 stream engines (incl. kv_attn_n8) (tests/adapter/run.sh, ~9 s)"
 	@echo "  caravel-rtl   full-Caravel RTL sim, VexRiscv firmware (needs build/caravel downloads, ~53 s; docs/CARAVEL_SIM.md)"
 	@echo "  caravel-gl    hybrid gate-level Caravel sim (needs build/caravel, ~58 s)"
 	@echo "  precheck   local ChipFoundry cf-precheck, all 14 checks, own container (precheck/run_precheck.sh, ~1 min; docs/PRECHECK.md)"

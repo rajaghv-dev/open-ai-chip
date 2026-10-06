@@ -14,7 +14,7 @@ Never run several heavy sims at once; check `ps` for running iverilog/vvp first.
 |---|---|---|---|
 | (i) engine RTL | `make simulate DESIGN=<d>` | s to 1 min | engine alone vs vectors (docs/SOC_PLAN.md section 4) |
 | (ii) PicoRV32 SoC | `make soc-sim` (= `make -C firmware sim`) | ~25 s, ~1.9 M clocks | real C firmware drives the REAL `user_project_wrapper` -> `tiny_ai_core` over Wishbone: register map, protocol errors, exhaustive vs golden, cycle table (firmware/README.md, soc_sim/run.sh) |
-| (ii) adapter | `make adapter-test` (`ONLY="a b"` to subset) | ~9 s | `wb_stream_adapter` + each of 13 stream engines, Wishbone only, vs each `designs/<d>/tb/vectors.hex` (tests/adapter/run.sh) |
+| (ii) adapter | `make adapter-test` (`ONLY="a b"` to subset) | ~9 s | `wb_stream_adapter` + each of 14 stream engines (incl. kv_attn_n8), Wishbone only, vs each `designs/<d>/tb/vectors.hex` (tests/adapter/run.sh) |
 | (iv) Caravel RTL | `make caravel-rtl` | ~53 s | real VexRiscv mgmt core, SPI-flash boot, full Caravel RTL, 4 cases, pass flag on mprj_io (docs/CARAVEL_SIM.md) |
 | (v) hybrid GL | `make caravel-gl` | ~59 s | wrapper + macro as routed power-aware netlists, rest RTL, unit delay, no SDF (caravel_sim/README.md) |
 | (v+) full-chip GL / SDF | see section 8 | | being added |

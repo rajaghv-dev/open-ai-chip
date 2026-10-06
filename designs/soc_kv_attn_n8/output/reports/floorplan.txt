@@ -1,0 +1,57 @@
+Reading timing models for corner nom_tt_025C_1v80…
+Reading timing library for the 'nom_tt_025C_1v80' corner at '~/.volare/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__tt_025C_1v80.lib'…
+Reading technology LEF file at '~/.volare/sky130A/libs.ref/sky130_fd_sc_hd/techlef/sky130_fd_sc_hd__nom.tlef'…
+[INFO ODB-0227] LEF file: ~/.volare/sky130A/libs.ref/sky130_fd_sc_hd/techlef/sky130_fd_sc_hd__nom.tlef, created 14 layers, 25 vias
+Reading cell LEF file at '~/.volare/sky130A/libs.ref/sky130_fd_sc_hd/lef/sky130_ef_sc_hd.lef'…
+[WARNING ODB-0220] WARNING (LEFPARS-2008): NOWIREEXTENSIONATPIN statement is obsolete in version 5.6 or later.
+The NOWIREEXTENSIONATPIN statement will be ignored. See file ~/.volare/sky130A/libs.ref/sky130_fd_sc_hd/lef/sky130_ef_sc_hd.lef at line 2.
+
+[INFO ODB-0227] LEF file: ~/.volare/sky130A/libs.ref/sky130_fd_sc_hd/lef/sky130_ef_sc_hd.lef, created 8 library cells
+Reading cell LEF file at '~/.volare/sky130A/libs.ref/sky130_fd_sc_hd/lef/sky130_fd_sc_hd.lef'…
+[WARNING ODB-0220] WARNING (LEFPARS-2008): NOWIREEXTENSIONATPIN statement is obsolete in version 5.6 or later.
+The NOWIREEXTENSIONATPIN statement will be ignored. See file ~/.volare/sky130A/libs.ref/sky130_fd_sc_hd/lef/sky130_fd_sc_hd.lef at line 2.
+
+[INFO ODB-0227] LEF file: ~/.volare/sky130A/libs.ref/sky130_fd_sc_hd/lef/sky130_fd_sc_hd.lef, created 437 library cells
+Reading top-level netlist at '~/raja/open-ai-chip/designs/soc_kv_attn_n8/runs/RUN_2026-10-06_08-09-32/06-yosys-synthesis/soc_kv_attn_n8.nl.v'…
+Linking design 'soc_kv_attn_n8' from netlist…
+Reading design constraints file at '~/raja/open-ai-chip/designs/soc_kv_attn_n8/base_soc.sdc'…
+[INFO]: Creating clock {clk} for port wb_clk_i with period: 25
+[INFO]: Setting clock uncertainity to: 0.25
+[INFO]: Setting clock transition to: 0.1499999999999999944488848768742172978818416595458984375
+[INFO]: Setting maximum transition to: 0.75
+[INFO]: Setting maximum fanout to: 8
+[INFO]: Setting timing derate to: 0 %
+[INFO]: Setting clock latency range: 4.65 : 5.57
+[INFO]: Setting clock transition: 0.61
+Using site height: 2.72 and site width: 0.46…
+[INFO] Using absolute sizing for the floorplan.
++ initialize_floorplan -site unithd -die_area 0 0 300 300 -core_area 5.5200000000000005 10.88 294.48 289.12
+[INFO IFP-0001] Added 102 rows of 628 site unithd.
+[INFO IFP-0100] Die BBox:  (  0.000  0.000 ) ( 300.000 300.000 ) um
+[INFO IFP-0101] Core BBox: (  5.520 10.880 ) ( 294.400 288.320 ) um
+[INFO IFP-0102] Core area:                        80146.867 um^2
+[INFO IFP-0103] Total instances area:             26665.574 um^2
+[INFO IFP-0104] Effective utilization:                0.333
+[INFO IFP-0105] Number of instances:                   1965
+[INFO IFP-0030] Inserted 0 tiecells using sky130_fd_sc_hd__conb_1/LO.
+[INFO IFP-0030] Inserted 0 tiecells using sky130_fd_sc_hd__conb_1/HI.
+[INFO] Extracting DIE_AREA and CORE_AREA from the floorplan
+[INFO] Floorplanned on a die area of 0.0 0.0 300.0 300.0 (µm).
+[INFO] Floorplanned on a core area of 5.52 10.88 294.4 288.32 (µm).
+Writing metric design__die__bbox: 0.0 0.0 300.0 300.0
+Writing metric design__core__bbox: 5.52 10.88 294.4 288.32
+Setting global connections for newly added cells…
+[INFO] Setting global connections...
+[INFO ODB-0403] 0 connections made, 0 conflicts skipped.
+Updating metrics…
+Cell type report:                       Count       Area
+  Buffer                                    4      20.02
+  Inverter                                 33     123.87
+  Sequential cell                         570   12124.13
+  Multi-Input combinational cell         1358   14397.56
+  Total                                  1965   26665.57
+Writing OpenROAD database to '~/raja/open-ai-chip/designs/soc_kv_attn_n8/runs/RUN_2026-10-06_08-09-32/13-openroad-floorplan/soc_kv_attn_n8.odb'…
+Writing netlist to '~/raja/open-ai-chip/designs/soc_kv_attn_n8/runs/RUN_2026-10-06_08-09-32/13-openroad-floorplan/soc_kv_attn_n8.nl.v'…
+Writing powered netlist to '~/raja/open-ai-chip/designs/soc_kv_attn_n8/runs/RUN_2026-10-06_08-09-32/13-openroad-floorplan/soc_kv_attn_n8.pnl.v'…
+Writing layout to '~/raja/open-ai-chip/designs/soc_kv_attn_n8/runs/RUN_2026-10-06_08-09-32/13-openroad-floorplan/soc_kv_attn_n8.def'…
+Writing timing constraints to '~/raja/open-ai-chip/designs/soc_kv_attn_n8/runs/RUN_2026-10-06_08-09-32/13-openroad-floorplan/soc_kv_attn_n8.sdc'…

@@ -1,0 +1,44 @@
+Reading timing models for corner nom_tt_025C_1v80…
+Reading timing library for the 'nom_tt_025C_1v80' corner at '~/.volare/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__tt_025C_1v80.lib'…
+Reading OpenROAD database at '~/raja/open-ai-chip/designs/soc_kv_attn_n8/runs/RUN_2026-10-06_08-09-32/32-openroad-repairdesignpostgpl/soc_kv_attn_n8.odb'…
+Reading design constraints file at '~/raja/open-ai-chip/designs/soc_kv_attn_n8/base_soc.sdc'…
+[INFO]: Creating clock {clk} for port wb_clk_i with period: 25
+[INFO]: Setting clock uncertainity to: 0.25
+[INFO]: Setting clock transition to: 0.1499999999999999944488848768742172978818416595458984375
+[INFO]: Setting maximum transition to: 0.75
+[INFO]: Setting maximum fanout to: 8
+[INFO]: Setting timing derate to: 0 %
+[INFO]: Setting clock latency range: 4.65 : 5.57
+[INFO]: Setting clock transition: 0.61
++ detailed_placement -max_displacement  500 100 
+Placement Analysis
+---------------------------------
+total displacement          0.0 u
+average displacement        0.0 u
+max displacement            0.0 u
+original HPWL           59713.4 u
+legalized HPWL          60979.7 u
+delta HPWL                    2 %
+
+[INFO DPL-0020] Mirrored 648 instances
+[INFO DPL-0021] HPWL before           60979.7 u
+[INFO DPL-0022] HPWL after            59713.4 u
+[INFO DPL-0023] HPWL delta               -2.1 %
+Setting global connections for newly added cells…
+[INFO] Setting global connections...
+[INFO ODB-0403] 0 connections made, 0 conflicts skipped.
+Updating metrics…
+Cell type report:                       Count       Area
+  Fill cell                               204     765.73
+  Tap cell                               1144    1431.37
+  Buffer                                    4      20.02
+  Timing Repair Buffer                    358    3738.59
+  Inverter                                 33     123.87
+  Sequential cell                         570   12124.13
+  Multi-Input combinational cell         1358   14397.56
+  Total                                  3671   32601.27
+Writing OpenROAD database to '~/raja/open-ai-chip/designs/soc_kv_attn_n8/runs/RUN_2026-10-06_08-09-32/34-openroad-detailedplacement/soc_kv_attn_n8.odb'…
+Writing netlist to '~/raja/open-ai-chip/designs/soc_kv_attn_n8/runs/RUN_2026-10-06_08-09-32/34-openroad-detailedplacement/soc_kv_attn_n8.nl.v'…
+Writing powered netlist to '~/raja/open-ai-chip/designs/soc_kv_attn_n8/runs/RUN_2026-10-06_08-09-32/34-openroad-detailedplacement/soc_kv_attn_n8.pnl.v'…
+Writing layout to '~/raja/open-ai-chip/designs/soc_kv_attn_n8/runs/RUN_2026-10-06_08-09-32/34-openroad-detailedplacement/soc_kv_attn_n8.def'…
+Writing timing constraints to '~/raja/open-ai-chip/designs/soc_kv_attn_n8/runs/RUN_2026-10-06_08-09-32/34-openroad-detailedplacement/soc_kv_attn_n8.sdc'…

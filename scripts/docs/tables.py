@@ -14,7 +14,8 @@ ORDER = ["user_proj_example", "vision_all_lit", "vision_block", "text_sentiment"
          "audio_pitch", "audio_onset", "image_text_match",
          "prec_bin", "prec_tern", "prec_int4", "prec_int8", "prec_fp8", "prec_fp16", "prec_bf16",
          "soc_image_text_match", "user_project_wrapper_soc_itm",
-         "kv_attn_n4", "kv_attn_n8", "kv_attn_n16", "kv_attn_n8_int4", "kv_attn_n8_ring"]
+         "kv_attn_n4", "kv_attn_n8", "kv_attn_n16", "kv_attn_n8_int4", "kv_attn_n8_ring",
+         "soc_kv_attn_n8", "user_project_wrapper_soc_kv"]
 
 
 def load(path):

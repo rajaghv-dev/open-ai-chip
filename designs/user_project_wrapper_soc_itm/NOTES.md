@@ -74,6 +74,10 @@ Total power reported 2.46 mW, almost all "internal" of the macro in the reported
 
 ## Run time and memory
 
+Re-run 2026-10-06 after the macro was re-hardened (a new file in `shared/rtl/` made its run stale): identical
+`metrics.json`; `output/resources.json` now says `wall_s_total` 60 s and `container_peak_mem_gb` 0.875. Numbers below
+that differ are from the first run (66 s, 0.79 GB).
+
 `make flow-all DESIGN=user_project_wrapper_soc_itm`: simulate 1 s, gds 59 s (peak 0.8 GB, profile tight: 2 CPUs, 8 GB), check 1 s, gl_synth 10 s, gl_final 8 s, collect 4 s; total 83 s. (tiny_ai_core wrapper: 53 s, 0.62 GB.) A first attempt had gl_final fail only because `UPSTREAM.txt` was edited after the run started (it counts as a flow input), so the run was repeated; no design problem.
 
 ## Reproduce

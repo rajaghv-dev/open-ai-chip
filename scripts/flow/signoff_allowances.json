@@ -20,6 +20,14 @@
     "kv_attn_n8_int4": {
       "removed_registers": 24,
       "reason": "24 flip-flops are merged as exact duplicates of a surviving flip-flop (none is lost information). int4 stores k = (4*e0, 4*e1, 0, pos) as clamp((k+2)>>2,-8,7) and v = (e2, e0, e1, pos) saturated to -8..7, where e0, e1 = +-1 and e2 in {-3,-1,1,3} are the ROM key-bit and value-level embeddings. Per cache slot (8 slots, 3 bits each): kc comp0 = +-1 = 0001/1111 so bit3 == bit1 (and bit2); kc comp1 = +-1 likewise so bit7 == bit5; vc comp0 = e2 in {-3,-1,1,3} = 1101/1111/0001/0011 so bit3 == bit2 (the sign). All three pairs have the same D input and enable in every reachable state, so the post-abc netlist keeps one flop of each pair; the RTL -noabc count cannot see it because the two bits are built by different clamp expressions. Verified by exhaustive enumeration with model/kv_attention/golden.py over tokens 0..15 x pos 0..31 (see README 'Why 24 registers are pruned'). The int8 variants need no allowance: their duplicates are identical expressions already merged in the RTL count."
+    },
+    "user_project_wrapper_soc_kv": {
+      "undriven_outputs": [
+        "io_out",
+        "io_oeb",
+        "la_data_out"
+      ],
+      "undriven_reason": "Owner decision 2026-10-06 (learning build): the macro (here soc_kv_attn_n8, like tiny_ai_core) keeps only the Wishbone bus and the interrupt, and the wrapper may not contain glue logic, so the GPIO and logic-analyser outputs of the fixed Caravel interface are left unconnected. Tapeout caveat: a floating io_oeb leaves the pad output enable undefined; before tapeout either drive io_oeb high and io_out/la_data_out low from the macro, or confirm every user GPIO is configured as an input in user_defines.v."
     }
   }
 }

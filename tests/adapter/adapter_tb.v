@@ -4,6 +4,12 @@
 //   FMT 1  frame engines (stream_tb.vh record layout: 16-byte records [0] n, [1..n] inputs, [13] beat 0, [14] beat 1)
 //   FMT 2  audio_pitch word layout (gen_rom.py: header 4 words, one word per input beat)
 //   FMT 3  audio_onset word layout (header 3 words, flags: bit 9 reset before the beat, bit 20 reset with a result waiting)
+//   KV     kv_attn_* layout (header record + 40-word records: [0] type 01 COMMAND / 02 RST_IDLE / 03 RST_MID / 04 RST_PEND,
+//          [1] n_in, [2] n_out, [3] latency, [4..11] expected beats, [12..39] input beats; model/kv_attention/spec.md):
+//          COMMAND = its beats (s_last on the last) and n_out result beats; RST_IDLE = CLEAR before the next beat;
+//          RST_MID = its beats without s_last, then CLEAR; RST_PEND = a whole frame whose response (n_out is 0 in the record,
+//          the size is not known) is waited for with RXSTATUS.DONE and then discarded by CLEAR; the beats of such a frame
+//          are pushed without popping results, and the results before it are drained first.
 // The vectors are flattened into one input-beat sequence and the in-order sequence of expected result beats, then driven
 // through the Wishbone bus only (TXDATA / TXLAST writes, RXSTATUS / RXDATA reads):
 //   0. register checks: ID, CAPS, CTRL, STATUS, byte-lane masking, unmapped and out-of-window accesses, ignored writes;
@@ -17,6 +23,12 @@
 // Comparisons use !== so X never passes. First failure: $fatal(1, "FAIL ..."). Success: "PASS <name>: ...".
 `timescale 1ns/1ps
 `default_nettype none
+`ifdef FRAME
+  `define FRAMECHK
+`endif
+`ifdef KV
+  `define FRAMECHK
+`endif
 module adapter_tb;
     reg          wb_clk_i = 1'b0;
     reg          wb_rst_i = 1'b1;
@@ -51,10 +63,13 @@ module adapter_tb;
     reg  [7:0]  vb [0:65535];                 // FMT 1 bytes
     reg  [31:0] vw [0:MAXB+7];                // FMT 2/3 words
     reg  [8:0]  in_b  [0:MAXB-1];             // {s_last, s_data}
-    reg  [1:0]  pre_b [0:MAXB-1];             // 0 none, 1 drain then CLEAR, 2 CLEAR while the last result is waiting (lost)
+    reg  [3:0]  pre_b [0:MAXB-1];             // bit 0 drain then CLEAR, bit 1 CLEAR while the last result is waiting (lost),
+                                              // bit 2 drain only (first beat of a KV RST_PEND frame), bit 3 wait for DONE then CLEAR
+                                              // (after a KV RST_PEND frame: its response is lost, none is expected)
+    reg         skp_b [0:MAXB-1];             // 1: do not pop results after this beat (beats of a KV RST_PEND frame)
     integer     end_b [0:MAXB-1];             // number of expected result beats once input beat i has been pushed
     reg  [8:0]  exp_r [0:MAXB-1];             // {m_last, m_data}
-    integer     nclr0, nb, nbu, nexp, ne, nlim, nvec, nrec_n, k, j, pfirst, i, e0, nexp0, irq_exp, b, t, filled;
+    integer     npend = 0, carry, typ, nin, nout, nclr0, nb, nbu, nexp, ne, nlim, nvec, nrec_n, k, j, pfirst, i, e0, nexp0, irq_exp, b, t, filled;
     reg  [1023:0] vfile;
     reg  [31:0] w;
     integer     n_checks = 0, n_tx = 0;
@@ -186,20 +201,32 @@ module adapter_tb;
 
     // process input beat b interleaved: optional reset first, then write, then pop what has arrived
     task do_beat(input integer bb);
-        integer w0;
+        integer w0, tt;
         begin
             w0 = (bb > 0) ? end_b[bb - 1] : 0;
-            if (pre_b[bb] == 2'd1) begin
+            if (pre_b[bb][3]) begin                     // KV RST_PEND: its response (size unknown) is complete, then it is lost
+                tt = 0; rd(A_RXSTAT);
+                while (rdat[2] !== 1'b1) begin
+                    tt = tt + 1;
+                    if (tt > 400) $fatal(1, "FAIL %s: DONE never set for a pending response (beat %0d)", `NAME, bb);
+                    rd(A_RXSTAT);
+                end
+                chk(rdat[15:8] != 0, 1, "pending response in the RX FIFO");
+                do_clear;
+                npend = npend + 1;
+            end
+            if (pre_b[bb][0]) begin
                 drain(w0);
                 do_clear;
-            end else if (pre_b[bb] == 2'd2) begin       // the last result is waiting in the RX FIFO when the reset hits
+            end else if (pre_b[bb][1]) begin            // the last result is waiting in the RX FIFO when the reset hits
                 wait_level(w0 - ne);
                 while (ne < w0 - 1) pop_one(w0);
                 do_clear;
                 ne = w0;                                // that result is lost by design
             end
+            if (pre_b[bb][2]) drain(w0);
             push_beat(bb);
-            pop_avail(end_b[bb]);
+            if (!skp_b[bb]) pop_avail(end_b[bb]);
         end
     endtask
 
@@ -221,7 +248,7 @@ module adapter_tb;
 
     task frame_cycles_check(input integer nbeats);
         begin
-`ifdef FRAME
+`ifdef FRAMECHK
             rd(A_CYCLES);
             n_checks = n_checks + 1;
             if (rdat < nbeats || rdat > 400) $fatal(1, "FAIL %s: CYCLES=%0d for a %0d-beat frame", `NAME, rdat, nbeats);
@@ -245,7 +272,7 @@ module adapter_tb;
         for (k = 1; k <= nvec; k = k + 1) begin
             nrec_n = vb[16*k];
             for (j = 0; j < nrec_n; j = j + 1) begin
-                in_b[nb] = {(j == nrec_n - 1), vb[16*k + 1 + j]}; pre_b[nb] = 2'd0;
+                in_b[nb] = {(j == nrec_n - 1), vb[16*k + 1 + j]}; pre_b[nb] = 4'd0; skp_b[nb] = 1'b0;
                 if (j == nrec_n - 1) begin
                     exp_r[nexp] = {1'b0, vb[16*k + 13]}; nexp = nexp + 1;
                     exp_r[nexp] = {1'b1, vb[16*k + 14]}; nexp = nexp + 1;
@@ -261,21 +288,48 @@ module adapter_tb;
         nvec = vw[0][23:0];
         for (k = 0; k < nvec; k = k + 1) begin
             w = vw[4 + k];
-            in_b[nb] = {w[8], w[7:0]}; pre_b[nb] = 2'd0;
+            in_b[nb] = {w[8], w[7:0]}; pre_b[nb] = 4'd0; skp_b[nb] = 1'b0;
             if (w[9]) begin exp_r[nexp] = {w[10], w[18:11]}; nexp = nexp + 1; end
             end_b[nb] = nexp; nb = nb + 1;
         end
+  `elsif KV
+        if (vw[0] !== 32'hA5) $fatal(1, "FAIL %s: not a vector file (header %h)", `NAME, vw[0]);
+        nvec = vw[1] * 256 + vw[2];
+        carry = 0;
+        for (k = 1; k <= nvec; k = k + 1) begin
+            typ = vw[40*k]; nin = vw[40*k + 1]; nout = vw[40*k + 2];
+            if (typ == 2) carry = carry | 1;                                  // RST_IDLE: CLEAR before the next beat
+            else if (typ == 1 || typ == 3 || typ == 4) begin
+                for (j = 0; j < nin; j = j + 1) begin
+                    in_b[nb] = {(typ != 3 && j == nin - 1), vw[40*k + 12 + j][7:0]};
+                    pre_b[nb] = carry | ((typ == 4 && j == 0) ? 4 : 0); carry = 0;
+                    skp_b[nb] = (typ == 4);
+                    if (typ == 1 && j == nin - 1)
+                        for (b = 0; b < nout; b = b + 1) begin exp_r[nexp] = {(b == nout - 1), vw[40*k + 4 + b][7:0]}; nexp = nexp + 1; end
+                    end_b[nb] = nexp; nb = nb + 1;
+                end
+                if (typ == 3) carry = carry | 1;                              // RST_MID: CLEAR after the partial frame
+                if (typ == 4) carry = carry | 8;                              // RST_PEND: DONE, then CLEAR
+            end else $fatal(1, "FAIL %s: record %0d has unknown type %0d", `NAME, k, typ);
+            if (k == 1) begin
+                if (typ != 1) $fatal(1, "FAIL %s: record 1 is not a COMMAND", `NAME);
+                pfirst = nin;
+            end
+        end
+        if (carry != 0) $fatal(1, "FAIL %s: the last record is a reset with no beat after it", `NAME);
   `else
         if (vw[0] !== 32'hA5A5A5A5) $fatal(1, "FAIL %s: not a vector file (header %h)", `NAME, vw[0]);
         nvec = vw[1];
         for (k = 0; k < nvec; k = k + 1) begin
             w = vw[3 + k];
-            in_b[nb] = {w[8], w[7:0]}; pre_b[nb] = w[9] ? 2'd1 : w[20] ? 2'd2 : 2'd0;
+            in_b[nb] = {w[8], w[7:0]}; pre_b[nb] = w[9] ? 4'd1 : w[20] ? 4'd2 : 4'd0; skp_b[nb] = 1'b0;
             if (w[10]) begin exp_r[nexp] = {w[19], w[18:11]}; nexp = nexp + 1; end
             end_b[nb] = nexp; nb = nb + 1;
         end
   `endif
+`ifndef KV
         pfirst = 12;
+`endif
 `endif
         if (nb < 1 || nb >= MAXB) $fatal(1, "FAIL %s: bad beat count %0d", `NAME, nb);
         nbu = (nlim < nb) ? nlim : nb;
@@ -339,7 +393,7 @@ module adapter_tb;
         // ---------------------------------------------------------- 2. burst until the TX FIFO is full
         b = pfirst; filled = 0; t = 0;
         while (!filled) begin
-            if (b >= nbu || b - pfirst >= 300 || pre_b[b] != 2'd0)
+            if (b >= nbu || b - pfirst >= 300 || pre_b[b] != 4'd0 || skp_b[b])
                 $fatal(1, "FAIL %s: burst ended at beat %0d without filling the TX FIFO", `NAME, b);
             i = b;
             rd(A_STATUS);
@@ -365,7 +419,7 @@ module adapter_tb;
         // ---------------------------------------------------------- 3. interleaved: the rest (beat b is sent again)
         for (; b < nbu; b = b + 1) begin i = b; do_beat(b); end
         drain(end_b[nbu - 1]);
-        irq_exp = lcount(e0, end_b[nbu - 1]);
+        irq_exp = lcount(e0, end_b[nbu - 1]) + npend;   // a lost KV RST_PEND response also pulses irq once
         idle(10);
         chk(irq_hi, irq_rises, "irq pulses one clock wide");
         chk(irq_rises, irq_exp, "irq pulses = m_last beats captured");

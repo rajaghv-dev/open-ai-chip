@@ -1,7 +1,7 @@
 Reading timing models for corner nom_tt_025C_1v80…
 Reading timing library for the 'nom_tt_025C_1v80' corner at '~/.volare/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__tt_025C_1v80.lib'…
 Reading timing library for the 'nom_tt_025C_1v80' corner at '~/raja/open-ai-chip/build/macros/soc_image_text_match/lib/nom_tt_025C_1v80/soc_image_text_match__nom_tt_025C_1v80.lib'…
-Reading OpenROAD database at '~/raja/open-ai-chip/designs/user_project_wrapper_soc_itm/runs/RUN_2026-10-06_03-24-54/35-openroad-globalrouting/user_project_wrapper.odb'…
+Reading OpenROAD database at '~/raja/open-ai-chip/designs/user_project_wrapper_soc_itm/runs/RUN_2026-10-06_08-21-27/35-openroad-globalrouting/user_project_wrapper.odb'…
 Reading design constraints file at '~/raja/open-ai-chip/designs/user_project_wrapper_soc_itm/signoff.sdc'…
 [INFO]: Creating clock {clk} for port wb_clk_i with period: 25
 [INFO]: Setting clock uncertainity to: 0.25
@@ -12,7 +12,7 @@ Reading design constraints file at '~/raja/open-ai-chip/designs/user_project_wra
 [INFO]: Setting clock latency range: 4.65 : 5.57
 [INFO]: Setting clock transition: 0.61
 [INFO ORD-0030] Using 2 thread(s).
-+ detailed_route -droute_end_iter 64 -or_seed 42 -verbose 1 -output_drc ~/raja/open-ai-chip/designs/user_project_wrapper_soc_itm/runs/RUN_2026-10-06_03-24-54/39-openroad-detailedrouting/drt-run-0/user_project_wrapper.drc
++ detailed_route -droute_end_iter 64 -or_seed 42 -verbose 1 -output_drc ~/raja/open-ai-chip/designs/user_project_wrapper_soc_itm/runs/RUN_2026-10-06_08-21-27/39-openroad-detailedrouting/drt-run-0/user_project_wrapper.drc
 [INFO DRT-0149] Reading tech and libs.
 [WARNING DRT-0349] LEF58_ENCLOSURE with no CUTCLASS is not supported. Skipping for layer mcon
 [WARNING DRT-0349] LEF58_ENCLOSURE with no CUTCLASS is not supported. Skipping for layer mcon
@@ -98,7 +98,7 @@ Number of nets:           637
 #macroValidViaAp       = 0
 #macroNoAp             = 0
 [INFO DRT-0166] Complete pin access.
-[INFO DRT-0267] cpu time = 00:00:00, elapsed time = 00:00:00, memory = 136.98 (MB), peak = 136.76 (MB)
+[INFO DRT-0267] cpu time = 00:00:00, elapsed time = 00:00:00, memory = 137.07 (MB), peak = 136.76 (MB)
 
 [INFO DRT-0157] Number of guides:     531
 
@@ -146,42 +146,42 @@ Number of nets:           637
 [INFO DRT-0036] via4 guide region query size = 0.
 [INFO DRT-0036] met5 guide region query size = 0.
 [INFO DRT-0179] Init gr pin query.
-[INFO DRT-0267] cpu time = 00:00:00, elapsed time = 00:00:00, memory = 137.43 (MB), peak = 137.26 (MB)
+[INFO DRT-0267] cpu time = 00:00:00, elapsed time = 00:00:00, memory = 137.52 (MB), peak = 137.39 (MB)
 [INFO DRT-0245] skipped writing guide updates to database.
 [INFO DRT-0185] Post process initialize RPin region query.
 [INFO DRT-0181] Start track assignment.
 [INFO DRT-0184] Done with 220 vertical wires in 9 frboxes and 111 horizontal wires in 11 frboxes.
 [INFO DRT-0186] Done with 4 vertical wires in 9 frboxes and 2 horizontal wires in 11 frboxes.
 [INFO DRT-0182] Complete track assignment.
-[INFO DRT-0267] cpu time = 00:00:00, elapsed time = 00:00:00, memory = 156.31 (MB), peak = 156.14 (MB)
+[INFO DRT-0267] cpu time = 00:00:00, elapsed time = 00:00:00, memory = 156.40 (MB), peak = 156.26 (MB)
 [INFO DRT-0187] Start routing data preparation.
-[INFO DRT-0267] cpu time = 00:00:00, elapsed time = 00:00:00, memory = 156.31 (MB), peak = 156.14 (MB)
+[INFO DRT-0267] cpu time = 00:00:00, elapsed time = 00:00:00, memory = 156.40 (MB), peak = 156.26 (MB)
 [INFO DRT-0194] Start detail routing.
 [INFO DRT-0195] Start 0th optimization iteration.
     Completing 10% with 0 violations.
-    elapsed time = 00:00:00, memory = 169.47 (MB).
+    elapsed time = 00:00:00, memory = 169.56 (MB).
     Completing 20% with 0 violations.
-    elapsed time = 00:00:00, memory = 172.05 (MB).
+    elapsed time = 00:00:00, memory = 172.14 (MB).
     Completing 30% with 26 violations.
-    elapsed time = 00:00:00, memory = 172.67 (MB).
+    elapsed time = 00:00:00, memory = 180.19 (MB).
     Completing 40% with 26 violations.
-    elapsed time = 00:00:00, memory = 176.28 (MB).
+    elapsed time = 00:00:00, memory = 179.96 (MB).
     Completing 50% with 26 violations.
-    elapsed time = 00:00:00, memory = 176.28 (MB).
+    elapsed time = 00:00:00, memory = 179.96 (MB).
     Completing 60% with 26 violations.
-    elapsed time = 00:00:00, memory = 176.28 (MB).
+    elapsed time = 00:00:00, memory = 179.96 (MB).
     Completing 70% with 26 violations.
-    elapsed time = 00:00:00, memory = 176.38 (MB).
+    elapsed time = 00:00:00, memory = 180.07 (MB).
     Completing 80% with 50 violations.
-    elapsed time = 00:00:00, memory = 176.38 (MB).
+    elapsed time = 00:00:00, memory = 180.11 (MB).
     Completing 90% with 50 violations.
-    elapsed time = 00:00:00, memory = 176.60 (MB).
+    elapsed time = 00:00:00, memory = 180.32 (MB).
     Completing 100% with 50 violations.
-    elapsed time = 00:00:00, memory = 176.60 (MB).
+    elapsed time = 00:00:00, memory = 180.32 (MB).
 [INFO DRT-0199]   Number of violations = 50.
 Viol/Layer        met2
 Metal Spacing       50
-[INFO DRT-0267] cpu time = 00:00:00, elapsed time = 00:00:00, memory = 497.20 (MB), peak = 508.91 (MB)
+[INFO DRT-0267] cpu time = 00:00:00, elapsed time = 00:00:00, memory = 500.93 (MB), peak = 512.87 (MB)
 Total wire length = 28297 um.
 Total wire length on LAYER li1 = 0 um.
 Total wire length on LAYER met1 = 1773 um.
@@ -205,29 +205,29 @@ Up-via summary (total 222):
 
 [INFO DRT-0195] Start 1st optimization iteration.
     Completing 10% with 50 violations.
-    elapsed time = 00:00:00, memory = 497.26 (MB).
+    elapsed time = 00:00:00, memory = 500.98 (MB).
     Completing 20% with 50 violations.
-    elapsed time = 00:00:00, memory = 497.26 (MB).
+    elapsed time = 00:00:00, memory = 500.98 (MB).
     Completing 30% with 27 violations.
-    elapsed time = 00:00:00, memory = 501.21 (MB).
+    elapsed time = 00:00:00, memory = 501.30 (MB).
     Completing 40% with 27 violations.
-    elapsed time = 00:00:00, memory = 501.21 (MB).
+    elapsed time = 00:00:00, memory = 501.30 (MB).
     Completing 50% with 27 violations.
-    elapsed time = 00:00:00, memory = 501.21 (MB).
+    elapsed time = 00:00:00, memory = 501.30 (MB).
     Completing 60% with 27 violations.
-    elapsed time = 00:00:00, memory = 501.21 (MB).
+    elapsed time = 00:00:00, memory = 501.30 (MB).
     Completing 70% with 27 violations.
-    elapsed time = 00:00:00, memory = 501.21 (MB).
+    elapsed time = 00:00:00, memory = 501.30 (MB).
     Completing 80% with 5 violations.
-    elapsed time = 00:00:00, memory = 501.29 (MB).
+    elapsed time = 00:00:00, memory = 501.38 (MB).
     Completing 90% with 5 violations.
-    elapsed time = 00:00:00, memory = 501.29 (MB).
+    elapsed time = 00:00:00, memory = 501.38 (MB).
     Completing 100% with 5 violations.
-    elapsed time = 00:00:00, memory = 501.29 (MB).
+    elapsed time = 00:00:00, memory = 501.38 (MB).
 [INFO DRT-0199]   Number of violations = 5.
 Viol/Layer        met2
 Metal Spacing        5
-[INFO DRT-0267] cpu time = 00:00:00, elapsed time = 00:00:00, memory = 501.41 (MB), peak = 513.16 (MB)
+[INFO DRT-0267] cpu time = 00:00:00, elapsed time = 00:00:00, memory = 501.51 (MB), peak = 513.37 (MB)
 Total wire length = 28358 um.
 Total wire length on LAYER li1 = 0 um.
 Total wire length on LAYER met1 = 1769 um.
@@ -251,27 +251,27 @@ Up-via summary (total 222):
 
 [INFO DRT-0195] Start 2nd optimization iteration.
     Completing 10% with 5 violations.
-    elapsed time = 00:00:00, memory = 501.41 (MB).
+    elapsed time = 00:00:00, memory = 501.51 (MB).
     Completing 20% with 5 violations.
-    elapsed time = 00:00:00, memory = 501.41 (MB).
+    elapsed time = 00:00:00, memory = 501.51 (MB).
     Completing 30% with 3 violations.
-    elapsed time = 00:00:00, memory = 501.41 (MB).
+    elapsed time = 00:00:00, memory = 501.51 (MB).
     Completing 40% with 3 violations.
-    elapsed time = 00:00:00, memory = 501.41 (MB).
+    elapsed time = 00:00:00, memory = 501.51 (MB).
     Completing 50% with 3 violations.
-    elapsed time = 00:00:00, memory = 501.41 (MB).
+    elapsed time = 00:00:00, memory = 501.51 (MB).
     Completing 60% with 3 violations.
-    elapsed time = 00:00:00, memory = 501.41 (MB).
+    elapsed time = 00:00:00, memory = 501.51 (MB).
     Completing 70% with 3 violations.
-    elapsed time = 00:00:00, memory = 501.41 (MB).
+    elapsed time = 00:00:00, memory = 501.51 (MB).
     Completing 80% with 0 violations.
-    elapsed time = 00:00:00, memory = 501.41 (MB).
+    elapsed time = 00:00:00, memory = 501.51 (MB).
     Completing 90% with 0 violations.
-    elapsed time = 00:00:00, memory = 501.41 (MB).
+    elapsed time = 00:00:00, memory = 501.51 (MB).
     Completing 100% with 0 violations.
-    elapsed time = 00:00:00, memory = 501.41 (MB).
+    elapsed time = 00:00:00, memory = 501.51 (MB).
 [INFO DRT-0199]   Number of violations = 0.
-[INFO DRT-0267] cpu time = 00:00:00, elapsed time = 00:00:00, memory = 501.41 (MB), peak = 513.16 (MB)
+[INFO DRT-0267] cpu time = 00:00:00, elapsed time = 00:00:00, memory = 501.51 (MB), peak = 513.37 (MB)
 Total wire length = 28359 um.
 Total wire length on LAYER li1 = 0 um.
 Total wire length on LAYER met1 = 1769 um.
@@ -315,7 +315,7 @@ Up-via summary (total 222):
                222
 
 
-[INFO DRT-0267] cpu time = 00:00:01, elapsed time = 00:00:00, memory = 501.54 (MB), peak = 513.16 (MB)
+[INFO DRT-0267] cpu time = 00:00:01, elapsed time = 00:00:00, memory = 501.63 (MB), peak = 513.37 (MB)
 
 [INFO DRT-0180] Post processing.
 + check_antennas 
@@ -329,8 +329,8 @@ Updating metrics…
 Cell type report:                       Count       Area
   Macro                                     1   62500.00
   Total                                     1   62500.00
-Writing OpenROAD database to '~/raja/open-ai-chip/designs/user_project_wrapper_soc_itm/runs/RUN_2026-10-06_03-24-54/39-openroad-detailedrouting/user_project_wrapper.odb'…
-Writing netlist to '~/raja/open-ai-chip/designs/user_project_wrapper_soc_itm/runs/RUN_2026-10-06_03-24-54/39-openroad-detailedrouting/user_project_wrapper.nl.v'…
-Writing powered netlist to '~/raja/open-ai-chip/designs/user_project_wrapper_soc_itm/runs/RUN_2026-10-06_03-24-54/39-openroad-detailedrouting/user_project_wrapper.pnl.v'…
-Writing layout to '~/raja/open-ai-chip/designs/user_project_wrapper_soc_itm/runs/RUN_2026-10-06_03-24-54/39-openroad-detailedrouting/user_project_wrapper.def'…
-Writing timing constraints to '~/raja/open-ai-chip/designs/user_project_wrapper_soc_itm/runs/RUN_2026-10-06_03-24-54/39-openroad-detailedrouting/user_project_wrapper.sdc'…
+Writing OpenROAD database to '~/raja/open-ai-chip/designs/user_project_wrapper_soc_itm/runs/RUN_2026-10-06_08-21-27/39-openroad-detailedrouting/user_project_wrapper.odb'…
+Writing netlist to '~/raja/open-ai-chip/designs/user_project_wrapper_soc_itm/runs/RUN_2026-10-06_08-21-27/39-openroad-detailedrouting/user_project_wrapper.nl.v'…
+Writing powered netlist to '~/raja/open-ai-chip/designs/user_project_wrapper_soc_itm/runs/RUN_2026-10-06_08-21-27/39-openroad-detailedrouting/user_project_wrapper.pnl.v'…
+Writing layout to '~/raja/open-ai-chip/designs/user_project_wrapper_soc_itm/runs/RUN_2026-10-06_08-21-27/39-openroad-detailedrouting/user_project_wrapper.def'…
+Writing timing constraints to '~/raja/open-ai-chip/designs/user_project_wrapper_soc_itm/runs/RUN_2026-10-06_08-21-27/39-openroad-detailedrouting/user_project_wrapper.sdc'…

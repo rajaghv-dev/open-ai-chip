@@ -1,0 +1,152 @@
+Reading timing models for corner nom_tt_025C_1v80…
+Reading timing library for the 'nom_tt_025C_1v80' corner at '~/.volare/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__tt_025C_1v80.lib'…
+Reading OpenROAD database at '~/raja/open-ai-chip/designs/soc_kv_attn_n8/runs/RUN_2026-10-06_08-09-32/26-odb-customioplacement/soc_kv_attn_n8.odb'…
+Reading design constraints file at '~/raja/open-ai-chip/designs/soc_kv_attn_n8/base_soc.sdc'…
+[INFO]: Creating clock {clk} for port wb_clk_i with period: 25
+[INFO]: Setting clock uncertainity to: 0.25
+[INFO]: Setting clock transition to: 0.1499999999999999944488848768742172978818416595458984375
+[INFO]: Setting maximum transition to: 0.75
+[INFO]: Setting maximum fanout to: 8
+[INFO]: Setting timing derate to: 0 %
+[INFO]: Setting clock latency range: 4.65 : 5.57
+[INFO]: Setting clock transition: 0.61
+[INFO] Setting signal min routing layer to: met1 and clock min routing layer to met1. 
+[INFO] Setting signal max routing layer to: met4 and clock max routing layer to met4. 
++ global_placement -density 0.450568 -routability_driven -pad_right 0 -pad_left 0 -init_wirelength_coef 0.25
+[INFO GPL-0001] ---- Initialize GPL Main Data Structures
+[INFO GPL-0002] DBU: 1000
+[INFO GPL-0003] SiteSize: (  0.460  2.720 ) um
+[INFO GPL-0004] CoreBBox: (  5.520 10.880 ) ( 294.400 288.320 ) um
+[INFO GPL-0036] Movable instances area:      26665.574 um^2
+[INFO GPL-0037] Total instances area:        28862.682 um^2
+[INFO GPL-0035] Pin density area adjust:      3227.958 um^2
+[INFO GPL-0032] ---- Initialize Region: Top-level
+[INFO GPL-0006] Number of instances:              3313
+[INFO GPL-0007] Movable instances:                1965
+[INFO GPL-0008] Fixed instances:                  1348
+[INFO GPL-0009] Dummy instances:                     0
+[INFO GPL-0010] Number of nets:                   2038
+[INFO GPL-0011] Number of pins:                   7639
+[INFO GPL-0012] Die BBox:  (  0.000  0.000 ) ( 300.000 300.000 ) um
+[INFO GPL-0013] Core BBox: (  5.520 10.880 ) ( 294.400 288.320 ) um
+[INFO GPL-0016] Core area:                   80146.867 um^2
+[INFO GPL-0014] Region name: top-level.
+[INFO GPL-0015] Region area:                 80146.867 um^2
+[INFO GPL-0017] Fixed instances area:         2197.107 um^2
+[INFO GPL-0018] Movable instances area:      29893.532 um^2
+[INFO GPL-0019] Utilization:                    38.350 %
+[INFO GPL-0020] Standard cells area:         29893.532 um^2
+[INFO GPL-0021] Large instances area:            0.000 um^2
+[INFO GPL-0005] ---- Execute Conjugate Gradient Initial Placement.
+[INFO GPL-0051] Source of initial instance position counters:
+	Odb location = 0	Core center = 1965	Region center = 0
+[InitialPlace]  Iter: 1 conjugate gradient residual: 0.00128317 HPWL: 30043960
+[InitialPlace]  Iter: 2 conjugate gradient residual: 0.00000187 HPWL: 24646777
+[InitialPlace]  Iter: 3 conjugate gradient residual: 0.00000585 HPWL: 24178746
+[InitialPlace]  Iter: 4 conjugate gradient residual: 0.00000044 HPWL: 23836279
+[InitialPlace]  Iter: 5 conjugate gradient residual: 0.00000021 HPWL: 23588130
+[INFO GPL-0033] ---- Initialize Nesterov Region: Top-level
+[INFO GPL-0023] Placement target density:       0.4506
+[INFO GPL-0024] Movable insts average area:     15.213 um^2
+[INFO GPL-0025] Ideal bin area:                 33.764 um^2
+[INFO GPL-0026] Ideal bin count:                  2373
+[INFO GPL-0027] Total bin area:              80146.867 um^2
+[INFO GPL-0028] Bin count (X, Y):          32 ,     32
+[INFO GPL-0029] Bin size (W * H):       9.027 *  8.670 um
+[INFO GPL-0030] Number of bins:                   1024
+[INFO GPL-0007] ---- Execute Nesterov Global Placement.
+[INFO GPL-0031] HPWL: Half-Perimeter Wirelength
+Iteration | Overflow |     HPWL (um) |  HPWL(%) |   Penalty | Group
+---------------------------------------------------------------
+        0 |   0.9789 |  8.154993e+03 |   +0.00% |  3.72e-16 |      
+       10 |   0.9718 |  8.494968e+03 |   +4.17% |  6.05e-16 |      
+       20 |   0.9720 |  8.507816e+03 |   +0.15% |  9.86e-16 |      
+       30 |   0.9719 |  8.519589e+03 |   +0.14% |  1.61e-15 |      
+       40 |   0.9719 |  8.521677e+03 |   +0.02% |  2.62e-15 |      
+       50 |   0.9719 |  8.520842e+03 |   -0.01% |  4.26e-15 |      
+       60 |   0.9719 |  8.521091e+03 |   +0.00% |  6.94e-15 |      
+       70 |   0.9719 |  8.525163e+03 |   +0.05% |  1.13e-14 |      
+       80 |   0.9719 |  8.529611e+03 |   +0.05% |  1.84e-14 |      
+       90 |   0.9719 |  8.534918e+03 |   +0.06% |  3.00e-14 |      
+      100 |   0.9719 |  8.545750e+03 |   +0.13% |  4.89e-14 |      
+      110 |   0.9719 |  8.572559e+03 |   +0.31% |  7.96e-14 |      
+      120 |   0.9718 |  8.630816e+03 |   +0.68% |  1.30e-13 |      
+      130 |   0.9718 |  8.740915e+03 |   +1.28% |  2.11e-13 |      
+      140 |   0.9688 |  8.929872e+03 |   +2.16% |  3.44e-13 |      
+      150 |   0.9672 |  9.226048e+03 |   +3.32% |  5.60e-13 |      
+      160 |   0.9621 |  9.675315e+03 |   +4.87% |  9.12e-13 |      
+      170 |   0.9546 |  1.035809e+04 |   +7.06% |  1.49e-12 |      
+      180 |   0.9483 |  1.131616e+04 |   +9.25% |  2.42e-12 |      
+      190 |   0.9324 |  1.257285e+04 |  +11.11% |  3.94e-12 |      
+      200 |   0.9177 |  1.407959e+04 |  +11.98% |  6.42e-12 |      
+      210 |   0.8973 |  1.576448e+04 |  +11.97% |  1.05e-11 |      
+      220 |   0.8767 |  1.759064e+04 |  +11.58% |  1.70e-11 |      
+      230 |   0.8511 |  1.960982e+04 |  +11.48% |  2.77e-11 |      
+      240 |   0.8252 |  2.184887e+04 |  +11.42% |  4.52e-11 |      
+      250 |   0.7980 |  2.394016e+04 |   +9.57% |  7.35e-11 |      
+      260 |   0.7708 |  2.564292e+04 |   +7.11% |  1.20e-10 |      
+      270 |   0.7388 |  2.727730e+04 |   +6.37% |  1.95e-10 |      
+      280 |   0.7079 |  2.875824e+04 |   +5.43% |  3.18e-10 |      
+      290 |   0.6664 |  3.057521e+04 |   +6.32% |  5.17e-10 |      
+      300 |   0.6281 |  3.228751e+04 |   +5.60% |  8.43e-10 |      
+[INFO GPL-0038] Routability snapshot saved at iter = 309
+      308 |   0.5962 |  3.372716e+04 |          |           |      
+      310 |   0.5863 |  3.402765e+04 |   +5.39% |  1.37e-09 |      
+      320 |   0.5408 |  3.524664e+04 |   +3.58% |  2.23e-09 |      
+      330 |   0.4935 |  3.634950e+04 |   +3.13% |  3.64e-09 |      
+      340 |   0.4396 |  3.739059e+04 |   +2.86% |  5.93e-09 |      
+      350 |   0.3946 |  3.817412e+04 |   +2.10% |  9.66e-09 |      
+      360 |   0.3422 |  3.840193e+04 |   +0.60% |  1.57e-08 |      
+      370 |   0.3082 |  3.881638e+04 |   +1.08% |  2.32e-08 |      
+[INFO GPL-0040] Routability iteration: 1
+[INFO GPL-0041] Total routing overflow: 0.0334
+[INFO GPL-0042] Number of overflowed tiles: 1 (0.05%)
+[INFO GPL-0043] Average top 0.5% routing congestion: 0.9498
+[INFO GPL-0044] Average top 1.0% routing congestion: 0.9122
+[INFO GPL-0045] Average top 2.0% routing congestion: 0.8728
+[INFO GPL-0046] Average top 5.0% routing congestion: 0.8121
+[INFO GPL-0047] Routability iteration weighted routing congestion: 0.9310
+[INFO GPL-0050] Weighted routing congestion is lower than target routing congestion(1.0100), end routability optimization.
+[INFO GPL-0090] Routability finished. Target routing congestion achieved succesfully.
+Iteration | Overflow |     HPWL (um) |  HPWL(%) |   Penalty | Group
+---------------------------------------------------------------
+      380 |   0.2781 |  3.906837e+04 |   +0.65% |  3.41e-08 |      
+      390 |   0.2468 |  3.926471e+04 |   +0.50% |  5.03e-08 |      
+      400 |   0.2236 |  3.946925e+04 |   +0.52% |  7.41e-08 |      
+      410 |   0.1973 |  3.970004e+04 |   +0.58% |  1.09e-07 |      
+      420 |   0.1754 |  3.993656e+04 |   +0.60% |  1.61e-07 |      
+      430 |   0.1542 |  4.020353e+04 |   +0.67% |  2.37e-07 |      
+      440 |   0.1271 |  4.038993e+04 |   +0.46% |  3.49e-07 |      
+      450 |   0.1056 |  4.062773e+04 |   +0.59% |  5.14e-07 |      
+      455 |   0.0998 |  4.080436e+04 |          |  6.48e-07 |      
+---------------------------------------------------------------
+[INFO GPL-1001] Global placement finished at iteration 455
+[INFO GPL-1003] Routability mode iteration count: 65
+[INFO GPL-1005] Routability final weighted congestion: 0.8974
+[INFO GPL-1002] Placed Cell Area            29893.5323
+[INFO GPL-1003] Available Free Area         77949.7600
+[INFO GPL-1004] Minimum Feasible Density        0.3900 (cell_area / free_area)
+[INFO GPL-1006]   Suggested Target Densities:
+[INFO GPL-1007]     - For 90% usage of free space: 0.4261
+[INFO GPL-1008]     - For 80% usage of free space: 0.4794
+[INFO GPL-1009]     - For 50% usage of free space: 0.7670
+[INFO GPL-1011] Original area (um^2): 29893.53
+[INFO GPL-1012] Total routability artificial inflation: 0.00 (+0.00%)
+[INFO GPL-1014] Final placement area: 29893.53 (+0.00%)
+Setting global connections for newly added cells…
+[INFO] Setting global connections...
+[INFO ODB-0403] 0 connections made, 0 conflicts skipped.
+Updating metrics…
+Cell type report:                       Count       Area
+  Fill cell                               204     765.73
+  Tap cell                               1144    1431.37
+  Buffer                                    4      20.02
+  Inverter                                 33     123.87
+  Sequential cell                         570   12124.13
+  Multi-Input combinational cell         1358   14397.56
+  Total                                  3313   28862.68
+Writing OpenROAD database to '~/raja/open-ai-chip/designs/soc_kv_attn_n8/runs/RUN_2026-10-06_08-09-32/28-openroad-globalplacement/soc_kv_attn_n8.odb'…
+Writing netlist to '~/raja/open-ai-chip/designs/soc_kv_attn_n8/runs/RUN_2026-10-06_08-09-32/28-openroad-globalplacement/soc_kv_attn_n8.nl.v'…
+Writing powered netlist to '~/raja/open-ai-chip/designs/soc_kv_attn_n8/runs/RUN_2026-10-06_08-09-32/28-openroad-globalplacement/soc_kv_attn_n8.pnl.v'…
+Writing layout to '~/raja/open-ai-chip/designs/soc_kv_attn_n8/runs/RUN_2026-10-06_08-09-32/28-openroad-globalplacement/soc_kv_attn_n8.def'…
+Writing timing constraints to '~/raja/open-ai-chip/designs/soc_kv_attn_n8/runs/RUN_2026-10-06_08-09-32/28-openroad-globalplacement/soc_kv_attn_n8.sdc'…

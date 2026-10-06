@@ -25,7 +25,7 @@ TINY="vision_all_lit vision_block text_sentiment"
 CORE=tiny_ai_core                      # the three engines behind the Wishbone register block
 NEWENG="audio_pitch audio_onset image_text_match prec_bin prec_tern prec_int4 prec_int8 prec_fp8 prec_fp16 prec_bf16"
 STREAM="$TINY $NEWENG"                 # streaming engines: stream-style testbench with +VEC (the core and wrapper use their own)
-SOCM="soc_image_text_match"          # adapter-based experiment macros (one build per experiment, docs/SOC_PLAN.md)
+SOCM="soc_image_text_match soc_kv_attn_n8"         # adapter-based experiment macros (one build per experiment, docs/SOC_PLAN.md)
 KV="kv_attn_n4 kv_attn_n8 kv_attn_n16 kv_attn_n8_int4 kv_attn_n8_ring"   # KV-cache attention: shared/rtl/kv_attn_core.v, tb shared/tb/kv_attn_tb.vh, +VEC=vectors.hex
 ALL="user_proj_example $TINY $CORE $NEWENG $SOCM $KV"
 # Caravel wrappers: every designs/user_project_wrapper*/ (module user_project_wrapper, exactly one macro mprj from its MACROS)

@@ -1,0 +1,47 @@
+{
+    "PDK": "sky130A",
+    "STD_CELL_LIBRARY": "sky130_fd_sc_hd",
+    "DESIGN_NAME": "soc_kv_attn_n8",
+    "VERILOG_FILES": [
+        "dir::../../shared/rtl/wb_stream_adapter.v",
+        "dir::../../shared/rtl/kv_attn_core.v",
+        "dir::../kv_attn_n8/rtl/kv_attn_n8_rom.v",
+        "dir::../kv_attn_n8/rtl/kv_attn_n8.v",
+        "dir::rtl/soc_kv_attn_n8.v"
+    ],
+    "CLOCK_PERIOD": 25,
+    "CLOCK_PORT": "wb_clk_i",
+    "FP_SIZING": "absolute",
+    "DIE_AREA": [
+        0,
+        0,
+        300,
+        300
+    ],
+    "VDD_NETS": [
+        "vccd1"
+    ],
+    "GND_NETS": [
+        "vssd1"
+    ],
+    "RT_MAX_LAYER": "met4",
+    "PDN_MULTILAYER": false,
+    "MAGIC_DRC_USE_GDS": true,
+    "RUN_HEURISTIC_DIODE_INSERTION": false,
+    "RUN_ANTENNA_REPAIR": true,
+    "RUN_POST_GRT_DESIGN_REPAIR": true,
+    "MAX_FANOUT_CONSTRAINT": 8,
+    "PL_RESIZER_MAX_SLEW_MARGIN": 20,
+    "GRT_DESIGN_REPAIR_MAX_SLEW_PCT": 20,
+    "ERROR_ON_SYNTH_CHECKS": true,
+    "CTS_SINK_CLUSTERING_SIZE": 8,
+    "CTS_SINK_CLUSTERING_MAX_DIAMETER": 20,
+    "CTS_DISTANCE_BETWEEN_BUFFERS": 30,
+    "//DIE_AREA": "300x300 um, estimate before the first run: soc_image_text_match synthesised 29,686 um2 of std cells (its metrics.json design__instance__area__stdcell) of which image_text_match alone is 3,856 um2, so the adapter is about 25,800 um2; kv_attn_n8 alone is 16,412 um2 (its metrics.json); together about 42,200 um2, about 75 percent of a 250 um die's core, too dense. 300 um gives about 50 percent (soc_image_text_match ran at 55 percent). The 109 pins still sit on the S edge; at y 87.04..387.04 the wrapper's met5 strap group k=1 (y 195.88..344.68) still crosses the macro.",
+    "IO_PIN_ORDER_CFG": "dir::pin_order.cfg",
+    "PNR_SDC_FILE": "dir::base_soc.sdc",
+    "SIGNOFF_SDC_FILE": "dir::base_soc.sdc",
+    "DIODE_ON_PORTS": "in",
+    "//IO_PIN_ORDER_CFG": "Same 109 signal pins on the S side, same order as tiny_ai_core and soc_image_text_match (wrapper DEF Wishbone pad order); irq at the right end. In pin_order.cfg every line starting with # is a direction marker, so the note lives here.",
+    "//SLEW": "Slew margins 20 (not 70): with the Caravel macro SDC wbs_dat_i / wbs_adr_i arrive at 0.84 / 0.92 ns, above the 0.75 ns limit; a 70% margin made repair chase those unfixable nets until the container ran out of memory, and 40% gave more violations (247) than 20% (195). Most remaining max-slew violations are on nets driven by the wbs_adr_i / wbs_dat_i input ports (environment-limited); see designs/tiny_ai_core/config.json and designs/user_project_wrapper/README.md."
+}

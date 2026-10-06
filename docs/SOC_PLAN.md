@@ -19,7 +19,7 @@ Ladder of section 4, all measured on this Mac without Docker:
 | (v) full-Caravel GL | Done functionally: hybrid PASS 59 s (`make caravel-gl`); full-chip GL (caravel_core incl. management SoC + wrapper + macro) PASS 14 m 23 s (`make caravel-fullgl`); SDF PASS on wrapper + macro at 3 corners (`make caravel-sdf-wrapper`); full-chip GL+SDF with firmware not completed (emulated CVC too slow) | `docs/CARAVEL_SIM.md`, `build/gpio_fix_chain.log` |
 | (vi) `cf precheck` | Done locally: 14 of 14 PASS in 61 s, in our own container (not ChipFoundry's image) | `make precheck`, `precheck/results/summary.tsv`, `docs/PRECHECK.md` |
 
-Also done: the generic adapter `shared/rtl/wb_stream_adapter.v` is verified with all 13 stream engines (`make adapter-test`,
+Also done: the generic adapter `shared/rtl/wb_stream_adapter.v` is verified with all 14 stream engines (incl. kv_attn_n8) (`make adapter-test`,
 `tests/adapter/`), and `designs/soc_image_text_match` (adapter + `image_text_match`, 109 pins) is hardened clean
 (`designs/soc_image_text_match/output/`).
 

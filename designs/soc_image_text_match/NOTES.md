@@ -254,6 +254,11 @@ Reports: [manufacturability.rpt](output/reports/manufacturability.rpt), [cell_us
 
 ## Run time and memory
 
+Re-run 2026-10-06: `shared/rtl/kv_attn_core.v` was added next to the adapter, and `scripts/flow/find_reusable_run.py` watches
+the whole directory of every input file, so the run was redone. `metrics.json` came out identical; only the run record changed:
+`output/resources.json` now says `wall_s_total` 163 s and `container_peak_mem_gb` 0.98. The per-step numbers below are
+from the first run (165 s, 0.802 GB); they show where the time goes, and run-to-run variation is a few seconds.
+
 From `output/resources.json` (profile "tight": 2 CPUs, 8 GB limit, exit code 0): `wall_s_total` 165 s for the physical flow (the 186 s of `stages.txt` includes simulation, check, the two gate-level runs and collect);
 container peak memory 861,179,904 bytes (0.802 GB); peak per-step RSS 689,963,008 bytes (step 45, detailed routing). 77 steps are listed. Slowest steps:
 
