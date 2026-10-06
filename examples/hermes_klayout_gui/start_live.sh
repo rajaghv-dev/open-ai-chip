@@ -4,13 +4,16 @@
 # env: KLAYOUT_AGENT_PORT (8765), KLAYOUT_AGENT_TOKEN (optional), KLAYOUT_AGENT_ALLOW_QUIT=1 (test harness only),
 #      KLAYOUT_BIN (override the binary)
 # Flags used: -e edit mode (GUI), -rm <file> run this macro at startup and keep the GUI open.
+# Docs: examples/hermes_klayout_gui/README_live.md, docs/HERMES_FROM_TERMINAL.md
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 REPO="$(cd "$HERE/../.." && pwd)"
-KL="${KLAYOUT_BIN:-/Applications/KLayout/klayout.app/Contents/MacOS/klayout}"
+if [ "$(uname -s)" = Darwin ]; then KL_DEFAULT=/Applications/KLayout/klayout.app/Contents/MacOS/klayout
+else KL_DEFAULT="$(command -v klayout || echo klayout)"; [ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ] || echo "no DISPLAY: the KLayout window needs a desktop session (or Xvfb)"; fi
+KL="${KLAYOUT_BIN:-$KL_DEFAULT}"
 export KLAYOUT_AGENT_PORT="${KLAYOUT_AGENT_PORT:-8765}"
 export KLAYOUT_AGENT_REPO="$REPO"
-[ -x "$KL" ] || { echo "KLayout not found at $KL (set KLAYOUT_BIN)"; exit 1; }
+[ -x "$KL" ] || command -v "$KL" >/dev/null 2>&1 || { echo "KLayout not found at $KL (set KLAYOUT_BIN)"; exit 1; }
 if (exec 3<>"/dev/tcp/127.0.0.1/$KLAYOUT_AGENT_PORT") 2>/dev/null; then
   echo "port $KLAYOUT_AGENT_PORT is already in use (is the bridge already running?)"; exit 1
 fi

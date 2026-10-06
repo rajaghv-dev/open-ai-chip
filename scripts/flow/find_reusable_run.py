@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Docs: .claude/skills/harden-design/SKILL.md, docs/GUI_AND_LOGS.md
 """find_reusable_run.py <design> -- print the newest complete run directory of a design that is
 still current, or nothing.
 

@@ -11,18 +11,16 @@
 #                  --sdf        make caravel-sdf-wrapper (CVC amd64 image)      --with-test  run make test first
 #                  --quick      per-design simulate only (skip check and gl-final)      --only "a b"  restrict the designs
 # Exit 0 when nothing FAILed (SKIP and STALE are not failures; STALE is listed so the owner can re-run make gds).
+# Run: make test-full   or   bash tests/test_full.sh [flags]; PASS = final line "test-full: NO FAILURES" (exit 0).
+# Docs: tests/TEST_MATRIX.md (full gate), docs/CARAVEL_SIM.md, docs/PRECHECK.md, CLAUDE.md
 cd "$(dirname "$0")/.." || exit 1
 SYNTH=0; PRE=0; FULL=0; SDF=0; WT=0; QUICK=0; ONLY=""
 while [ $# -gt 0 ]; do case $1 in
   --synth-gl) SYNTH=1;; --precheck) PRE=1;; --fullgl) FULL=1;; --sdf) SDF=1;; --with-test) WT=1;; --quick) QUICK=1;;
-  --only) ONLY="$2"; shift;; -h|--help) sed -n 2,16p "$0"; exit 0;; *) echo "unknown option $1"; exit 2;; esac; shift; done
+  --only) ONLY="$2"; shift;; -h|--help) sed -n 2,17p "$0"; exit 0;; *) echo "unknown option $1"; exit 2;; esac; shift; done
+# Setup: results go to build/test_full (git-ignored); DESIGNS is read from Makefile ALL_DESIGNS so a new design is covered automatically.
 LOG=build/test_full; mkdir -p $LOG
-DESIGNS=$(python3 - <<'PY'
-import re
-t = open("Makefile").read()
-print(re.search(r"^ALL_DESIGNS\s*:=((?:.*\\\n)*.*)$", t, re.M).group(1).replace("\\", " "))
-PY
-)
+DESIGNS=$(python3 scripts/flow/design_info.py --list)   # Makefile ALL_DESIGNS, hardening order
 [ -n "$ONLY" ] && DESIGNS="$ONLY"
 P=0; F=0; S=0; ST=0; FAILED=""
 res() { # res <PASS|FAIL|SKIP|STALE> <label> <detail>
@@ -34,7 +32,10 @@ run() { # run <label> <logname> <cmd...>: PASS/FAIL by exit status
 DOCKER=0; docker info >/dev/null 2>&1 && DOCKER=1
 T0=$(date +%s)
 echo "== test-full: $(echo $DESIGNS | wc -w) designs, docker=$([ $DOCKER = 1 ] && echo up || echo down), logs in $LOG/"
+# == make test: optional (--with-test) run of the fast gate first. Docs: tests/TEST_MATRIX.md (The two gates)
 [ $WT = 1 ] && { echo "== make test"; run "make test" test bash tests/run_tests.sh; }
+# == per design: guards against a design whose RTL sim, committed-metrics signoff or routed-netlist gate-level sim regressed, and
+# reports STALE (never re-runs make gds) when the committed run no longer matches the files. Docs: tests/TEST_MATRIX.md (Per design)
 echo "== per design"
 for d in $DESIGNS; do
   if run_dir=$(python3 scripts/flow/find_reusable_run.py $d 2>$LOG/$d.reuse); then cur=1; res PASS "$d run-state" "current: $(basename $run_dir)"
@@ -48,6 +49,8 @@ for d in $DESIGNS; do
     if [ $DOCKER = 1 ]; then run "$d gl (synth netlist)" gls_$d make --no-print-directory gl DESIGN=$d; else res SKIP "$d gl (synth netlist)" "docker daemon not reachable"; fi
   fi
 done
+# == system level: guards against the adapter, PicoRV32 SoC, full-Caravel RTL/GL, SDF and precheck flows regressing; heavy ones are opt-in
+# flags and are SKIPped when their tool, Docker or build/caravel is missing. Docs: tests/TEST_MATRIX.md, docs/SOC_PLAN.md, docs/CARAVEL_SIM.md, docs/PRECHECK.md
 echo "== system level"
 run "adapter-test (14 engines)" adapter make --no-print-directory adapter-test
 if command -v riscv64-elf-gcc >/dev/null 2>&1; then

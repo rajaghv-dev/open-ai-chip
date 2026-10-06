@@ -1,3 +1,7 @@
+// Purpose: Testbench SoC: PicoRV32 + RAM + console/exit/cycle registers + the real user_project_wrapper.
+// Run: make soc-sim (compiled by soc_sim/run.sh).
+// In: +hex=<file> firmware. Out: console text, final PASS/FAIL and cycle count on stdout.
+// Docs: firmware/README.md, docs/SOC_PLAN.md
 // SPDX-License-Identifier: Apache-2.0
 // soc_tb -- a tiny local SoC: PicoRV32 (Wishbone master) + 64 KiB RAM + console/exit/cycle registers + the REAL
 // user_project_wrapper (-> tiny_ai_core -> three engines) at 0x3000_0000. Stand-in for Caravel's management core.

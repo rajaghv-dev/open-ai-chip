@@ -1,4 +1,8 @@
 #!/bin/bash
+# Purpose: Compile the KV SoC testbench with iverilog and run the KV firmware hex; exit 1 unless it printed PASS.
+# Run: make soc-kv (via make -C firmware/kv sim) or soc_sim/kv/run.sh [firmware.hex].
+# In: firmware hex, kv_soc_tb.v, shared/rtl adapter and kv_attn_core. Out: soc_sim/kv/build/soc.vvp, console log.
+# Docs: firmware/README.md, docs/LLM_INFERENCE.md
 # run.sh [firmware.hex] -- SoC sim for the KV-cache firmware: PicoRV32 + RAM + wb_stream_adapter + kv_attn_n8.
 # Usage: make -C firmware/kv sim   (builds the hex, then calls this).  Exit 1 unless the firmware printed PASS.
 set -u

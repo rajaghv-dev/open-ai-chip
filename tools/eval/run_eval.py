@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Run tools/hermes_agent.py on tools/eval/questions.json, score automatically, write build/agent/eval_<ts>.json.
+Docs: docs/HERMES_AGENT.md, docs/AGENT_MODELS.md
   build/agent/venv/bin/python tools/eval/run_eval.py [--mode native|prompt] [--only q01,q02] [--tag name]
 Regenerate questions first if repo results changed:  python3 tools/eval/ground_truth.py"""
 import argparse, json, os, re, statistics, subprocess, sys, time
@@ -9,6 +10,8 @@ ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 sys.path.insert(0, os.path.join(ROOT, "tools"))
 import hermes_agent  # noqa: E402
 
+# The scorer's own patterns: examples/hermes_harness/harness.py (_nums, hermes_agent_strip) and examples/hermes_rag/rag_agent.py
+# (UNKNOWN_RE) have look-alikes with other rules on purpose; merging them would change recorded scores.
 UNKNOWN_RE = re.compile(r"\bunknown\b|cannot (be )?(answer|determin|find)|can't|not available|no tool|unable|do not know|don't know|not provide", re.I)
 
 
@@ -53,7 +56,7 @@ def score(check, ans):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--mode", default="prompt")
-    ap.add_argument("--model", default=hermes_agent.MODEL)
+    ap.add_argument("--model", default=hermes_agent.MODEL, help="Ollama model tag (default: env HERMES_MODEL, else hermes3:8b)")
     ap.add_argument("--only", default="")
     ap.add_argument("--tag", default="")
     ap.add_argument("--system-file", default="", help="override system prompt from a file")

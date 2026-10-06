@@ -6,10 +6,11 @@
 #   make flow-all [DESIGN=<name>]   simulate -> gds -> check -> gl (synthesised) -> gl-final (routed) -> collect
 #   make tiny                       flow-all for the three tiny AI engines, then a table
 #   make all-designs                flow-all for every design in a fixed order (hours; not part of any check)
-#   make table                      regenerate the results tables of README.md from designs/*/output (no Docker)
+#   make table                      regenerate the results tables of docs/RESULTS.md from designs/*/output (no Docker)
 #   make views [DESIGN=<macro>]     export a hardened macro's views (gds lef nl pnl spef lib) to build/macros/<macro>/
 #   make wrapper                    views of every macro of user_project_wrapper, then flow-all DESIGN=user_project_wrapper
 #   make help                       every target
+# Docs: README.md, docs/RUN_ON_MAC.md
 
 SHELL        := /bin/bash
 DESIGN       ?= user_proj_example
@@ -24,7 +25,8 @@ ALL_DESIGNS  := user_proj_example vision_all_lit vision_block text_sentiment tin
 MODELS       := tiny_ai audio_pitch audio_onset image_text_match precision_hw kv_attention
 DDIR         := designs/$(DESIGN)
 PDK_ROOT     ?= $(HOME)/.volare
-DOCKER_IMAGE := ghcr.io/librelane/librelane:3.0.2
+# the LibreLane image pin lives in versions.lock (LIBRELANE_IMAGE)
+DOCKER_IMAGE := $(strip $(shell sed -n 's/^LIBRELANE_IMAGE=//p' versions.lock))
 PROFILE      ?= tight
 CPUSET       ?= 0-1
 NETLIST      ?= synth
@@ -86,7 +88,7 @@ VIEWS_OF := $(if $(filter file,$(origin DESIGN)),tiny_ai_core,$(DESIGN))
 SIM_PLUS := $(if $(SIM_VEC),+VEC=$(abspath $(SIM_VEC)))
 GL_DESC  := $(if $(SIM_VEC),every case of tb/vectors.hex,committed tb)
 
-.PHONY: help doctor test test-full views macro-views wrapper simulate gds flow check gl gl-final collect view flow-all tiny all-designs designs table generate check-generated model-check clean soc-sim adapter-test caravel-rtl caravel-gl precheck caravel-fullgl caravel-sdf-wrapper soc-kv
+.PHONY: help doctor test test-full views macro-views wrapper simulate gds flow check gl gl-final collect view flow-all tiny all-designs designs table results generate check-generated model-check clean soc-sim adapter-test caravel-rtl caravel-gl precheck caravel-fullgl caravel-sdf-wrapper soc-kv code-map
 .DEFAULT_GOAL := help
 
 help:
@@ -95,6 +97,7 @@ help:
 	@echo "  generate         re-fit and regenerate ROMs, vectors, weights.json of every model dir: $(MODELS)"
 	@echo "  check-generated  fail if regenerating changes any generated file of any model dir"
 	@echo "  model-check      golden.py --check of tiny_ai, image_text_match, precision_hw, kv_attention (audio_* have no --check; the testbench is the check)"
+	@echo "  code-map   regenerate docs/CODE_MAP.md (file -> purpose -> parent doc) from the Docs: header lines"
 	@echo "  doctor     host tools, Docker daemon, LibreLane image, PDK"
 	@echo "  test       fast repository checks (structure, configs, RTL lint), no Docker"
 	@echo "  test-full  heavy local checks, no physical flow: simulate/check/gl-final of all designs, soc, caravel (tests/test_full.sh; FLAGS=--precheck --synth-gl --fullgl --sdf --quick)"
@@ -118,7 +121,8 @@ help:
 	@echo "  precheck   local ChipFoundry cf-precheck, all 14 checks, own container (precheck/run_precheck.sh, ~1 min; docs/PRECHECK.md)"
 	@echo "  caravel-fullgl  full-chip gate-level Caravel sim, firmware, iverilog (needs build/caravel; ~14 min; docs/CARAVEL_SIM.md)"
 	@echo "  caravel-sdf-wrapper  wrapper+macro gate-level + SDF, CVC in an amd64 container (needs build/caravel + CVC image; CORNER=..., ~5 s)"
-	@echo "  table      regenerate the results tables in README.md (scripts/docs/tables.py)"
+	@echo "  table      regenerate the results tables in docs/RESULTS.md (scripts/docs/tables.py)"
+	@echo "  results    build build/site/index.html (tables, layout gallery, agent results) and open it (GitHub shows docs/RESULTS.md directly)"
 	@echo "  clean      remove $(DDIR)/runs/ and build/"
 	@echo ""
 	@echo "  Options: PROFILE=tight|actions  CPUSET=0-1  DOCKER_HOST=unix://...  PDK_ROOT=$(PDK_ROOT)"
@@ -287,12 +291,20 @@ caravel-fullgl:
 caravel-sdf-wrapper:
 	@[ -d build/caravel/caravel ] && [ -x build/caravel/cvc_src/build64/cvc64 ] || { \
 	  echo "$@: build/caravel or the CVC binary build/caravel/cvc_src/build64/cvc64 missing: build it (docs/CARAVEL_SIM.md, 'Setup used')"; exit 1; }
-	@DOCKER_HOST=$${DOCKER_HOST:-unix://$$HOME/.colima/osl/docker.sock} docker image inspect openchip-cvc64-base >/dev/null 2>&1 || { \
+	@docker image inspect openchip-cvc64-base >/dev/null 2>&1 || { \
 	  echo "$@: docker image openchip-cvc64-base (amd64 CVC base) missing: build it (docs/CARAVEL_SIM.md, 'Setup used')"; exit 1; }
 	bash caravel_sim/run_sdf_wrapper.sh
 
+# code-map: docs/CODE_MAP.md from the 'Docs:' header of every code file (scripts/docs/code_map.py; checker: tests/check_traceability.py)
+code-map:
+	@python3 scripts/docs/code_map.py
+
 table:
+	@bash scripts/docs/make_thumbs.sh
 	@python3 scripts/docs/tables.py
+
+results:
+	@python3 scripts/docs/results_site.py --open
 
 check-generated:
 	@bash scripts/check_generated.sh

@@ -2,7 +2,11 @@
 """mutate_vectors.py <design> <src vectors.hex> <dst> -- write a copy of a design's vectors with ONE expected value flipped.
 
 Used by tests/run_tests.sh (== negative-all): the self-checking testbench must FAIL on the copy. The record layout depends on
-the vector family (see the generators under model/); exit 1 when the mutation could not be applied (a layout change)."""
+the vector family (see the generators under model/); exit 1 when the mutation could not be applied (a layout change).
+
+Run: python3 tests/lib/mutate_vectors.py <design> <src> <dst> (called by tests/run_tests.sh, section == negative-all).
+PASS (for the caller) = the copy differs from the source and the testbench then FAILs on it.
+Docs: tests/TEST_MATRIX.md"""
 import sys
 
 design, src, dst = sys.argv[1:4]

@@ -1,3 +1,7 @@
+// Purpose: Wishbone master testbench around the SDF-annotated gate-level wrapper.
+// Run: compiled by caravel_sim/run_sdf_wrapper.sh (make caravel-sdf-wrapper).
+// In: SDF corner, CLK_HALF define. Out: PASS/FAIL on stdout.
+// Docs: docs/CARAVEL_SIM.md, caravel_sim/README.md
 `timescale 1ns/1ps
 // Wishbone master around the gate-level user_project_wrapper (+tiny_ai_core), SDF back-annotated (run_sdf_wrapper.sh).
 // Same register accesses and exact expected values as the Caravel firmware (tiny_ai_wb.c): ID, then vision_all_lit 1 1 1 1.

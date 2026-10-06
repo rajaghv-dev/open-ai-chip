@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Docs: docs/RUN_ON_MAC.md, README.md
 # doctor.sh -- check what the flow needs on this host; exit 1 if anything required is missing.
 # Required: python3, iverilog/vvp, a reachable Docker daemon, the LibreLane image, the sky130A PDK at the pinned commit.
 set -uo pipefail

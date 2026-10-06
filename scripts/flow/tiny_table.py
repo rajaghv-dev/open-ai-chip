@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Docs: docs/RESULTS.md
 """tiny_table.py <design> ... -- one comparison table of the tiny AI engines, from each design's committed evidence
 (designs/<d>/output/metrics.json, resources.json) and its RTL simulation log (build/sim/<d>/sim.log)."""
 import json, re, sys

@@ -1,0 +1,19 @@
+{
+  "_about": "Local Ollama models for the Hermes agents of this repo (docs/AGENT_MODELS.md). Switch with env HERMES_MODEL or --model <tag>. Sizes, params and capabilities are from `ollama list` / `ollama show <tag>` on the machine that ran the comparison; the licence is the name printed by `ollama show <tag> --license`. Results are in examples/models_results.json.",
+  "default": "hermes3:8b",
+  "selection": "newest-generation small instruction models from distinct families that list tool support on their Ollama page (checked 2026-10-06), at most 3, plus the default as baseline",
+  "models": [
+    {"tag": "hermes3:8b", "family": "Hermes 3 (Nous, Llama 3.1 base)", "role": "baseline (default)", "size_on_disk": "4.7 GB", "params": "8.0B", "quantization": "Q4_0",
+     "license": "Meta Llama 3 Community License Agreement", "thinking": "no",
+     "notes": "Current default. The repo's prompts were tuned on it. Hermes <tool_call> format is native to it."},
+    {"tag": "gemma4:e2b", "family": "Gemma 4 (Google)", "role": "candidate", "size_on_disk": "4.6 GB", "params": "4.6B", "quantization": "Q4_K_M",
+     "license": "Apache License 2.0", "thinking": "yes; sent think=false",
+     "notes": "Newest generation; multimodal weights (vision, audio) are part of the 4.6 GB. Text only is used here."},
+    {"tag": "granite4.1:3b", "family": "Granite 4.1 (IBM)", "role": "candidate", "size_on_disk": "2.1 GB", "params": "3.4B", "quantization": "Q4_K_M",
+     "license": "Apache License 2.0", "thinking": "no",
+     "notes": "Smallest candidate on disk; Ollama page lists tool use and structured JSON output."},
+    {"tag": "qwen3.5:4b", "family": "Qwen 3.5 (Alibaba)", "role": "candidate", "size_on_disk": "3.3 GB", "params": "4.2B", "quantization": "Q4_K_M",
+     "license": "Apache License 2.0", "thinking": "yes; sent think=false",
+     "notes": "Ollama (0.35.1) parses <tool_call> in the reply with its own Qwen parser; the Hermes JSON form made /api/chat return HTTP 500 in prompt mode (see docs/AGENT_MODELS.md)."}
+  ]
+}

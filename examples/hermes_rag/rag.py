@@ -9,6 +9,7 @@ and 1-based line range. The index is cached in build/agent/rag_index.json, keyed
 is rebuilt only when a file is added, removed or changed.
 
 API: search_docs(query, k=4) -> [{file, heading, lines, score, text}]   (text trimmed to about 800 characters)
+Docs: examples/hermes_rag/README.md, docs/HERMES_AGENT.md
 """
 import hashlib, json, math, os, re, subprocess, sys
 
@@ -22,6 +23,7 @@ STOP = set("a an the of to in on for and or is are was were be by with as at it 
            "what why how which does do did has have had not no can".split())
 
 
+# Identifiers are indexed both whole and split, so a query for 'kv_attn_n8_int4' and one for 'int4' both hit.
 def tokenize(text):
     """Lowercase; keep identifiers whole (kv_attn_n8_int4) AND add their parts (kv, attn, n8, int4)."""
     out = []
@@ -33,12 +35,15 @@ def tokenize(text):
     return [t for t in out if t not in STOP and len(t) > 1 or t.isdigit()]
 
 
+# Only git-tracked markdown: untracked scratch notes and build/ output never enter the corpus (deterministic corpus).
 def corpus_files():
     r = subprocess.run(["git", "ls-files", "*.md"], cwd=ROOT, capture_output=True, text=True)
     files = sorted(f for f in r.stdout.split() if not f.startswith(EXCLUDE))
     return [f for f in files if os.path.isfile(os.path.join(ROOT, f))]
 
 
+# Chunk = one markdown section (split further every MAX_CHUNK_LINES). Heading path is tracked so a hit can say
+# 'NOTES.md > Intuitions > ...'. Lines inside ``` fences are not headings ('# comment' in a shell block).
 def chunk_file(rel):
     lines = open(os.path.join(ROOT, rel), encoding="utf-8", errors="replace").read().split("\n")
     chunks, path, start, fence = [], [], 1, False
@@ -87,6 +92,7 @@ def build_index(force=False):
     chunks, df = [], {}
     for f in files:
         for c in chunk_file(f):
+            # (BM25 inputs: tf per chunk, df per term, chunk length; K1/B are the usual Okapi BM25 constants)
             # heading tokens are counted twice so a matching heading outranks a passing mention
             toks = tokenize(c["heading"]) * 2 + tokenize(c["text"])
             tf = {}
@@ -160,9 +166,11 @@ def search_docs(query, k=4):
                 continue
             n = idx["df"][t]
             idf = math.log(1 + (N - n + 0.5) / (n + 0.5))
+            # BM25 term score: idf * f*(K1+1) / (f + K1*(1-B + B*len/avgdl)); long chunks are penalised via B
             s += idf * f * (K1 + 1) / (f + K1 * (1 - B + B * c["len"] / idx["avgdl"]))
         if s > 0:
             scored.append((-s, c["file"], c["start"], c))
+    # (sort key is (-score, file, line) so equal scores resolve identically on every run)
     scored.sort(key=lambda x: x[:3])          # ties broken by file and line: fully deterministic
     picked, per = [], {}
     for item in scored:

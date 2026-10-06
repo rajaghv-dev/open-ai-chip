@@ -1,4 +1,9 @@
-"""pytest tests/tools/test_klayout_gui.py  (examples/hermes_klayout_gui: no Ollama, no display; offscreen KLayout only)"""
+"""pytest tests/tools/test_klayout_gui.py  (examples/hermes_klayout_gui: no Ollama, no display; offscreen KLayout only)
+
+Run: build/agent/venv/bin/python -m pytest -q tests/tools/test_klayout_gui.py (also part of `make test`, section == tools)
+Pass: every test passes or is skipped (opt-in tests need their env flag).
+Docs: tests/tools/TEST_MATRIX_TOOLS.md, examples/hermes_klayout_gui/README.md
+"""
 import hashlib
 import inspect
 import json
@@ -39,6 +44,7 @@ def be():
 
 # ------------------------------------------------------------ interface conformance
 def test_tools_match_methods():
+    """Pins down: tools match methods."""
     assert va.TOOL_NAMES == METHODS
     for t in va.TOOLS:
         assert t["type"] == "function" and t["function"]["parameters"]["type"] == "object"
@@ -52,6 +58,7 @@ def _conforms(cls):
 
 
 def test_offscreen_conforms():
+    """Pins down: offscreen conforms."""
     pytest.importorskip("klayout.lay")
     from offscreen_backend import OffscreenBackend
     assert issubclass(OffscreenBackend, va.ViewBackend)
@@ -59,6 +66,7 @@ def test_offscreen_conforms():
 
 
 def test_live_backend_conforms_if_present():
+    """Pins down: live backend conforms if present."""
     try:
         from live_backend import LiveBackend
     except ImportError:
@@ -89,12 +97,14 @@ class Rec(va.ViewBackend):
     ("highlight_drc", {"design": "x", "max_items": 0}, "out of range"),
 ])
 def test_dispatch_rejects(name, args, frag):
+    """Pins down: dispatch rejects."""
     r = va.dispatch(Rec(), name, args)
     assert r["ok"] is False and frag in r["error"]
     assert not Rec.calls
 
 
 def test_dispatch_ok_and_unknown_design():
+    """Pins down: dispatch ok and unknown design."""
     r = va.dispatch(Rec(), "open_design", {"design": "tiny_ai_core"})
     assert r == {"design": "tiny_ai_core", "ok": True}
     json.dumps(r)
@@ -104,6 +114,7 @@ def test_dispatch_ok_and_unknown_design():
 
 
 def test_layer_parsing():
+    """Pins down: layer parsing."""
     assert (71, 20) in va.parse_layers(["met4"]) and (71, 16) in va.parse_layers("met4")
     assert va.parse_layers(["met4/drawing"]) == [(71, 20)]
     assert va.parse_layers(["68/20"]) == [(68, 20)]
@@ -115,6 +126,7 @@ def test_layer_parsing():
 
 
 def test_png_path_confined():
+    """Pins down: png path confined."""
     with pytest.raises(va.ViewError):
         va.check_png_path("/etc/x.png")
     with pytest.raises(va.ViewError):
@@ -126,6 +138,7 @@ def test_png_path_confined():
 
 # ------------------------------------------------------------ router
 def test_router_decisions():
+    """Pins down: router decisions."""
     import agent
     r = agent.route("show only met4 and met5 of user_project_wrapper_soc_kv", None)
     assert r == {"tool": "open_design", "args": {"design": "user_project_wrapper_soc_kv"}}
@@ -153,6 +166,7 @@ def test_guardrail_rejects_once_then_router_acts(be):
 
 @needs_gds
 def test_guardrail_router_with_real_design(be):
+    """Pins down: guardrail router with real design."""
     import agent
     r = agent.run_episode("show only met1 of tiny_ai_core", be, lambda m: "Done.", emit=lambda l: None)
     assert r["rejected"] == 1 and r["router_used"]
@@ -161,6 +175,7 @@ def test_guardrail_router_with_real_design(be):
 
 @needs_gds
 def test_non_view_question_not_forced(be):
+    """Pins down: non view question not forced."""
     import agent
     r = agent.run_episode("what is the price of a shuttle?", be, lambda m: "unknown", emit=lambda l: None)
     assert r["rejected"] == 0 and not r["calls"] and r["answer"] == "unknown"
@@ -169,6 +184,7 @@ def test_non_view_question_not_forced(be):
 # ------------------------------------------------------------ offscreen behaviour (real GDS)
 @needs_gds
 def test_offscreen_session_and_read_only(be):
+    """Pins down: offscreen session and read only."""
     before = sha(GDS)
     r = va.dispatch(be, "open_design", {"design": "tiny_ai_core"})
     assert r["ok"] and r["top_cell"] == "tiny_ai_core" and r["n_layers"] > 10
@@ -198,6 +214,7 @@ def test_offscreen_session_and_read_only(be):
 
 
 def test_state_before_open():
+    """Pins down: state before open."""
     pytest.importorskip("klayout.lay")
     from offscreen_backend import OffscreenBackend
     b = OffscreenBackend()

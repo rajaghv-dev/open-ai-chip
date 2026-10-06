@@ -1,8 +1,14 @@
+/* Purpose: Self-test and CPU-vs-accelerator cycle comparison for tiny_ai_core, run by PicoRV32 in soc_sim/.
+ * Run: make soc-sim (builds firmware/build/firmware.hex and simulates it).
+ * In: build/expected.h (generated). Out: console text and PASS/FAIL via the EXIT register.
+ * Docs: firmware/README.md, docs/SOC_PLAN.md
+ */
 /* Self-test + CPU-vs-accelerator comparison for tiny_ai_core, run by PicoRV32 in soc_sim/ (rv32i, no libc).
  * Register-level, this is what Caravel management-core firmware would do (docs/SOC_PLAN.md). */
 #include <stdint.h>
 #include "expected.h"
 
+/* tiny_ai_core register map (offsets from the user Wishbone window; see docs/SOC_PLAN.md). Each is a 32-bit register. */
 #define TAI      0x30000000u
 #define R_ID     (TAI + 0x00)
 #define R_CTRL   (TAI + 0x04)
@@ -18,11 +24,13 @@
 #define ST_DONE 2u
 #define ST_ERR  4u
 
+/* Testbench-only peripherals provided by soc_sim/soc_tb.v (not part of the chip). */
 #define CONSOLE  0x20000000u
 #define EXITREG  0x20000004u
 #define CYCLE    0x20000008u   /* free-running clock counter */
 #define IRQST    0x2000000Cu   /* bit0: user_irq[0] seen since last write (sticky, any write clears) */
 
+/* volatile accesses: every read/write must reach the bus exactly once, in program order */
 static inline void wr(uint32_t a, uint32_t v) { *(volatile uint32_t *)a = v; }
 static inline uint32_t rd(uint32_t a) { return *(volatile uint32_t *)a; }
 
@@ -41,13 +49,14 @@ static void putdec(uint32_t v) {
         if (d || started || i == 9) { putc_((char)('0' + d)); started = 1; }
     }
 }
-/* v / n rounded to one decimal, printed as "x.y" (shift-subtract division: no libgcc) */
+/* a / b by shift-subtract (the core has no M extension, and linking libgcc is avoided); remainder in *rem */
 static uint32_t udiv(uint32_t a, uint32_t b, uint32_t *rem) {
     uint32_t q = 0, r = 0;
     for (int i = 31; i >= 0; i--) { r = (r << 1) | ((a >> i) & 1); if (r >= b) { r -= b; q |= 1u << i; } }
     if (rem) *rem = r;
     return q;
 }
+/* total / n rounded to one decimal, printed as "x.y" */
 static void putavg(uint32_t total, uint32_t n) {
     uint32_t r, q = udiv(total, n, &r);
     uint32_t t = udiv(r * 10 + n / 2, n, 0);          /* one decimal, rounded */
@@ -60,6 +69,7 @@ static void pad(uint32_t v, int w) {                    /* right-aligned decimal
     putdec(v);
 }
 
+/* failure counter: checks do not abort, so one run reports every failing check; main() turns it into the exit code */
 static int g_fail;
 static void check(int ok, const char *what) {
     if (!ok) { g_fail++; puts_("  FAIL: "); puts_(what); putc_('\n'); }
@@ -79,6 +89,7 @@ static uint32_t tai_wait(void) {
     return s;
 }
 
+/* Timing method: the CYCLE register is read before and after each interval; t_ovh (one read) is subtracted. */
 static uint32_t t_ovh;     /* cost of one timer read, measured at start */
 static uint32_t tick(void) { return rd(CYCLE); }
 
@@ -284,6 +295,7 @@ int main(void) {
     test_modes();
     print_table();
     puts_("total cycles: "); putdec(tick()); putc_('\n');
+    /* EXIT register protocol (start.S): return 1 = PASS, any other value = FAIL code */
     if (g_fail) { puts_("FAIL ("); putdec((uint32_t)g_fail); puts_(" checks failed)\n"); return 2; }
     puts_("PASS\n");
     return 1;

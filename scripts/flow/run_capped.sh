@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Docs: .claude/skills/harden-design/SKILL.md, docs/RESULTS.md
 # run_capped.sh — run one design under a resource profile and write resources.json
 #
 # Usage: scripts/flow/run_capped.sh --design <name> [--profile tight|actions] [--out FILE]

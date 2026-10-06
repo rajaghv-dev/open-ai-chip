@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# Purpose: Fetch the sky130A PDK build pinned by the ChipFoundry template precheck from the public ciel mirror.
+# Run: precheck/fetch_pdk.sh (called by run_precheck.sh when the PDK is missing).
+# In: OPEN_PDKS_COMMIT. Out: build/precheck/pdk_cf.
+# Docs: docs/PRECHECK.md, precheck/README.md
 # Fetch the sky130A PDK build that ChipFoundry's caravel_user_project template pins for its precheck
 # (OPEN_PDKS_COMMIT in build/template/Makefile) from ChipFoundry's PUBLIC static ciel mirror. No login, no account.
 set -euo pipefail

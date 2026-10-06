@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# Purpose: Hybrid simulation: Caravel RTL plus our gate-level wrapper and macro, real firmware.
+# Run: make caravel-gl.
+# In: build/caravel downloads, wrapper and macro powered netlists, tiny_ai_wb.c. Out: build/caravel/work/ logs and VCD.
+# Docs: docs/CARAVEL_SIM.md, caravel_sim/README.md
 # Step (v), hybrid: full Caravel RTL + real firmware, but user_project_wrapper and tiny_ai_core replaced by our routed
 # power-aware gate-level netlists (sky130_fd_sc_hd functional models, unit delay). Caravel/mgmt core stay RTL.
 set -euo pipefail

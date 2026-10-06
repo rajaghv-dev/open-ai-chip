@@ -22,6 +22,7 @@ Layers: "met1".."met5", "li1", "poly", "diff", "mcon", "via".."via4", "met4/draw
   snapshot(path=None, width=1200, height=900)
                              -> {ok, png, view_bbox_um, visible_layers}
   state()                    -> {ok, design, view_bbox_um, visible_layers}
+Docs: examples/hermes_klayout_gui/README.md, docs/HERMES_AGENT.md
 """
 import glob
 import json
@@ -295,6 +296,8 @@ def _type_ok(v, t):
     return False
 
 
+# Hand-rolled JSON-schema subset check (no jsonschema dependency). It runs BEFORE any backend call, so a small model's
+# malformed arguments (extra keys, string for number, bbox with 3 numbers) come back as a precise error it can fix.
 def validate_args(name, args):
     """Return an error string or None. Allow-list of tool names, required/unknown keys, types, ranges."""
     if name not in _SCHEMAS:
@@ -327,6 +330,7 @@ def dispatch(backend, name, args=None):
     err = validate_args(name, args)
     if err:
         return {"ok": False, "error": err}
+    # zoom_to's `target` is a oneOf that the simple schema cannot express, so it is checked here.
     if name == "zoom_to":
         t = args["target"]
         keys = [k for k in ("cell", "bbox", "full") if k in t and t[k] not in (None, False)]

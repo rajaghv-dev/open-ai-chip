@@ -1,6 +1,11 @@
 """pytest tests/tools/test_rag_gui_gaps.py
 Gap-fillers for examples/hermes_rag and examples/hermes_klayout_gui (the main tests are test_rag.py,
-test_klayout_gui.py, test_klayout_live.py). Stub model only: no Ollama, no display, no network."""
+test_klayout_gui.py, test_klayout_live.py). Stub model only: no Ollama, no display, no network.
+
+Run: build/agent/venv/bin/python -m pytest -q tests/tools/test_rag_gui_gaps.py (also part of `make test`, section == tools)
+Pass: every test passes or is skipped (opt-in tests need their env flag).
+Docs: tests/tools/TEST_MATRIX_TOOLS.md, examples/hermes_rag/README.md, examples/hermes_klayout_gui/README.md
+"""
 import glob
 import json
 import os
@@ -34,6 +39,7 @@ def trace_tmp(monkeypatch, tmp_path):
 
 # ================================================================== hermes_rag
 def test_rag_tools_only_config_hides_search_docs():
+    """Pins down: rag tools only config hides search docs."""
     import rag_agent as A
     assert [t["function"]["name"] for t in A.schemas(False)] == [t["function"]["name"] for t in A.eda_tools.TOOLS]
     assert "search_docs" in [t["function"]["name"] for t in A.schemas(True)] and len(A.schemas(True)) == 11
@@ -44,6 +50,7 @@ def test_rag_tools_only_config_hides_search_docs():
 
 
 def test_rag_search_docs_refused_when_rag_off():
+    """Pins down: rag search docs refused when rag off."""
     import rag_agent as A
     seen = []
     r = A.run_rag_episode("Why did x happen?", use_rag=False, grounding=False,
@@ -53,6 +60,7 @@ def test_rag_search_docs_refused_when_rag_off():
 
 
 def test_rag_model_initiated_search_is_recorded_and_cited():
+    """Pins down: rag model initiated search is recorded and cited."""
     import rag_agent as A
     q = "Why did simplifying the tiny_ai_core pins roughly halve its standard cell count?"
     seen = []
@@ -64,12 +72,14 @@ def test_rag_model_initiated_search_is_recorded_and_cited():
 
 
 def test_rag_bad_search_args_become_errors_not_crashes():
+    """Pins down: rag bad search args become errors not crashes."""
     import rag_agent as A
     r = A.run_rag_episode("Why x?", grounding=False, chat=stub_chat([TC % ("search_docs", "{}"), "unknown"]))
     assert r["tool_calls"][0]["error"] is True and r["answer"] == "unknown"
 
 
 def test_rag_loop_tool_budget_and_steps():
+    """Pins down: rag loop tool budget and steps."""
     import rag_agent as A
     r = A.run_rag_episode("How many standard cells does vision_block have?", grounding=False,
                           chat=stub_chat([TC % ("list_designs", "{}")] * 30))
@@ -77,6 +87,7 @@ def test_rag_loop_tool_budget_and_steps():
 
 
 def test_rag_grounding_revision_once():
+    """Pins down: rag grounding revision once."""
     import rag_agent as A
     q = "Why did simplifying the tiny_ai_core pins roughly halve its standard cell count?"
     seen = []
@@ -86,6 +97,7 @@ def test_rag_grounding_revision_once():
 
 
 def test_rag_format_hits_truncates_and_errors():
+    """Pins down: rag format hits truncates and errors."""
     import rag_agent as A
     res = {"hits": [{"file": "a.md", "heading": "h", "lines": "1-2", "text": "x" * 9000}]}
     s = A.format_hits(res, 500)
@@ -95,6 +107,7 @@ def test_rag_format_hits_truncates_and_errors():
 
 
 def test_rag_cli_flags_set_config(monkeypatch, capsys):
+    """Pins down: rag cli flags set config."""
     import rag_agent as A
     got = {}
 
@@ -113,6 +126,7 @@ def test_rag_cli_flags_set_config(monkeypatch, capsys):
 
 
 def test_eval_rag_configs_are_valid_run_kwargs():
+    """Pins down: eval rag configs are valid run kwargs."""
     import inspect
     import eval_rag as E
     import rag_agent as A
@@ -123,6 +137,7 @@ def test_eval_rag_configs_are_valid_run_kwargs():
 
 
 def test_eval_rag_questions_well_formed():
+    """Pins down: eval rag questions well formed."""
     import eval_rag as E
     Q = E.load_questions()
     ids = [q["id"] for q in Q]
@@ -148,6 +163,7 @@ def test_eval_rag_committed_retrieval_numbers_reproduce():
 
 
 def test_eval_rag_e2e_with_stub_chat_and_make_summary(monkeypatch, tmp_path):
+    """Pins down: eval rag e2e with stub chat and make summary."""
     import eval_rag as E
     import harness
     Q = [q for q in E.load_questions() if q["id"] in ("r01", "u01")]
@@ -191,6 +207,7 @@ def _scenario_gds(sc):
 
 
 def test_gui_scenarios_are_well_formed():
+    """Pins down: gui scenarios are well formed."""
     import agent
     import view_api as va
     assert len(agent.SCENARIOS) == 5 and len({s["id"] for s in agent.SCENARIOS}) == 5
@@ -220,6 +237,7 @@ def test_gui_every_scenario_dry_run(be, idx):
 
 
 def test_gui_seq_ok():
+    """Pins down: gui seq ok."""
     import agent
     c = lambda *names: [{"name": n, "ok": True} for n in names]   # noqa: E731
     assert agent.seq_ok(c("open_design", "zoom_to", "snapshot"), ["open_design", "snapshot"])
@@ -229,6 +247,7 @@ def test_gui_seq_ok():
 
 
 def test_gui_route_edge_cases():
+    """Pins down: gui route edge cases."""
     import agent
     assert agent.route("", None) is None and agent.route("hello", None) is None
     assert agent.route("snapshot", None) == {"tool": "snapshot", "args": {}}                 # no design: snapshot still first rule
@@ -243,6 +262,7 @@ def test_gui_route_edge_cases():
 
 
 def test_gui_loop_budget_closing_tag_eaten_and_bad_args():
+    """Pins down: gui loop budget closing tag eaten and bad args."""
     import agent
 
     class Fake:
@@ -266,6 +286,7 @@ def test_gui_loop_budget_closing_tag_eaten_and_bad_args():
 
 
 def test_gui_with_metrics_adds_read_metrics(be):
+    """Pins down: gui with metrics adds read metrics."""
     import agent
     base, withm = agent.system_prompt(False), agent.system_prompt(True)
     assert '"name": "read_metrics"' not in base and '"name": "read_metrics"' in withm
@@ -278,6 +299,7 @@ def test_gui_with_metrics_adds_read_metrics(be):
 
 
 def test_gui_main_dry_run_cli(monkeypatch, capsys):
+    """Pins down: gui main dry run cli."""
     import agent
     pytest.importorskip("klayout.lay")
     sc = agent.SCENARIOS[2]
@@ -290,6 +312,7 @@ def test_gui_main_dry_run_cli(monkeypatch, capsys):
 
 
 def test_gui_main_requires_request_without_dry_run(monkeypatch):
+    """Pins down: gui main requires request without dry run."""
     import agent
     pytest.importorskip("klayout.lay")
     monkeypatch.setattr(sys, "argv", ["agent.py"])

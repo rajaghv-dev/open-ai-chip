@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# Purpose: Generate build/expected.h (expected results of the tiny_ai_core firmware self-test) from the Python golden model.
+# Run: python3 gen_expected.py build/expected.h (a prerequisite rule in firmware/Makefile; make soc-sim).
+# In: model/tiny_ai/{golden.py,common.py,weights.json}. Out: build/expected.h (generated, not committed).
+# Docs: firmware/README.md
 """gen_expected.py <out.h> -- write the expected-value tables of the firmware self-test, generated from
 model/tiny_ai/golden.py (core_run) and the labelled truth tables of model/tiny_ai/common.py, plus the learned
 parameters from model/tiny_ai/weights.json for the pure-C software networks. Nothing here is hand-written.
@@ -8,6 +12,7 @@ Expected word: bit 0 class, bits 15:8 score byte (RESULT[15:8]), bits 23:16 CYCL
 (the labelled ground truth, which equals class: golden.py --check)."""
 import os, sys
 HERE = os.path.dirname(os.path.abspath(__file__))
+# import the golden model in place (model/ is not a package); fixed deterministic data, so the header is reproducible
 sys.path.insert(0, os.path.join(HERE, "..", "model", "tiny_ai"))
 import golden
 from common import DESIGNS, truth_table, spec
@@ -25,7 +30,7 @@ for d in DESIGNS:
     out.append("static const tcase_t cases_%s[N_%s] = {" % (d, d.upper()))
     for items, label in rows:
         mode, cls, score, cyc = golden.core_run(d, items, w)
-        assert cls == label
+        assert cls == label   # the reference must agree with the labelled truth table, else the firmware test is meaningless
         pk = sum(v << (2 * k) for k, v in enumerate(items))
         ex = cls | (score & 0xFF) << 8 | cyc << 16 | label << 24
         out.append("  {0x%05x,0x%08x}," % (pk, ex))

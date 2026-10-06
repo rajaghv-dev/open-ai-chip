@@ -2,6 +2,7 @@
 # Run through render_views.sh (sets the env below). Every view is wrapped in catch, so one
 # failing view does not stop the rest; results are printed as "VIEW <name> OK|FAIL ...".
 #   env: ODB LIB SDC SPEF OUT TOP CLK WIDTH PWR GND VOLT
+# Docs: examples/openroad_gui/README.md, docs/OPENROAD_ENGINES.md, docs/GUI_AND_LOGS.md
 proc env_or {k d} { if {[info exists ::env($k)]} { return $::env($k) } else { return $d } }
 set out   $::env(OUT)
 set W     [env_or WIDTH 1100]

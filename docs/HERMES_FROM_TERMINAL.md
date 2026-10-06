@@ -243,3 +243,7 @@ Related: [docs/HERMES_AGENT.md](HERMES_AGENT.md) (model choice and scores),
 [examples/hermes_klayout_gui/README.md](../examples/hermes_klayout_gui/README.md) (option A, offscreen),
 [README_live.md](../examples/hermes_klayout_gui/README_live.md) (option B, the window bridge),
 [docs/GUI_AND_LOGS.md](GUI_AND_LOGS.md) (all GUIs and logs).
+
+Browser chat UI and a Mac desktop app for the same agent and tools: [HERMES_DESKTOP.md](HERMES_DESKTOP.md).
+
+Other local models (`HERMES_MODEL` / `--model`): [AGENT_MODELS.md](AGENT_MODELS.md).

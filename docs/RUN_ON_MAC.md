@@ -1,5 +1,7 @@
 # Run everything from the MacBook terminal
 
+On Linux (Ubuntu/Debian) see [RUN_ON_LINUX.md](RUN_ON_LINUX.md): `scripts/setup_linux.sh` and the OS-aware `scripts/run_all.sh`.
+
 Step by step: open a terminal, prepare the machine once, then run every part of this repository (tests, flows, sims,
 precheck, Hermes agents) and open every GUI (KLayout, OpenROAD with heat maps, Magic). One script does it all in order:
 `scripts/run_all_mac.sh`. Verified on the build Mac (Apple M4 Pro, 24 GB, macOS, Colima profile `osl`); measured times

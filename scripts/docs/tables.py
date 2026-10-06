@@ -1,14 +1,19 @@
 #!/usr/bin/env python3
-"""tables.py -- regenerate the results tables of README.md between marker comments from the committed evidence
-(designs/<d>/output/metrics.json, resources.json, designs/<d>/config.json). Standard library only; no Docker, no build/.
+# Docs: docs/RESULTS.md
+"""tables.py -- regenerate the results tables of docs/RESULTS.md between marker comments from the committed evidence
+(designs/<d>/output/metrics.json, resources.json, designs/<d>/config.json) and, for the gallery / views / agents blocks, from the committed
+layout.png files, example screenshots and results summaries (scripts/docs/results_page.py). Standard library only; no Docker, no build/.
 
-README.md holds, for each table NAME:   <!-- results:begin NAME -->  ...  <!-- results:end NAME -->
+docs/RESULTS.md holds, for each table NAME:   <!-- results:begin NAME -->  ...  <!-- results:end NAME -->
 Only the text between the markers is replaced; running it twice gives no diff.   Usage: python3 scripts/docs/tables.py [--check]
-  --check  exit 1 (and change nothing) when README.md is out of date."""
+  --check  exit 1 (and change nothing) when docs/RESULTS.md is out of date."""
 import json, os, re, sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import results_page   # gallery, engine views, agent results (committed summaries)
+
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-README = os.path.join(REPO, "README.md")
+README = os.path.join(REPO, "docs", "RESULTS.md")   # the results page (moved out of README.md)
 # the order of every table: the order make all-designs hardens the designs
 ORDER = ["user_proj_example", "vision_all_lit", "vision_block", "text_sentiment", "tiny_ai_core", "user_project_wrapper",
          "audio_pitch", "audio_onset", "image_text_match",
@@ -69,7 +74,7 @@ def signoff():
     body = []
     for d, m, r, _ in rows():
         g = lambda k: m.get(k, "-")
-        body.append(["[%s](designs/%s/NOTES.md)" % (d, d), num(g("design__instance__count__stdcell"), "{:,}"),
+        body.append(["[%s](../designs/%s/NOTES.md)" % (d, d), num(g("design__instance__count__stdcell"), "{:,}"),
                      num(g("design__instance__count__class:sequential_cell")), die(m),
                      slack(m, "setup"), slack(m, "hold"),
                      "%s/%s/%s/%s" % (g("magic__drc_error__count"), g("design__lvs_error__count"), g("design__xor_difference__count"),
@@ -93,7 +98,8 @@ def budget():
     return table(["design", "clock period ns", "std-cell area um2 (excl. fill)", "utilisation %", "total power uW (nom_tt)", "clock buffers", "routed wire um"], body)
 
 
-TABLES = {"signoff": signoff, "budget": budget}
+TABLES = {"gallery": lambda: results_page.gallery_md(ORDER), "signoff": signoff, "budget": budget,
+          "views": results_page.views_md, "agents": results_page.agents_md}
 
 
 def main():
@@ -102,17 +108,17 @@ def main():
     for name, fn in TABLES.items():
         pat = re.compile(r"(<!-- results:begin %s -->\n).*?(<!-- results:end %s -->)" % (name, name), re.S)
         if not pat.search(new):
-            sys.exit("tables.py: README.md has no <!-- results:begin %s --> / <!-- results:end %s --> block" % (name, name))
+            sys.exit("tables.py: docs/RESULTS.md has no <!-- results:begin %s --> / <!-- results:end %s --> block" % (name, name))
         new = pat.sub(lambda mo: mo.group(1) + fn() + "\n" + mo.group(2), new)
     if "--check" in sys.argv:
         if new != text:
-            print("tables.py: README.md results tables are out of date (run make table)")
+            print("tables.py: docs/RESULTS.md results tables are out of date (run make table)")
             sys.exit(1)
-        print("tables.py: README.md results tables are up to date")
+        print("tables.py: docs/RESULTS.md results tables are up to date")
         return
     if new != text:
         open(README, "w").write(new)
-    print("tables.py: %d tables, %d designs, README.md %s" % (len(TABLES), len(list(rows())), "updated" if new != text else "unchanged"))
+    print("tables.py: %d tables, %d designs, docs/RESULTS.md %s" % (len(TABLES), len(list(rows())), "updated" if new != text else "unchanged"))
 
 
 if __name__ == "__main__":

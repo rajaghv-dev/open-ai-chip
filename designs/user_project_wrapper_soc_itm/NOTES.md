@@ -5,6 +5,10 @@
 The second "one build per experiment" Caravel wrapper (`docs/SOC_PLAN.md`): the same fixed `user_project_wrapper` shell as `designs/user_project_wrapper`, but the single macro `mprj` is `soc_image_text_match` (Wishbone adapter + image_text_match engine, register map in `designs/soc_image_text_match/README.md`) instead of `tiny_ai_core`. Module name stays `user_project_wrapper` (Caravel requires it); the port list is byte-identical to the template; no glue logic. Pin list and footprint of the macro match tiny_ai_core's (109 pins, 250 x 250 um, same pin order), so `config.json` differs from the tiny_ai_core wrapper only in the macro name/paths. `UPSTREAM.txt` lists what was copied and changed.
 Result (`output/metrics.json`): Magic and KLayout DRC 0, LVS 0, XOR 0, antenna 0, route DRC 0, max-slew/cap/fanout 0, worst setup +2.965 ns (max_ss_100C_1v60), worst hold +0.110 ns (min_ff_n40C_1v95). Testbench `PASS user_project_wrapper_soc_itm_tb: 2079 cases ... 50947 checks` on RTL, synthesised and routed wrapper netlists (macro netlist inside).
 
+Files: `rtl/user_project_wrapper.v` (the fixed wrapper with one instance, `soc_image_text_match mprj`), `rtl/user_defines.v`
+(GPIO power-on modes: GPIO 5..37 as management-owned inputs), `rtl/defines.v` (Caravel macros), `UPSTREAM.txt` (what
+was copied and changed), `tb/user_project_wrapper_soc_itm_tb.v`.
+
 ## Architecture
 
 ```mermaid

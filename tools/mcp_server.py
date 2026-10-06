@@ -4,6 +4,7 @@
 Run with the venv python:  build/agent/venv/bin/python tools/mcp_server.py
 Written for the mcp 2.x low-level API (handlers passed to Server(...)); each tool uses the exact
 schema from eda_tools.TOOLS and dispatches to eda_tools.call.
+Docs: tools/README.md, docs/HERMES_AGENT.md
 """
 import json
 import os
@@ -23,6 +24,7 @@ async def on_list_tools(ctx, params):
                    input_schema=t["function"]["parameters"]) for t in eda_tools.TOOLS])
 
 
+# is_error mirrors eda_tools' {"error": ...} contract so MCP clients can tell a failed call from an empty result.
 async def on_call_tool(ctx, params):
     res = eda_tools.call(params.name, params.arguments or {})
     return types.CallToolResult(content=[types.TextContent(type="text", text=json.dumps(res, indent=1))],

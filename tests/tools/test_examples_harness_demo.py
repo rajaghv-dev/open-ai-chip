@@ -1,6 +1,11 @@
 """pytest tests/tools/test_examples_harness_demo.py
 examples/hermes_harness (harness.py, eval_harness.py) and examples/hermes_klayout_demo (demo.py).
-Stub model only: no Ollama, no network, no Docker."""
+Stub model only: no Ollama, no network, no Docker.
+
+Run: build/agent/venv/bin/python -m pytest -q tests/tools/test_examples_harness_demo.py (also part of `make test`, section == tools)
+Pass: every test passes or is skipped (opt-in tests need their env flag).
+Docs: tests/tools/TEST_MATRIX_TOOLS.md, examples/hermes_harness/README.md, examples/hermes_klayout_demo/README.md
+"""
 import glob
 import json
 import os
@@ -31,6 +36,7 @@ def hardened():
 
 # ------------------------------------------------------------------ pick_extreme vs metrics.json (independent computation)
 def test_pick_extreme_max_stdcells_among_prec():
+    """Pins down: pick extreme max stdcells among prec."""
     precs = [d for d in hardened() if d.startswith("prec_")]
     want = max(precs, key=lambda d: metrics(d)["design__instance__count__stdcell"])
     r = HN.pick_extreme("design__instance__count__stdcell", "max", scope="prec_")
@@ -40,6 +46,7 @@ def test_pick_extreme_max_stdcells_among_prec():
 
 
 def test_pick_extreme_min_area_ignores_zero():
+    """Pins down: pick extreme min area ignores zero."""
     vals = {d: metrics(d)["design__instance__area__stdcell"] for d in hardened()}
     nz = {d: v for d, v in vals.items() if v}
     r = HN.pick_extreme("design__instance__area__stdcell", "min")
@@ -50,6 +57,7 @@ def test_pick_extreme_min_area_ignores_zero():
 
 
 def test_pick_extreme_worst_corner_names_the_corner():
+    """Pins down: pick extreme worst corner names the corner."""
     m = metrics("prec_fp16")
     cs = {k: v for k, v in m.items() if k.startswith("timing__setup__ws__corner:")}
     k = min(cs, key=cs.get)
@@ -61,6 +69,7 @@ def test_pick_extreme_worst_corner_names_the_corner():
 
 
 def test_pick_extreme_errors_are_informative():
+    """Pins down: pick extreme errors are informative."""
     assert "scope" in HN.pick_extreme("design__instance__count__stdcell", "max", scope="zzz_")["error"]
     assert "no numeric values" in HN.pick_extreme("no_such_metric_xyz", "max", designs=["vision_block"])["error"]
     assert "error" in HN.pick_extreme("x", "max", designs=["nope"])
@@ -68,6 +77,7 @@ def test_pick_extreme_errors_are_informative():
 
 
 def test_pick_extreme_explicit_designs_and_which():
+    """Pins down: pick extreme explicit designs and which."""
     r = HN.pick_extreme("design__instance__count__stdcell", "min", designs=["vision_block", "prec_fp16"])
     a, b = (metrics(d)["design__instance__count__stdcell"] for d in ("vision_block", "prec_fp16"))
     assert r["winner"]["value"] == min(a, b) and r["candidates"] == 2
@@ -75,6 +85,7 @@ def test_pick_extreme_explicit_designs_and_which():
 
 # ------------------------------------------------------------------ tool layer: schemas, validate_args, execute
 def test_tool_schemas_swap_compare_for_pick_extreme():
+    """Pins down: tool schemas swap compare for pick extreme."""
     base = [t["function"]["name"] for t in HN.tool_schemas(HN.Config())]
     pe = [t["function"]["name"] for t in HN.tool_schemas(HN.Config(pick_extreme=True))]
     assert "compare_designs" in base and "pick_extreme" not in base and len(base) == 10
@@ -82,6 +93,7 @@ def test_tool_schemas_swap_compare_for_pick_extreme():
 
 
 def test_validate_args():
+    """Pins down: validate args."""
     sch = HN.tool_schemas(HN.Config(pick_extreme=True))
     v = lambda n, a: HN.validate_args(n, a, sch)
     assert v("read_metrics", {"design": "vision_block", "pattern": "x"}) is None
@@ -97,6 +109,7 @@ def test_validate_args():
 
 
 def test_execute_allow_list():
+    """Pins down: execute allow list."""
     off, on = HN.Config(), HN.Config(pick_extreme=True)
     assert "unknown tool" in HN.execute("pick_extreme", {"metric": "m", "which": "max"}, off)["error"]   # not offered -> not runnable
     assert HN.execute("pick_extreme", {"metric": "design__instance__count__stdcell", "which": "max"}, on)["winner"]
@@ -106,11 +119,13 @@ def test_execute_allow_list():
 
 # ------------------------------------------------------------------ grounding_check
 def test_nums_strip_units_and_commas():
+    """Pins down: nums strip units and commas."""
     assert HN._nums("area 1,234.5 um^2 and 3") == [1234.5, 3.0]             # the ^2 exponent is not a number
     assert HN._nums("no digits") == []
 
 
 def test_grounding_check_numbers_and_names():
+    """Pins down: grounding check numbers and names."""
     gc = HN.grounding_check
     res = [{"design": "vision_block", "metrics": {"k": {"value": 297}, "j": {"value": 100}}}]
     assert gc("q", "297 cells. Source: read_metrics", res) == []
@@ -132,6 +147,7 @@ def test_grounding_check_numbers_and_names():
 
 
 def test_grounding_check_ignores_source_tail():
+    """Pins down: grounding check ignores source tail."""
     res = [{"v": 10}]
     assert HN.grounding_check("q", "10\nSource: read_metrics 999", res) == []
     assert HN.grounding_check("q", "10 (Source: x 999)", res) == []
@@ -161,6 +177,7 @@ def episode(monkeypatch, tmp_path):
 
 
 def test_loop_plain_react(episode):
+    """Pins down: loop plain react."""
     out, seen, ev = episode([TC % ("read_metrics", '{"design": "vision_block", "pattern": "count__stdcell"}'), "297. Source: read_metrics"], HN.Config())
     assert out["answer"].startswith("297") and [c["name"] for c in out["tool_calls"]] == ["read_metrics"] and out["steps"] == 2
     assert [e["event"] for e in ev] == ["start", "model", "tool", "model", "end"]
@@ -169,6 +186,7 @@ def test_loop_plain_react(episode):
 
 
 def test_loop_budget_and_step_limits(episode):
+    """Pins down: loop budget and step limits."""
     cfg = HN.Config(max_calls=2, max_steps=5)
     out, seen, ev = episode([TC % ("list_designs", "{}")] * 10, cfg)
     assert len(out["tool_calls"]) == 2 and out["steps"] == 5          # step cap stops the loop
@@ -177,11 +195,13 @@ def test_loop_budget_and_step_limits(episode):
 
 
 def test_loop_time_budget(episode):
+    """Pins down: loop time budget."""
     out, _, _ = episode([TC % ("list_designs", "{}")] * 3, HN.Config(max_seconds=0))
     assert out["steps"] == 0 and out["answer"].startswith("unknown")
 
 
 def test_loop_guardrails_bounded_retries(episode):
+    """Pins down: loop guardrails bounded retries."""
     bad = TC % ("read_metrics", '{"nodesign": 1}')
     out, seen, ev = episode([bad] * 6 + ["final"], HN.Config(guardrails=True, max_arg_retries=3))
     assert out["retries"] == 3 and [e["event"] for e in ev].count("validation_error") == 3
@@ -191,11 +211,13 @@ def test_loop_guardrails_bounded_retries(episode):
 
 
 def test_loop_guardrail_off_lets_bad_args_through(episode):
+    """Pins down: loop guardrail off lets bad args through."""
     out, _, ev = episode([TC % ("read_metrics", '{"nodesign": 1}'), "x"], HN.Config())
     assert out["retries"] == 0 and out["tool_calls"][0]["error"] is True
 
 
 def test_loop_grounding_one_revision(episode):
+    """Pins down: loop grounding one revision."""
     read = TC % ("read_metrics", '{"design": "vision_block", "pattern": "count__stdcell"}')
     out, seen, ev = episode([read, "It has 99999 cells.", "It has 297 cells."], HN.Config(grounding=True))
     assert out["answer"] == "It has 297 cells." and out["retries"] == 1
@@ -208,12 +230,14 @@ def test_loop_grounding_one_revision(episode):
 
 
 def test_loop_grounded_answer_not_revised(episode):
+    """Pins down: loop grounded answer not revised."""
     read = TC % ("read_metrics", '{"design": "vision_block", "pattern": "count__stdcell"}')
     out, seen, _ = episode([read, "297"], HN.Config(grounding=True))
     assert out["retries"] == 0 and out["grounding"] == {"ok": True, "ungrounded": []} and len(seen) == 2
 
 
 def test_loop_pick_extreme_prompt_and_execution(episode):
+    """Pins down: loop pick extreme prompt and execution."""
     pe = TC % ("pick_extreme", '{"metric": "design__instance__count__stdcell", "which": "max", "scope": "prec_"}')
     out, seen, _ = episode([pe, "done"], HN.Config(pick_extreme=True))
     sysmsg = seen[0][0]["content"]
@@ -223,6 +247,7 @@ def test_loop_pick_extreme_prompt_and_execution(episode):
 
 
 def test_loop_plan_then_execute(episode):
+    """Pins down: loop plan then execute."""
     plan = '<plan>[{"name": "list_designs", "arguments": {}}]</plan>'
     out, seen, ev = episode([plan, "answer"], HN.Config(plan=True))
     assert [c["name"] for c in out["tool_calls"]] == ["list_designs"] and out["answer"] == "answer"
@@ -234,12 +259,14 @@ def test_loop_plan_then_execute(episode):
 
 
 def test_trace_file_is_jsonl_under_trace_dir(episode, tmp_path):
+    """Pins down: trace file is jsonl under trace dir."""
     _, _, ev = episode(["hi"], HN.Config())
     assert all({"t", "episode", "event"} <= set(e) for e in ev) and ev[-1]["event"] == "end"
     assert os.listdir(tmp_path / "traces")
 
 
 def test_cli_config_flags(monkeypatch, capsys, tmp_path):
+    """Pins down: cli config flags."""
     monkeypatch.setattr(HN, "TRACE_DIR", str(tmp_path))
     got = {}
     monkeypatch.setattr(HN, "run_episode", lambda q, cfg, tr: got.update(q=q, cfg=cfg) or
@@ -255,6 +282,7 @@ def test_cli_config_flags(monkeypatch, capsys, tmp_path):
 
 # ------------------------------------------------------------------ eval_harness: configs and --gate exit codes
 def test_eval_harness_configs():
+    """Pins down: eval harness configs."""
     assert list(EH.CONFIGS) == ["baseline", "+guardrails", "+grounding", "+pick_extreme", "all", "all+plan"]
     a = EH.CONFIGS["all"]
     assert (a.guardrails, a.grounding, a.pick_extreme, a.plan) == (True, True, True, False)
@@ -286,6 +314,7 @@ def run_gate(monkeypatch, *args):
 
 
 def test_gate_passes_with_perfect_stub(gate_env, monkeypatch, capsys):
+    """Pins down: gate passes with perfect stub."""
     gate_env(lambda q: q["expected"])
     assert run_gate(monkeypatch, "--gate", "15") == 0
     out = capsys.readouterr().out
@@ -293,6 +322,7 @@ def test_gate_passes_with_perfect_stub(gate_env, monkeypatch, capsys):
 
 
 def test_gate_fails_below_threshold(gate_env, monkeypatch, capsys):
+    """Pins down: gate fails below threshold."""
     gate_env(lambda q: "" if q["id"] in ("q01", "q02", "q03") else q["expected"])
     assert run_gate(monkeypatch, "--gate", "13") == 1                    # 12 < 13
     out = capsys.readouterr().out
@@ -301,6 +331,7 @@ def test_gate_fails_below_threshold(gate_env, monkeypatch, capsys):
 
 
 def test_gate_absent_or_other_config_never_exits_nonzero(gate_env, monkeypatch):
+    """Pins down: gate absent or other config never exits nonzero."""
     gate_env(lambda q: "")
     assert run_gate(monkeypatch) == 0                                    # no --gate: report only
     monkeypatch.setattr(sys, "argv", ["eval_harness.py", "--only", "baseline", "--gate", "15"])
@@ -308,6 +339,7 @@ def test_gate_absent_or_other_config_never_exits_nonzero(gate_env, monkeypatch):
 
 
 def test_gate_counts_episode_exceptions_as_failures(gate_env, monkeypatch, capsys):
+    """Pins down: gate counts episode exceptions as failures."""
     def boom(q, cfg, tr):
         raise RuntimeError("ollama down")
     monkeypatch.setattr(HN, "run_episode", boom)
@@ -316,6 +348,7 @@ def test_gate_counts_episode_exceptions_as_failures(gate_env, monkeypatch, capsy
 
 
 def test_gate_report_json_shape(gate_env, monkeypatch, capsys):
+    """Pins down: gate report json shape."""
     gate_env(lambda q: q["expected"])
     run_gate(monkeypatch)
     path = re.search(r"-> (\S+harness_eval_\S+\.json)", capsys.readouterr().out).group(1)
@@ -341,6 +374,7 @@ def demo():
 
 @needs_gds
 def test_demo_tools_match_eda_tools(demo):
+    """Pins down: demo tools match eda tools."""
     d = demo.die_size("tiny_ai_core")
     assert d == {"width_um": 250.0, "height_um": 250.0}
     assert eda_tools.call("layout_summary", {"design": "tiny_ai_core"})["die_size_um"] == [d["width_um"], d["height_um"]]
@@ -349,6 +383,7 @@ def test_demo_tools_match_eda_tools(demo):
 
 
 def test_demo_tool_errors(demo):
+    """Pins down: demo tool errors."""
     with pytest.raises(ValueError):
         demo.die_size("../etc")
     with pytest.raises(ValueError):
@@ -359,6 +394,7 @@ def test_demo_tool_errors(demo):
 
 
 def test_demo_missing_gds_message(demo, monkeypatch, tmp_path):
+    """Pins down: demo missing gds message."""
     monkeypatch.setattr(demo, "REPO", str(tmp_path))
     (tmp_path / "designs" / "x").mkdir(parents=True)
     (tmp_path / "designs" / "x" / "config.json").write_text('{"DESIGN_NAME": "x"}')
@@ -368,6 +404,7 @@ def test_demo_missing_gds_message(demo, monkeypatch, tmp_path):
 
 @needs_gds
 def test_demo_dry_run_in_process_matches_committed_transcript(demo, capsys):
+    """Pins down: demo dry run in process matches committed transcript."""
     demo.run("What is the die size of tiny_ai_core, and how many met4 shapes does it have?", True)
     out = capsys.readouterr().out
     want = open(os.path.join(REPO, "examples", "hermes_klayout_demo", "transcript_dry_run.txt")).read().splitlines()
@@ -377,6 +414,7 @@ def test_demo_dry_run_in_process_matches_committed_transcript(demo, capsys):
 
 @needs_gds
 def test_demo_dry_run_cli_exit_code():
+    """Pins down: demo dry run cli exit code."""
     p = subprocess.run([sys.executable, os.path.join(REPO, "examples", "hermes_klayout_demo", "demo.py"), "--dry-run"],
                        capture_output=True, text=True, timeout=120, cwd=REPO)
     assert p.returncode == 0 and "[3] ANSWER" in p.stdout and "250.0" in p.stdout
@@ -395,6 +433,7 @@ def test_demo_loop_error_paths(demo, monkeypatch, capsys):
 
 
 def test_demo_loop_two_calls_one_turn_and_final(demo, monkeypatch, capsys):
+    """Pins down: demo loop two calls one turn and final."""
     replies = iter(['<tool_call>{"name": "die_size", "arguments": {"design": "nope"}}<tool_call>{"name": "count_shapes", "arguments": {"design": "nope", "layer": "met1"}}</tool_call>',
                     "final text"])
     monkeypatch.setattr(demo, "ollama", lambda msgs: next(replies))
@@ -404,6 +443,7 @@ def test_demo_loop_two_calls_one_turn_and_final(demo, monkeypatch, capsys):
 
 
 def test_demo_ollama_unreachable_exits_cleanly():
+    """Pins down: demo ollama unreachable exits cleanly."""
     p = subprocess.run([sys.executable, "-c",
                         "import sys; sys.argv=['demo.py','q']; import urllib.request as u;"
                         "u.urlopen=lambda *a,**k: (_ for _ in ()).throw(OSError('refused'));"

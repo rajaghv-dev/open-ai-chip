@@ -10,6 +10,7 @@
 # Env: GUI_DISPLAY (default 192.168.5.2:0 on macOS/Colima = host.lima.internal; on Linux $DISPLAY with the X socket),
 #      DOCKER_HOST (default the osl Colima socket), GUI_SECONDS (only when stdin is not a terminal: keep Magic open N s).
 # Close the window to end. Afterwards you may remove the access again: DISPLAY=:0 /opt/X11/bin/xhost -localhost
+# Docs: docs/GUI_AND_LOGS.md, examples/openroad_gui/README.md
 set -euo pipefail
 tool=${1:?usage: open_gui.sh openroad|heatmaps|magic <design>}; design=${2:?usage: open_gui.sh openroad|heatmaps|magic <design>}
 cd "$(dirname "$0")/../.."
@@ -26,7 +27,12 @@ if [ "$(uname)" = Darwin ]; then
     echo "XQuartz is not listening on TCP 6000: run the one-time setup in the header of $0"; exit 1
   fi
 else
-  DOCKER_ARGS+=(-e DISPLAY="${GUI_DISPLAY:-$DISPLAY}" -v /tmp/.X11-unix:/tmp/.X11-unix)   # Linux: not tested here
+  # Linux: native X11 or XWayland through the unix socket; the container is root, so grant it once:
+  #   xhost +SI:localuser:root        (undo: xhost -SI:localuser:root)   [scripts/setup_linux.sh does this]
+  export DOCKER_HOST=${DOCKER_HOST:-unix:///var/run/docker.sock}
+  [ -n "${GUI_DISPLAY:-${DISPLAY:-}}" ] || { echo "no DISPLAY: run this from a desktop session (docs/RUN_ON_LINUX.md section 6)"; exit 1; }
+  DOCKER_ARGS+=(-e DISPLAY="${GUI_DISPLAY:-$DISPLAY}" -v /tmp/.X11-unix:/tmp/.X11-unix)
+  [ -n "${XAUTHORITY:-}" ] && [ -f "$XAUTHORITY" ] && DOCKER_ARGS+=(-v "$XAUTHORITY:$XAUTHORITY:ro" -e XAUTHORITY="$XAUTHORITY")
 fi
 if [ -t 0 ]; then DOCKER_ARGS+=(-it); else DOCKER_ARGS+=(-i); fi
 
@@ -50,7 +56,7 @@ case "$tool" in
     gds=$(ls "$run"/final/gds/*.gds | head -1)
     top=$(basename "$gds" .gds)
     T="$PDK_ROOT/sky130A/libs.tech/magic"
-    # the PDK's magicrc names the tech file by its build path (/root/.ciel/...), so pass -T explicitly
+    # the PDK's magicrc names the tech file by the build path of the root user's .ciel directory, so pass -T explicitly
     printf 'gds read %s\nload %s\nselect top cell\nexpand\nview\nputs "MAGIC_GUI_LOADED [cellname list self]"\n' "$gds" "$top" > build/gui/magic_open.tcl
     echo "Magic: $gds (top $top)"
     if [ -t 0 ]; then

@@ -1,4 +1,9 @@
-"""pytest tests/tools  (run with build/agent/venv/bin/python -m pytest tests/tools)"""
+"""pytest tests/tools  (run with build/agent/venv/bin/python -m pytest tests/tools)
+
+Run: build/agent/venv/bin/python -m pytest -q tests/tools/test_eda_tools.py (also part of `make test`, section == tools)
+Pass: every test passes or is skipped (opt-in tests need their env flag).
+Docs: tests/tools/TEST_MATRIX_TOOLS.md, docs/HERMES_AGENT.md
+"""
 import glob
 import json
 import os
@@ -18,6 +23,7 @@ def need_gds(design):
 
 
 def test_schemas_match_dispatch():
+    """Pins down: schemas match dispatch."""
     names = [t["function"]["name"] for t in T.TOOLS]
     assert len(names) == 10 and len(set(names)) == 10
     for t in T.TOOLS:
@@ -26,6 +32,7 @@ def test_schemas_match_dispatch():
 
 
 def test_list_designs():
+    """Pins down: list designs."""
     r = T.call("list_designs", {})
     d = {x["design"]: x for x in r["designs"]}
     assert d["vision_block"]["hardened"] and d["vision_block"]["design_name"] == "vision_block"
@@ -33,6 +40,7 @@ def test_list_designs():
 
 
 def test_read_metrics_exact_and_pattern():
+    """Pins down: read metrics exact and pattern."""
     m = json.load(open(os.path.join(REPO, "designs/vision_block/output/metrics.json")))
     r = T.call("read_metrics", {"design": "vision_block", "keys": ["design__instance__count__stdcell"]})
     assert r["metrics"]["design__instance__count__stdcell"]["value"] == m["design__instance__count__stdcell"]
@@ -41,6 +49,7 @@ def test_read_metrics_exact_and_pattern():
 
 
 def test_compare_designs_all_hardened():
+    """Pins down: compare designs all hardened."""
     r = T.call("compare_designs", {"metric": "timing__setup__ws__corner:nom_tt_025C_1v80", "designs": None})
     got = {x["design"] for x in r["sorted_ascending"]} | set(r.get("missing_in", []))
     assert got == set(T._hardened())
@@ -49,6 +58,7 @@ def test_compare_designs_all_hardened():
 
 
 def test_precheck_summary():
+    """Pins down: precheck summary."""
     if not glob.glob(os.path.join(REPO, "build", "precheck", "results_*", "summary.tsv")):
         pytest.skip("no build/precheck results")
     r = T.call("precheck_summary", {})
@@ -56,6 +66,7 @@ def test_precheck_summary():
 
 
 def test_layout_summary_tiny_ai_core():
+    """Pins down: layout summary tiny ai core."""
     need_gds("tiny_ai_core")
     r = T.call("layout_summary", {"design": "tiny_ai_core"})
     assert r["top_cell"] == "tiny_ai_core" and r["die_size_um"] == [250.0, 250.0]
@@ -63,12 +74,14 @@ def test_layout_summary_tiny_ai_core():
 
 
 def test_layout_summary_wrapper_macros():
+    """Pins down: layout summary wrapper macros."""
     need_gds("user_project_wrapper_soc_itm")
     r = T.call("layout_summary", {"design": "user_project_wrapper_soc_itm"})
     assert "error" not in r and r["top_level_macro_instances"]
 
 
 def test_layer_stats():
+    """Pins down: layer stats."""
     need_gds("tiny_ai_core")
     r = T.call("layer_stats", {"design": "tiny_ai_core", "layer": "met4"})
     assert r["shapes"] > 0 and r["area_um2"] > 0 and r["bbox_um"]
@@ -77,6 +90,7 @@ def test_layer_stats():
 
 
 def test_find_pins():
+    """Pins down: find pins."""
     need_gds("tiny_ai_core")
     r = T.call("find_pins", {"design": "tiny_ai_core", "pattern": r"^wbs_dat_i\["})
     assert r["total_matches"] == 32 and len(r["pins"]) == 32
@@ -84,6 +98,7 @@ def test_find_pins():
 
 
 def test_render_png():
+    """Pins down: render png."""
     need_gds("tiny_ai_core")
     r = T.call("render_png", {"design": "tiny_ai_core", "width_px": 600})
     assert not r["fallback"], r
@@ -93,11 +108,13 @@ def test_render_png():
 
 
 def test_signoff_summary():
+    """Pins down: signoff summary."""
     r = T.call("signoff_summary", {"design": "vision_block"})
     assert r["drc"]["magic"] == 0 and r["setup_worst"]["corner"] and "check_signoff" in r
 
 
 def test_classify_slew():
+    """Pins down: classify slew."""
     if not glob.glob(os.path.join(REPO, "designs", "vision_block", "runs", "RUN_*")):
         pytest.skip("no local flow runs")
     r = T.call("classify_slew", {"design": "vision_block"})
@@ -106,11 +123,13 @@ def test_classify_slew():
 
 @pytest.mark.parametrize("bad", ["../etc", "nope", "", "vision_block/../tiny_ai_core", None, 3])
 def test_bad_design_rejected(bad):
+    """Pins down: bad design rejected."""
     for tool in ("read_metrics", "layout_summary", "signoff_summary", "render_png"):
         assert "error" in T.call(tool, {"design": bad})
 
 
 def test_call_never_raises():
+    """Pins down: call never raises."""
     assert "error" in T.call("nope", {})
     assert "error" in T.call("read_metrics", {})
     assert "error" in T.call("read_metrics", "x")

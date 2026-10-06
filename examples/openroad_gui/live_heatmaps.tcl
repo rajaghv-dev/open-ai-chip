@@ -2,6 +2,7 @@
 # cycle through them in the open window. Started by: bash scripts/gui/open_gui.sh heatmaps <design>
 # Env: ODB, LIB, SDC, SPEF (paths inside the container), PWR (default vccd1), VOLT (1.8), DWELL (seconds per view, 12).
 # Read only: nothing is written back to the run (the IR-drop voltage file goes to /tmp in the container).
+# Docs: examples/openroad_gui/README.md, docs/OPENROAD_ENGINES.md, docs/GUI_AND_LOGS.md
 proc env_or {k d} { if {[info exists ::env($k)]} { return $::env($k) } else { return $d } }
 
 read_db $::env(ODB)

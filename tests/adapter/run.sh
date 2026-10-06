@@ -2,6 +2,8 @@
 # tests/adapter/run.sh -- run shared/rtl/wb_stream_adapter.v with every stream engine behind it, driven only through
 # Wishbone, against each engine's own tb/vectors.hex (tests/adapter/adapter_tb.v). One PASS/FAIL line per engine;
 # exits non-zero if any engine fails. Run from anywhere. Needs iverilog and vvp.
+# Run: bash tests/adapter/run.sh (make adapter-test; also section == adapter of tests/run_tests.sh). PASS = one PASS line per engine, exit 0.
+# Docs: tests/TEST_MATRIX.md, docs/SOC_PLAN.md, docs/ARCHITECTURE.md
 # Env: VEC_DIR=<dir>  read <dir>/<engine>.hex instead of designs/<engine>/tb/vectors.hex (negative tests with corrupted vectors);
 #      ONLY="a b"  run only these engines;  NLIM_AUDIO_ONSET=<n>  cap on audio_onset input beats (default: all 68,829).
 cd "$(dirname "$0")/../.." || exit 1

@@ -1,0 +1,11 @@
+# traceability_map.txt -- parent docs for code files that must NOT carry a "Docs:" header line.
+# Format: <path or glob (fnmatch, '*' matches '/')> -> <md>[, <md> ...]   # reason
+# Read by tests/check_traceability.py and scripts/docs/code_map.py. A file is accepted if it has a Docs: line OR matches here.
+model/kv_attention/* -> model/kv_attention/spec.md, docs/LLM_INFERENCE.md   # hashed into generated design inputs; edits make runs stale
+model/precision_hw/* -> model/precision_hw/spec.md, docs/PRECISION_STUDY.md   # hashed into generated design inputs; edits make runs stale
+model/tiny_ai/* -> docs/ARCHITECTURE.md   # hashed into generated design inputs; edits make runs stale
+model/audio_pitch/* -> docs/ARCHITECTURE.md   # hashed into generated design inputs; edits make runs stale
+model/audio_onset/* -> docs/ARCHITECTURE.md   # hashed into generated design inputs; edits make runs stale
+model/image_text_match/* -> docs/ARCHITECTURE.md   # hashed into generated design inputs; edits make runs stale
+model/examples/* -> docs/ARCHITECTURE.md   # model/ must stay byte-identical
+docs/slides/check_fit.py -> docs/slides/README.md   # copied unchanged from ../open-ai-silicon (reference only)

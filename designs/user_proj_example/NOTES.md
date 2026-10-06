@@ -22,6 +22,9 @@ weights, activations). This design does only `count + 1` and some load multiplex
 Flow settings (`config.json`): sky130A, `sky130_fd_sc_hd`, clock port `wb_clk_i`, `CLOCK_PERIOD` 25 ns (40 MHz),
 die 200 x 200 um, supply nets `vccd1` / `vssd1`, `ERROR_ON_SYNTH_CHECKS` true.
 
+Files: `rtl/user_proj_example.v` (the counter), `rtl/defines.v` (Caravel's `MPRJ_IO_PADS` and related macros, copied
+unchanged from the template), `rtl/UPSTREAM.txt` (origin and local changes), `tb/user_proj_example_tb.v`.
+
 ## Architecture
 
 ```mermaid

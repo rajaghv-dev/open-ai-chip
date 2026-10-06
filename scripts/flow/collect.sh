@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Docs: docs/GUI_AND_LOGS.md, .claude/skills/harden-design/SKILL.md
 # collect.sh -- keep and view the hardened design's results (build/results/<design>/).
 #
 #   scripts/flow/collect.sh                      every design that has build/results/<d>/, one by one
@@ -20,6 +21,8 @@
 set -uo pipefail
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$REPO_ROOT"
+. scripts/lib/common.sh          # OAC_LIBRELANE_IMAGE (versions.lock), oac_docker_host
+oac_docker_host
 RESULTS_DIR="${RESULTS_DIR:-build/results}"
 case "$RESULTS_DIR" in    # the render container mounts only $HOME and the repository
   "$REPO_ROOT"/*) RESULTS_DIR="${RESULTS_DIR#"$REPO_ROOT"/}" ;;
@@ -27,8 +30,8 @@ case "$RESULTS_DIR" in    # the render container mounts only $HOME and the repos
 esac
 PDK_ROOT="${PDK_ROOT:-$HOME/.volare}"
 LYP="$PDK_ROOT/sky130A/libs.tech/klayout/tech/sky130A.lyp"
-IMAGE="ghcr.io/librelane/librelane:3.0.2"
-ORDER="user_proj_example"
+IMAGE="$OAC_LIBRELANE_IMAGE"
+ORDER="$(python3 scripts/flow/design_info.py --list)"   # every design, Makefile ALL_DESIGNS order
 
 # ---------------------------------------------------------------- collect ----
 render_klayout() {   # render_klayout <gds> <png> ; KLayout in the LibreLane container, batch mode
@@ -51,9 +54,8 @@ else:      W, H = max(1, int(long_px * w / h)), long_px
 lv.save_image(out, W, H)
 print("rendered", out, W, H)
 PY
-  if [ "${USE_DOCKER:-1}" = 0 ]; then   # Docker-free mode: the Nix-installed klayout (on PATH via scripts/env/lib.sh oas_env)
-    ( [ -f "$REPO_ROOT/scripts/env/lib.sh" ] && { . "$REPO_ROOT/scripts/env/pins.sh"; . "$REPO_ROOT/scripts/env/lib.sh"; oas_env; }   # subshell: oas_env clobbers $d
-      R_GDS="$PWD/$gds" R_LYP="$LYP" R_OUT="$PWD/$png" R_PX="${RENDER_PX:-2400}" QT_QPA_PLATFORM=offscreen klayout -b -r "$rs" )
+  if [ "${USE_DOCKER:-1}" = 0 ]; then   # Docker-free mode: a klayout on the host PATH
+    R_GDS="$PWD/$gds" R_LYP="$LYP" R_OUT="$PWD/$png" R_PX="${RENDER_PX:-2400}" QT_QPA_PLATFORM=offscreen klayout -b -r "$rs"
   else
   docker run --rm -v "$HOME:$HOME" -v "$PWD:$PWD" -w "$PWD" \
     -e R_GDS="$PWD/$gds" -e R_LYP="$LYP" -e R_OUT="$PWD/$png" -e R_PX="${RENDER_PX:-2400}" \

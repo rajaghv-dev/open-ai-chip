@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Educational demo: 5 scripted scenarios on real designs, offscreen KLayout view.
+Docs: examples/hermes_klayout_gui/README.md, docs/HERMES_FROM_TERMINAL.md
 
   build/agent/venv/bin/python examples/hermes_klayout_gui/demo.py --dry-run   # scripted calls, no Ollama
   build/agent/venv/bin/python examples/hermes_klayout_gui/demo.py --live      # local hermes3:8b via Ollama
@@ -28,15 +29,21 @@ def main():
     g.add_argument("--live", action="store_true")
     ap.add_argument("--backend", default="offscreen", choices=["offscreen", "live"])
     ap.add_argument("--save-img", action="store_true", help="copy 3 representative PNGs into examples/hermes_klayout_gui/img/")
+    ap.add_argument("--model", default=None, help="Ollama model tag (default: env HERMES_MODEL, else hermes3:8b)")
     a = ap.parse_args()
+    if a.model:
+        agent.hermes_agent.MODEL = a.model
     live = a.live
     name = "transcript_live.txt" if live else "transcript_dry_run.txt"
     path = os.path.join(HERE, name)
+    if live and agent.hermes_agent.MODEL != "hermes3:8b":   # the committed transcript is the hermes3:8b one; other models go to build/
+        path = os.path.join(va.REPO, "build", "agent", "klayout_gui", "transcript_live_%s.txt" % agent.hermes_agent.MODEL.replace(":", "_"))
+        os.makedirs(os.path.dirname(path), exist_ok=True)
     backend = agent.make_backend(a.backend)
     rows = []
     with open(path, "w") as f:
         emit = agent.Transcript(f)
-        emit("Hermes + KLayout view demo (%s model, %s backend)" % ("live hermes3:8b" if live else "scripted", a.backend))
+        emit("Hermes + KLayout view demo (%s model, %s backend)" % ("live " + agent.hermes_agent.MODEL if live else "scripted", a.backend))
         for i, sc in enumerate(agent.SCENARIOS):
             emit("")
             emit("=== scenario %d/%d: %s ===" % (i + 1, len(agent.SCENARIOS), sc["id"]))

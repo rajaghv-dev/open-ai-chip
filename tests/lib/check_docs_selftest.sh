@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # check_docs_selftest.sh -- prove tests/check_docs.py catches faults: each check must PASS on a small good scratch tree and FAIL
 # on the same tree with one fault. Prints one "ok|BAD <check>: ..." line per case; exit 1 if any case is wrong.
+# Run: bash tests/lib/check_docs_selftest.sh (called by tests/run_tests.sh section == docs). PASS = every case prints "ok", exit 0.
+# Docs: tests/TEST_MATRIX.md
 cd "$(dirname "$0")/../.." || exit 1
 CD="$PWD/tests/check_docs.py"; T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT; bad=0
 mk() {   # fresh good tree in $T/t

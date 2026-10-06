@@ -8,6 +8,7 @@ doc     why / explain / what fixed, caused, limits / reason / lesson / knee ... 
 metric  a number or pass/fail that read_metrics, compare_designs, pick_extreme, signoff_summary ... answer.
 unknown anything else (including questions that name neither): left to the model, which may still call search_docs.
 Doc patterns are checked first: "Why did the std cell count halve?" mentions a metric but asks for a reason.
+Docs: examples/hermes_rag/README.md, docs/HERMES_AGENT.md
 """
 import re, sys
 
@@ -29,6 +30,8 @@ METRIC_RE = re.compile(
     r"|\bis\s+\S+\s+(?:drc|lvs)\b|\bratio\b|\bcompare\b|\bdie size\b", re.I)
 
 
+# Order matters: DOC is tested first because a 'why' question often also names a metric noun
+# ('Why did the std cell count halve?') but wants prose from NOTES.md, not a number.
 def classify(question):
     q = question.strip()
     if DOC_RE.search(q):

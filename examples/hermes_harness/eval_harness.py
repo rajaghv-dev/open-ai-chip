@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Run the 15 tools/eval questions under several harness configurations and compare.
+Docs: examples/hermes_harness/README.md, docs/AGENT_MODELS.md
 
   build/agent/venv/bin/python examples/hermes_harness/eval_harness.py [--only baseline,all] [--gate 13]
 
@@ -29,7 +30,10 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--only", default="", help="comma-separated config names")
     ap.add_argument("--gate", type=int, default=None, help="exit 1 if the 'all' score < N")
+    ap.add_argument("--model", default=None, help="Ollama model tag (default: env HERMES_MODEL, else hermes3:8b)")
     a = ap.parse_args()
+    if a.model:
+        harness.hermes_agent.MODEL = a.model
     Q = json.load(open(os.path.join(ROOT, "tools", "eval", "questions.json")))
     names = a.only.split(",") if a.only else list(CONFIGS)
     stamp = time.strftime("%Y%m%d_%H%M%S")

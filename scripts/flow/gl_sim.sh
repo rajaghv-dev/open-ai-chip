@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Docs: docs/VALIDATION.md, .claude/skills/harden-design/SKILL.md
 # gl_sim.sh -- gate-level simulation of a design's sky130 netlist with its own self-checking testbench.
 #
 #   gl_sim.sh prepare <design>                     write build/gl/<design>/config.json: the design's config with every

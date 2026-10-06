@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """A tiny, educational HARNESS around a local Hermes model + the read-only KLayout/EDA tools.
+Docs: examples/hermes_harness/README.md, docs/HERMES_FROM_TERMINAL.md
 
 The model (hermes3:8b via Ollama) is fixed. Everything else is the harness, and each feature is a few lines:
 
@@ -18,7 +19,7 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 sys.path.insert(0, os.path.join(ROOT, "tools"))
 import eda_tools, hermes_agent  # noqa: E402  (reused: tools + prompt/HTTP helpers)
 
-OPTS = {"temperature": 0, "seed": 42, "num_ctx": 8192, "num_predict": 700}   # deterministic decoding
+OPTS = dict(hermes_agent.OPTS)   # deterministic decoding: temperature 0, seed 42, num_ctx 8192, num_predict 700
 TRACE_DIR = os.path.join(ROOT, "build", "agent", "traces")
 
 
@@ -118,6 +119,7 @@ def execute(name, args, cfg):
 
 
 # ============================================================ 4. GROUNDING CHECK
+# Not merged with tools/eval/run_eval.numbers_in on purpose: that one scores the recorded evals (it keeps the "2" of um^2).
 NUM = re.compile(r"(?<![\w.])-?\d+(?:\.\d+)?")
 
 
@@ -152,6 +154,7 @@ def grounding_check(question, answer, results):
     return bad
 
 
+# Differs from tools/eval/run_eval.strip_source on purpose (that is the scorer; changing either moves recorded scores).
 def hermes_agent_strip(ans):                              # drop the "Source: ..." tail
     return re.split(r"\n?\s*\(?Source", ans, maxsplit=1, flags=re.I)[0]
 
@@ -162,7 +165,6 @@ def chat(msgs):
 
 
 def system_prompt(cfg):
-    tools = json.dumps([t["function"] for t in tool_schemas(cfg)])
     base = hermes_agent.SYSTEM
     if cfg.pick_extreme:
         base = base.replace("compare_designs", "pick_extreme")   # the recipes in the prompt must name the tool that exists
@@ -172,10 +174,7 @@ def system_prompt(cfg):
                  "which='min'); 'most std cells among prec_ variants' -> pick_extreme(metric='design__instance__count__stdcell', which='max', "
                  "scope='prec_'); 'worst setup slack of D and its corner' -> pick_extreme(metric='timing__setup__ws__corner', which='min', "
                  "designs=['D']) and the winner's key names the corner. Use the 'winner' field as the answer.")
-    return (base + "\n\nYou are a function calling AI model. You may call one or more functions to assist with the user query. "
-            f"Don't make assumptions about what values to plug into functions. Here are the available tools:\n<tools> {tools} </tools>\n"
-            "For each function call return a json object with function name and arguments within <tool_call></tool_call> XML tags:\n"
-            '<tool_call>\n{"name": <function-name>, "arguments": <args-dict>}\n</tool_call>')
+    return base + hermes_agent.tools_suffix(tool_schemas(cfg))     # the Hermes tool list + <tool_call> format
 
 
 PLAN_PROMPT = ("Before answering, write a short plan: the list of tool calls you need, in order, as JSON inside "
@@ -204,15 +203,15 @@ def run_episode(question, cfg, tracer=None):
                 res = {"error": err + ". Fix the arguments and call again."}
                 tracer.event("validation_error", tool=name, args=args, error=err)
             elif len(calls) >= cfg.max_calls:
-                res = {"error": "tool call budget exhausted; answer from what you have or say unknown"}
+                res = {"error": hermes_agent.BUDGET_MSG}
             else:
                 t1 = time.time()
                 res = execute(name, args, cfg)
                 results.append(res)
                 calls.append({"name": name, "args": args, "error": isinstance(res, dict) and "error" in res})
                 tracer.event("tool", tool=name, args=args, result_chars=len(json.dumps(res, default=str)), secs=round(time.time() - t1, 3))
-            blocks.append(json.dumps({"name": name, "content": hermes_agent._fmt(res)}))
-        msgs.append({"role": "tool", "content": "\n</tool_response>\n<tool_response>\n".join(blocks)})
+            blocks.append(hermes_agent.tool_block(name, hermes_agent._fmt(res)))
+        msgs.append(hermes_agent.tool_message(blocks))
 
     if cfg.plan:                                          # PLAN-THEN-EXECUTE: the model writes calls, code runs them
         r = chat([msgs[0], {"role": "user", "content": PLAN_PROMPT + question}])["message"]["content"]
@@ -223,7 +222,7 @@ def run_episode(question, cfg, tracer=None):
         except Exception:
             plan = []
         if plan:
-            msgs.append({"role": "assistant", "content": "".join(f"<tool_call>\n{json.dumps({'name': n, 'arguments': a})}\n</tool_call>\n" for n, a in plan)})
+            msgs.append({"role": "assistant", "content": "".join(hermes_agent.tool_call_text(n, a) + "\n" for n, a in plan)})
             do_calls(plan)                                # then fall into the normal loop to write the answer
 
     while steps < cfg.max_steps and time.time() - t0 < cfg.max_seconds:   # REACT LOOP: act -> observe -> repeat
@@ -262,7 +261,10 @@ def main():
     ap.add_argument("question", nargs="+")
     for f in ("guardrails", "grounding", "pick-extreme", "plan", "all"):
         ap.add_argument("--" + f, action="store_true")
+    ap.add_argument("--model", default=None, help="Ollama model tag (default: env HERMES_MODEL, else hermes3:8b)")
     a = ap.parse_args()
+    if a.model:
+        hermes_agent.MODEL = a.model
     cfg = Config(a.guardrails or a.all, a.grounding or a.all, a.pick_extreme or a.all, a.plan)
     tr = Tracer()
     r = run_episode(" ".join(a.question), cfg, tr)

@@ -1,4 +1,9 @@
-"""pytest tests/tools/test_rag.py  (deterministic parts of examples/hermes_rag: no LLM, no network)"""
+"""pytest tests/tools/test_rag.py  (deterministic parts of examples/hermes_rag: no LLM, no network)
+
+Run: build/agent/venv/bin/python -m pytest -q tests/tools/test_rag.py (also part of `make test`, section == tools)
+Pass: every test passes or is skipped (opt-in tests need their env flag).
+Docs: tests/tools/TEST_MATRIX_TOOLS.md, examples/hermes_rag/README.md
+"""
 import json
 import os
 import sys
@@ -10,6 +15,7 @@ import rag  # noqa: E402
 
 
 def test_index_builds_and_chunks_carry_provenance():
+    """Pins down: index builds and chunks carry provenance."""
     idx = rag.build_index(force=True)
     assert len(idx["chunks"]) > 300 and len(idx["files"]) > 40
     assert not any(f.startswith((".claude/", "examples/")) for f in idx["files"])
@@ -22,6 +28,7 @@ def test_index_builds_and_chunks_carry_provenance():
 
 
 def test_search_is_deterministic_and_shaped():
+    """Pins down: search is deterministic and shaped."""
     a = rag.search_docs("slew repair margin out of memory", 4)
     b = rag.search_docs("slew repair margin out of memory", 4)
     assert a == b and 1 <= len(a) <= 4
@@ -36,6 +43,7 @@ def _files(query, k=4):
 
 
 def test_right_file_for_known_queries():
+    """Pins down: right file for known queries."""
     assert "docs/PRECHECK.md" in _files("precheck 12 of 14 gpio_defines oeb GPIO_MODE_INVALID", 4)
     assert "docs/PRECISION_STUDY.md" in _files("sweet spot ternary int4 accuracy area", 2)
     assert "firmware/README.md" in _files("prefill amortises fixed cost decode round trip cycles", 2)
@@ -44,6 +52,7 @@ def test_right_file_for_known_queries():
 
 
 def test_tool_schema_and_call():
+    """Pins down: tool schema and call."""
     t = rag.TOOL
     assert t["type"] == "function" and t["function"]["name"] == "search_docs"
     assert t["function"]["parameters"]["required"] == ["query"]
@@ -62,12 +71,14 @@ def _recall(mode, heldout):
 def test_recall_at_k_on_eval_set_v1_unchanged():
     # v1 (the original search, config "rag") re-measured on the current corpus: @1 5/10, @4 8/10, @8 10/10 (the first run, on the
     # smaller corpus of 2026-10-06 14:49, had 6/10, 6/10, 9/10, 10/10; examples/hermes_rag/results_summary_v1.json)
+    """Pins down: recall at k on eval set v1 unchanged."""
     r = _recall("v1", False)["recall_at_k_value"]
     assert r["@4"] >= 0.8 and r["@8"] >= 1.0 and r["@1"] >= 0.5
 
 
 def test_recall_at_k_v2_main_and_heldout():
     # measured: v2 main @1 8/10, @2 8/10, @4 9/10, @8 10/10; held-out (5 questions) @1 4/5, @2 4/5, @4 5/5, @8 5/5
+    """Pins down: recall at k v2 main and heldout."""
     r = _recall("v2", False)
     assert r["recall_at_k_value"]["@1"] >= 0.8 and r["recall_at_k_value"]["@4"] >= 0.9 and r["recall_at_k_value"]["@8"] >= 1.0
     assert r["recall_at_k_value"]["@1"] > _recall("v1", False)["recall_at_k_value"]["@1"]
@@ -77,6 +88,7 @@ def test_recall_at_k_v2_main_and_heldout():
 
 
 def test_heldout_questions_are_flagged():
+    """Pins down: heldout questions are flagged."""
     sys.path.insert(0, os.path.join(REPO, "examples", "hermes_rag"))
     import eval_rag
     Q = eval_rag.load_questions()
@@ -85,6 +97,7 @@ def test_heldout_questions_are_flagged():
 
 
 def test_v2_search_shape_and_identifier_boost():
+    """Pins down: V2 search shape and identifier boost."""
     a = rag.search_docs_v2("why does kv_attn_n8_int4 have more flip-flops than kv_attn_n8", 4)
     assert a == rag.search_docs_v2("why does kv_attn_n8_int4 have more flip-flops than kv_attn_n8", 4)
     assert a[0]["file"].startswith("designs/kv_attn_n8_int4/")
@@ -95,6 +108,7 @@ def test_v2_search_shape_and_identifier_boost():
 
 
 def test_router_decisions_for_the_eval_questions():
+    """Pins down: router decisions for the eval questions."""
     sys.path.insert(0, os.path.join(REPO, "examples", "hermes_rag"))
     import eval_rag, router
     Q = eval_rag.load_questions()
@@ -118,6 +132,7 @@ def _stub_chat(replies, seen):
 
 
 def test_guardrail_pure_function():
+    """Pins down: guardrail pure function."""
     import rag_agent as A
     hits = [{"file": "designs/tiny_ai_core/NOTES.md", "text": "x"}]
     assert A.guardrail_problem("doc", "It was a bug.", hits)
@@ -128,6 +143,7 @@ def test_guardrail_pure_function():
 
 
 def test_auto_retrieve_and_guardrail_with_stub_model():
+    """Pins down: auto retrieve and guardrail with stub model."""
     import rag_agent as A
     q = "Why did simplifying the tiny_ai_core pins roughly halve its standard cell count?"
     good = "Fewer tap cells.\nSources: designs/tiny_ai_core/NOTES.md > Intuitions and insights"
@@ -159,6 +175,7 @@ def test_auto_retrieve_and_guardrail_with_stub_model():
 
 
 def test_grounding_check_and_citations():
+    """Pins down: grounding check and citations."""
     import rag_agent as A
     hits = [{"file": "designs/user_project_wrapper/README.md", "text": "a 70% margin ran out of memory; 20% margin was used"}]
     good = "20 percent, because 70 percent ran out of memory.\nSources: designs/user_project_wrapper/README.md > Steps"

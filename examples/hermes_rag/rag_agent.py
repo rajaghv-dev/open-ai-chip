@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Hermes + KLayout/EDA tools, optionally plus RAG (a search_docs tool over the repo's markdown) and a RAG grounding check.
+Docs: examples/hermes_rag/README.md, docs/HERMES_FROM_TERMINAL.md
 
   build/agent/venv/bin/python examples/hermes_rag/rag_agent.py "Why was the slew repair margin 20 and not 70?"
   build/agent/venv/bin/python examples/hermes_rag/rag_agent.py "..." --no-rag        # the 10 EDA tools only
@@ -55,11 +56,7 @@ def schemas(use_rag):
 
 def system_prompt(use_rag, version=None):
     base = hermes_agent.SYSTEM + (RAG_RULES[version or PROMPT["version"]] if use_rag else "")
-    tools = json.dumps([t["function"] for t in schemas(use_rag)])
-    return (base + "\n\nYou are a function calling AI model. You may call one or more functions to assist with the user query. "
-            f"Don't make assumptions about what values to plug into functions. Here are the available tools:\n<tools> {tools} </tools>\n"
-            "For each function call return a json object with function name and arguments within <tool_call></tool_call> XML tags:\n"
-            '<tool_call>\n{"name": <function-name>, "arguments": <args-dict>}\n</tool_call>')
+    return base + hermes_agent.tools_suffix(schemas(use_rag))     # the Hermes tool list + <tool_call> format
 
 
 def format_hits(res, limit=None):
@@ -75,6 +72,7 @@ def format_hits(res, limit=None):
 
 # ---------------------------------------------------------------- citations and the RAG grounding check
 CITE_RE = re.compile(r"[\w./\-]+\.md\b")
+# Not tools/eval/run_eval.UNKNOWN_RE on purpose: this one gates citations/guardrail, that one scores answers.
 UNKNOWN_RE = re.compile(r"\b(unknown|not (?:in|found|documented|available|mentioned)|no (?:information|data|record)|cannot (?:be )?(?:answer|determin|find))", re.I)
 
 
@@ -156,8 +154,8 @@ def run_rag_episode(question, use_rag=True, grounding=True, tracer=None, verbose
             record_search(args, res, True)
         txt = format_hits(res, limit)
         tracer.event("auto_retrieve", route=route, args=args, chunk_ids=[h["id"] for h in res.get("hits", [])])
-        msgs.append({"role": "assistant", "content": "<tool_call>\n" + json.dumps({"name": "search_docs", "arguments": args}) + "\n</tool_call>"})
-        msgs.append({"role": "tool", "content": json.dumps({"name": "search_docs", "content": txt})})
+        msgs.append({"role": "assistant", "content": hermes_agent.tool_call_text("search_docs", args)})
+        msgs.append(hermes_agent.tool_message([hermes_agent.tool_block("search_docs", txt)]))
         if verbose:
             print(f"[auto search_docs] {question!r} -> {[h['file'] for h in res.get('hits', [])]}", file=sys.stderr, flush=True)
 
@@ -165,7 +163,7 @@ def run_rag_episode(question, use_rag=True, grounding=True, tracer=None, verbose
         blocks = []
         for name, args in tcs:
             if len(calls) >= cfg.max_calls:
-                txt = json.dumps({"error": "tool call budget exhausted; answer from what you have or say unknown"})
+                txt = json.dumps({"error": hermes_agent.BUDGET_MSG})
             elif name == "search_docs" and use_rag:
                 res = rag.call(args, search_mode)
                 calls.append({"name": name, "args": args, "error": "error" in res, "auto": False})
@@ -183,8 +181,8 @@ def run_rag_episode(question, use_rag=True, grounding=True, tracer=None, verbose
                 tracer.event("tool", tool=name, args=args, result_chars=len(txt))
             if verbose:
                 print(f"[tool {len(calls)}] {name}({json.dumps(args)}) -> {txt[:200]!r}", file=sys.stderr, flush=True)
-            blocks.append(json.dumps({"name": name, "content": txt}))
-        msgs.append({"role": "tool", "content": "\n</tool_response>\n<tool_response>\n".join(blocks)})
+            blocks.append(hermes_agent.tool_block(name, txt))
+        msgs.append(hermes_agent.tool_message(blocks))
 
     while steps < cfg.max_steps and time.time() - t0 < cfg.max_seconds:
         steps += 1
@@ -232,7 +230,10 @@ def main():
     ap.add_argument("--router", action="store_true", help="v2 retrieval + retrieve-first for doc-type questions (implies --prompt v3)")
     ap.add_argument("--guardrail", action="store_true", help="reject once a doc-type answer that cites no retrieved file")
     ap.add_argument("--no-grounding", action="store_true", help="skip the grounding check and its one revision")
+    ap.add_argument("--model", default=None, help="Ollama model tag (default: env HERMES_MODEL, else hermes3:8b)")
     a = ap.parse_args()
+    if a.model:
+        hermes_agent.MODEL = a.model
     use_rag = not a.no_rag
     PROMPT["version"] = "v3" if a.router else a.prompt
     tr = harness.Tracer("rag" if use_rag else "norag")

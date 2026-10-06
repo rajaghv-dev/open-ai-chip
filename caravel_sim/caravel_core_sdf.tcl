@@ -1,3 +1,7 @@
+# Purpose: OpenSTA script that writes an SDF for the caravel-lite caravel_core gate netlist from the shipped SPEF.
+# Run: sourced by caravel_sim/gen_caravel_sdf.sh inside the librelane container (env ROOT, PDK_ROOT, CORNER_LIB, SPEF_CORNER).
+# In: liberty, gate netlists, SPEF. Out: build/caravel/sta/out/caravel_core.<corner>.sdf.
+# Docs: docs/CARAVEL_SIM.md, caravel_sim/README.md
 # OpenSTA: SDF for the caravel-lite CC2509 caravel_core gate netlist (flat, includes the management SoC) from the shipped nom SPEF.
 set root $::env(ROOT)
 set pdk  $::env(PDK_ROOT)/sky130A/libs.ref

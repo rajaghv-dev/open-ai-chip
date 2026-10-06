@@ -1,3 +1,7 @@
+// Purpose: Testbench SoC for the KV-cache firmware: PicoRV32 + RAM + wb_stream_adapter + kv_attn_n8.
+// Run: make soc-kv (compiled by soc_sim/kv/run.sh).
+// In: +hex=<file> firmware. Out: console text, final PASS/FAIL and cycle count on stdout.
+// Docs: firmware/README.md, docs/LLM_INFERENCE.md
 // SPDX-License-Identifier: Apache-2.0
 // soc_tb -- a tiny local SoC: PicoRV32 (Wishbone master) + 64 KiB RAM + console/exit/cycle registers + wb_stream_adapter
 // driving kv_attn_n8 at 0x3000_0000 (copy of soc_sim/soc_tb.v for the KV-cache firmware). Stand-in for Caravel's management core.

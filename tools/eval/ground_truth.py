@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Compute eval ground truth straight from repo files (metrics.json, LEF, config.json, reports, precheck TSV).
-Independent of tools/eda_tools.py. Writes tools/eval/questions.json.  Never hand-type numbers here."""
+Independent of tools/eda_tools.py. Writes tools/eval/questions.json.  Never hand-type numbers here.
+Docs: tools/README.md, docs/HERMES_AGENT.md"""
 import glob, json, os, re
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -20,6 +21,7 @@ def flops(d): return metrics(d).get("design__instance__count__class:sequential_c
 def stdarea(d): return metrics(d)["design__instance__area__stdcell"]
 
 
+# Worst setup slack = the minimum over every STA corner key 'timing__setup__ws__corner:<corner>' in metrics.json.
 def worst_setup(d):
     m = metrics(d)
     cs = {k.split("corner:")[1]: v for k, v in m.items() if k.startswith("timing__setup__ws__corner:")}
@@ -32,6 +34,7 @@ def die(d):
     return x1 - x0, y1 - y0
 
 
+# Counts bus bits (PIN name[n]) in the macro LEF; independent of eda_tools.find_pins so the eval is not self-grading.
 def lef_pins(d, prefix):
     top = d
     txt = open(D(d, "output", top + ".lef")).read()
@@ -46,6 +49,7 @@ def wrapper_macros(w):
     return out
 
 
+# Clean = Magic DRC count 0 AND netgen LVS 'Circuits match uniquely'; read from the committed reports, not re-run.
 def signoff_clean(d):
     r = D(d, "output", "reports")
     drc = open(os.path.join(r, "drc_magic.rpt")).read()

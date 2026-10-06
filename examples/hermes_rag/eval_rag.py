@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Evaluate RAG on questions_rag.json: 10 answerable why/how/what-fixed questions + 2 unanswerable controls (the 12 "main"
+Docs: examples/hermes_rag/README.md, docs/AGENT_MODELS.md
 questions) and 5 HELD-OUT doc questions ("heldout": true, written and answer-verified before retrieval was tuned), reported separately.
 
   python3 examples/hermes_rag/eval_rag.py --retrieval-only            # (a) recall@k, deterministic, no LLM
@@ -152,6 +153,7 @@ def main():
     ap.add_argument("--prompt", choices=["v1", "v2"], default="v2", help="prompt of the ORIGINAL configs (tools-only, rag, rag+grounding)")
     ap.add_argument("--make-summary", metavar="REPORT", help="write examples/hermes_rag/results_summary.json from a build/agent report")
     ap.add_argument("--handcheck", metavar="FILE", help="with --make-summary: hand-check json {config: {id: {ok, note}}}")
+    ap.add_argument("--model", default=None, help="Ollama model tag (default: env HERMES_MODEL, else hermes3:8b)")
     a = ap.parse_args()
     if a.make_summary:
         return make_summary(a.make_summary, a.handcheck)
@@ -165,6 +167,8 @@ def main():
     print("router:", {k: v for k, v in report["router"].items() if "misrouted" not in k})
     if not a.retrieval_only:
         import rag_agent
+        if a.model:
+            rag_agent.harness.hermes_agent.MODEL = a.model
         report["model"] = rag_agent.harness.hermes_agent.MODEL
         report["options"] = rag_agent.harness.OPTS
         t0 = time.time()

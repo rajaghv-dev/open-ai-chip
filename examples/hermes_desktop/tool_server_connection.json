@@ -1,0 +1,4 @@
+[{"type": "openapi", "url": "http://127.0.0.1:8770", "spec_type": "url", "spec": "", "path": "openapi.json",
+  "auth_type": "none", "key": "",
+  "config": {"enable": true, "access_control": null},
+  "info": {"id": "chip", "name": "Chip tools", "description": "open-ai-chip EDA tools, docs search, KLayout views, make jobs, Claude Code tasks"}}]

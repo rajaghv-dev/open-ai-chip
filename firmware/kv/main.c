@@ -1,3 +1,8 @@
+/* Purpose: KV-cache attention session (prefill + decode) on the local SoC through wb_stream_adapter and kv_attn_n8, with cycle measurement.
+ * Run: make soc-kv (builds firmware/kv/build/firmware.hex and simulates it).
+ * In: build/expected.h (generated). Out: console text and PASS/FAIL via the EXIT register.
+ * Docs: firmware/README.md, docs/LLM_INFERENCE.md
+ */
 /* KV-cache attention session for the local PicoRV32 SoC (soc_sim/kv/): PicoRV32 -> Wishbone -> wb_stream_adapter ->
  * kv_attn_n8. A scripted LLM-style session (RESET_CACHE, PREFILL of P tokens as ONE frame, DECODE until the cache is
  * full, one more DECODE = CACHE_FULL), every response beat checked against firmware/kv/gen_expected.py (golden.py),
@@ -5,6 +10,7 @@
 #include <stdint.h>
 #include "expected.h"
 
+/* wb_stream_adapter register map (shared/rtl/wb_stream_adapter.v): TX pushes input beats, RX pops response beats. */
 #define KV       0x30000000u
 #define R_ID     (KV + 0x00)
 #define R_CTRL   (KV + 0x04)
@@ -17,10 +23,12 @@
 #define CTRL_CLEAR (1u << 8)
 #define RXS_DONE (1u << 2)
 
+/* Testbench-only peripherals provided by soc_sim/kv/kv_soc_tb.v (not part of the chip). */
 #define CONSOLE  0x20000000u
 #define EXITREG  0x20000004u
 #define CYCLE    0x20000008u
 
+/* volatile accesses: every read/write must reach the bus exactly once, in program order */
 static inline void wr(uint32_t a, uint32_t v) { *(volatile uint32_t *)a = v; }
 static inline uint32_t rd(uint32_t a) { return *(volatile uint32_t *)a; }
 
@@ -39,6 +47,7 @@ static void putdec(uint32_t v) {
         if (d || started || i == 9) { putc_((char)('0' + d)); started = 1; }
     }
 }
+/* shift-subtract division (no M extension, no libgcc); remainder in *rem */
 static uint32_t udiv(uint32_t a, uint32_t b, uint32_t *rem) {
     uint32_t q = 0, r = 0;
     for (int i = 31; i >= 0; i--) { r = (r << 1) | ((a >> i) & 1); if (r >= b) { r -= b; q |= 1u << i; } }
@@ -51,6 +60,7 @@ static void putavg(uint32_t total, uint32_t n) {            /* total / n with on
     if (t >= 10) { q++; t -= 10; }
     putdec(q); putc_('.'); putc_((char)('0' + t));
 }
+/* v * 100 without a multiply: 64v + 32v + 4v */
 static uint32_t x100(uint32_t v) { return (v << 6) + (v << 5) + (v << 2); }
 static int dlen(uint32_t v) { int len = 1; for (uint32_t x = v; x >= 10; x = udiv(x, 10, 0)) len++; return len; }
 static void padn(uint32_t v, int w) { for (int l = dlen(v); l < w; l++) putc_(' '); putdec(v); }
@@ -60,6 +70,7 @@ static void pada(uint32_t tot, uint32_t n, int w) {        /* average, right-ali
     putavg(tot, n);
 }
 
+/* failure counter: checks do not abort; main() turns it into the EXIT code */
 static int g_fail;
 static void check_eq(uint32_t got, uint32_t exp, const char *what) {
     if (got != exp) {
@@ -67,6 +78,7 @@ static void check_eq(uint32_t got, uint32_t exp, const char *what) {
     }
 }
 
+/* cost of one CYCLE register read, measured in main() and subtracted from every interval */
 static uint32_t t_ovh;
 static inline uint32_t tick(void) { return rd(CYCLE); }
 
@@ -97,10 +109,12 @@ static void check_resp(const frame_t *f, const uint8_t *exp, uint32_t ne, const 
         }
 }
 
+/* Accumulators: prefill by prompt length P; decode by cache fill n (summed over the sessions that reach that n). */
 static uint32_t pf_tot[NSESS], pf_wr[NSESS], pf_wait[NSESS], pf_rd[NSESS], pf_reg[NSESS];
 static uint32_t dc_n[8], dc_tot[8], dc_wr[8], dc_wait[8], dc_rd[8], dc_reg[8], dc_diff[8];
 static uint32_t full_tot, full_reg;
 
+/* Command byte 1 = RESET_CACHE, 2 = PREFILL (then P tokens), 3 = DECODE (then one query token); see model/kv_attention/spec.md. */
 static void session(int P) {
     frame_t f; uint8_t b[10];
     static const uint8_t rst_exp[2] = {0, 0};

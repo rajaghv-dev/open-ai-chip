@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# Purpose: Native full-Caravel RTL simulation of user_project_wrapper with real management-core firmware.
+# Run: make caravel-rtl.
+# In: build/caravel downloads, tiny_ai_wb.c, tiny_ai_wb_tb.v. Out: build/caravel/work/ hex, logs and VCD.
+# Docs: docs/CARAVEL_SIM.md, caravel_sim/README.md
 # Native full-Caravel RTL sim of user_project_wrapper (tiny_ai_core) with real VexRiscv management-core firmware.
 # Needs: build/caravel/{caravel,mgmt_core_wrapper} (see VERSIONS.txt), riscv64-elf-gcc (brew), iverilog >= 11, sky130A PDK at ~/.volare.
 set -euo pipefail

@@ -1,3 +1,7 @@
+# Purpose: Build the PicoRV32 self-test firmware (start.S + main.c -> firmware.hex) and run it in soc_sim/.
+# Run: make soc-sim (top-level) or make -C firmware sim; make -C firmware clean removes build/.
+# In: main.c, start.S, link.ld, gen_expected.py. Out: build/firmware.hex, simulation console log.
+# Docs: firmware/README.md
 # firmware for the local PicoRV32 SoC (soc_sim/). `make sim` builds, simulates, exits non-zero unless PASS.
 # rv32i/ilp32: no M extension, so no libgcc is needed (the code never multiplies or divides at run time).
 CROSS  ?= riscv64-elf-

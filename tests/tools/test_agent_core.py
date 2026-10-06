@@ -1,6 +1,11 @@
 """pytest tests/tools/test_agent_core.py
 tools/hermes_agent.py (stub chat, no Ollama), tools/mcp_server.py, tools/eval/run_eval.py (scorer),
-tools/eval/ground_truth.py (reproducibility), the 10-tool schemas. Deterministic: no network, no Docker."""
+tools/eval/ground_truth.py (reproducibility), the 10-tool schemas. Deterministic: no network, no Docker.
+
+Run: build/agent/venv/bin/python -m pytest -q tests/tools/test_agent_core.py (also part of `make test`, section == tools)
+Pass: every test passes or is skipped (opt-in tests need their env flag).
+Docs: tests/tools/TEST_MATRIX_TOOLS.md, docs/HERMES_AGENT.md
+"""
 import asyncio
 import json
 import os
@@ -45,6 +50,7 @@ def stub(monkeypatch):
 
 # ------------------------------------------------------------------ prompt mode
 def test_parse_tool_calls():
+    """Pins down: parse tool calls."""
     p = H._parse_tool_calls
     assert p(TC % ("list_designs", "{}")) == [("list_designs", {})]
     two = TC % ("a", '{"x": 1}') + "\ntext\n" + TC % ("b", '{"y": [1, 2]}')
@@ -58,6 +64,7 @@ def test_parse_tool_calls():
 
 
 def test_prompt_mode_round_trip(stub):
+    """Pins down: prompt mode round trip."""
     s = stub([TC % ("read_metrics", '{"design": "vision_block", "pattern": "count__stdcell"}'),
               "297 standard cells. Source: read_metrics"])
     r = H.ask("How many std cells?", "prompt", verbose=False)
@@ -77,6 +84,7 @@ def test_prompt_mode_round_trip(stub):
 
 
 def test_prompt_mode_multiple_calls_in_one_turn(stub):
+    """Pins down: prompt mode multiple calls in one turn."""
     s = stub([TC % ("list_designs", "{}") + TC % ("precheck_summary", "{}"), "done"])
     r = H.ask("q", verbose=False)
     assert [c["name"] for c in r["tool_calls"]] == ["list_designs", "precheck_summary"]
@@ -85,12 +93,14 @@ def test_prompt_mode_multiple_calls_in_one_turn(stub):
 
 
 def test_custom_system_prompt_is_used(stub):
+    """Pins down: custom system prompt is used."""
     s = stub(["unknown"])
     H.ask("q", "prompt", system="MY SYSTEM", verbose=False)
     assert s.payloads[0]["messages"][0]["content"] == "MY SYSTEM"
 
 
 def test_extra_messages_are_inserted_before_question(stub):
+    """Pins down: extra messages are inserted before question."""
     s = stub(["ok"])
     H.ask("q?", extra_messages=[{"role": "user", "content": "earlier"}], verbose=False)
     roles = [m["content"] for m in s.payloads[0]["messages"][1:]]
@@ -99,6 +109,7 @@ def test_extra_messages_are_inserted_before_question(stub):
 
 # ------------------------------------------------------------------ native mode
 def test_native_mode_payload_and_tool_message(stub):
+    """Pins down: native mode payload and tool message."""
     native = {"role": "assistant", "content": "", "tool_calls": [
         {"function": {"name": "read_metrics", "arguments": {"design": "vision_block", "pattern": "count__stdcell"}}}]}
     s = stub([native, "297 cells"])
@@ -113,6 +124,7 @@ def test_native_mode_payload_and_tool_message(stub):
 
 
 def test_native_mode_missing_arguments_and_string_free_answer(stub):
+    """Pins down: native mode missing arguments and string free answer."""
     s = stub([{"role": "assistant", "content": "", "tool_calls": [{"function": {"name": "list_designs"}}]}, "ok"])
     r = H.ask("q", "native", verbose=False)
     assert r["tool_calls"][0]["args"] == {} and r["answer"] == "ok" and len(s.payloads) == 2
@@ -120,6 +132,7 @@ def test_native_mode_missing_arguments_and_string_free_answer(stub):
 
 # ------------------------------------------------------------------ limits and errors
 def test_tool_call_budget_is_enforced(stub):
+    """Pins down: tool call budget is enforced."""
     s = stub([TC % ("list_designs", "{}")])           # model never stops calling tools
     r = H.ask("q", verbose=False)
     assert len(r["tool_calls"]) == H.MAX_TOOL_CALLS == 6        # the 7th+ calls are refused, not executed or recorded
@@ -129,6 +142,7 @@ def test_tool_call_budget_is_enforced(stub):
 
 
 def test_budget_error_does_not_count_as_a_call(stub):
+    """Pins down: budget error does not count as a call."""
     replies = [TC % ("list_designs", "{}")] * 6 + [TC % ("list_designs", "{}") * 2, "final"]
     stub(replies)
     r = H.ask("q", verbose=False)
@@ -136,6 +150,7 @@ def test_budget_error_does_not_count_as_a_call(stub):
 
 
 def test_run_tool_errors_are_data():
+    """Pins down: run tool errors are data."""
     assert H.run_tool("rm_rf", {}) == {"error": "unknown tool 'rm_rf'"}
     assert "error" in H.run_tool("read_metrics", {})                         # missing design
     assert "error" in H.run_tool("read_metrics", {"design": "../etc"})
@@ -145,6 +160,7 @@ def test_run_tool_errors_are_data():
 
 
 def test_run_tool_never_raises_on_tool_exception(monkeypatch):
+    """Pins down: run tool never raises on tool exception."""
     def boom(name, args):
         raise RuntimeError("kaput")
     monkeypatch.setattr(eda_tools, "call", boom)
@@ -152,6 +168,7 @@ def test_run_tool_never_raises_on_tool_exception(monkeypatch):
 
 
 def test_run_tool_keys_substring_retry():
+    """Pins down: run tool keys substring retry."""
     r = H.run_tool("read_metrics", {"design": "vision_block", "keys": ["count__stdcell"]})
     assert r["matched"] >= 1 and "design__instance__count__stdcell" in r["metrics"] and "substrings" in r["note"]
     exact = H.run_tool("read_metrics", {"design": "vision_block", "keys": ["design__instance__count__stdcell"]})
@@ -159,6 +176,7 @@ def test_run_tool_keys_substring_retry():
 
 
 def test_tool_error_reaches_the_model_and_is_flagged(stub):
+    """Pins down: tool error reaches the model and is flagged."""
     s = stub([TC % ("read_metrics", '{"design": "nope"}'), "unknown"])
     r = H.ask("q", verbose=False)
     assert r["tool_calls"][0]["error"] is True
@@ -166,12 +184,14 @@ def test_tool_error_reaches_the_model_and_is_flagged(stub):
 
 
 def test_unknown_tool_call_is_reported(stub):
+    """Pins down: unknown tool call is reported."""
     s = stub([TC % ("shell", '{"cmd": "ls"}'), "unknown"])
     r = H.ask("q", verbose=False)
     assert r["tool_calls"][0]["error"] is True and "unknown tool" in s.payloads[1]["messages"][-1]["content"]
 
 
 def test_result_truncation():
+    """Pins down: result truncation."""
     big = {"x": "a" * 10000}
     out = H._fmt(big)
     assert len(out) < H.RESULT_CHARS + 60 and "[truncated" in out
@@ -179,6 +199,7 @@ def test_result_truncation():
 
 
 def test_post_failure_propagates(monkeypatch):
+    """Pins down: post failure propagates."""
     def down(path, payload):
         raise OSError("connection refused")
     monkeypatch.setattr(H, "_post", down)
@@ -188,6 +209,7 @@ def test_post_failure_propagates(monkeypatch):
 
 # ------------------------------------------------------------------ eda_tools schemas (all 10)
 def test_ten_tools_have_valid_schemas():
+    """Pins down: ten tools have valid schemas."""
     names = {t["function"]["name"] for t in eda_tools.TOOLS}
     assert names == {"list_designs", "read_metrics", "compare_designs", "layout_summary", "layer_stats", "find_pins",
                      "render_png", "signoff_summary", "classify_slew", "precheck_summary"}
@@ -202,6 +224,7 @@ def test_ten_tools_have_valid_schemas():
 
 @pytest.mark.parametrize("name", [t["function"]["name"] for t in eda_tools.TOOLS])
 def test_every_tool_survives_garbage_args(name):
+    """Pins down: every tool survives garbage args."""
     for args in ({}, {"design": None}, {"design": ["x"]}, {"nonsense": 1}, "str", None, 5):
         r = eda_tools.call(name, args)
         assert isinstance(r, dict)
@@ -216,6 +239,7 @@ def _mcp():
 
 
 def test_mcp_list_tools_matches_eda_tools():
+    """Pins down: mcp list tools matches eda tools."""
     types, M = _mcp()
     res = asyncio.run(M.on_list_tools(None, None))
     assert [t.name for t in res.tools] == [t["function"]["name"] for t in eda_tools.TOOLS]
@@ -224,6 +248,7 @@ def test_mcp_list_tools_matches_eda_tools():
 
 
 def test_mcp_call_tool_in_process():
+    """Pins down: mcp call tool in process."""
     types, M = _mcp()
     ok = asyncio.run(M.on_call_tool(None, types.CallToolRequestParams(
         name="read_metrics", arguments={"design": "vision_block", "keys": ["design__instance__count__stdcell"]})))
@@ -263,6 +288,7 @@ N = lambda vals, **kw: {"type": "numbers", "values": vals, **kw}
 
 
 def test_strip_source_edge_cases():
+    """Pins down: strip source edge cases."""
     s = RE.strip_source
     assert s("297 cells\nSource: read_metrics") == "297 cells"
     assert s("297 cells. Source: read_metrics(design='vision_block')") == "297 cells."
@@ -277,6 +303,7 @@ def test_strip_source_edge_cases():
 
 
 def test_numbers_check_tolerance_and_source_isolation():
+    """Pins down: numbers check tolerance and source isolation."""
     c = N([297], tol_rel=0)
     assert RE.score(c, "297 standard cells")
     assert RE.score(c, "There are 297.\nSource: read_metrics")
@@ -292,6 +319,7 @@ def test_numbers_check_tolerance_and_source_isolation():
 
 
 def test_words_checks():
+    """Pins down: words checks."""
     assert RE.score({"type": "words", "any_words": ["prec_fp16"]}, "It is PREC_FP16.")
     assert not RE.score({"type": "words", "any_words": ["prec_fp16"]}, "prec_bf16\nSource: prec_fp16")
     assert RE.score({"type": "numbers", "values": [4], "tol_rel": 0, "all_words": ["sky130_fd_sc_hd__a"]}, "4 x sky130_fd_sc_hd__a")
@@ -299,6 +327,7 @@ def test_words_checks():
 
 
 def test_yesno():
+    """Pins down: yesno."""
     yes, no = {"type": "yesno", "expect": True}, {"type": "yesno", "expect": False}
     assert RE.score(yes, "Yes, both are clean.") and RE.score(yes, "DRC passes and LVS clean")
     assert not RE.score(yes, "No, it is not clean.") and not RE.score(yes, "There are violations found")
@@ -307,6 +336,7 @@ def test_yesno():
 
 
 def test_unknown_handling():
+    """Pins down: unknown handling."""
     u = {"type": "unknown"}
     for good in ("unknown", "I cannot determine that", "That is not available in the tools", "I don't know", "No tool provides price",
                  "Unable to answer", "The data does not provide it"):
@@ -317,6 +347,7 @@ def test_unknown_handling():
 
 
 def test_questions_json_are_well_formed_and_expected_text_passes_scorer():
+    """Pins down: questions json are well formed and expected text passes scorer."""
     Q = json.load(open(os.path.join(REPO, "tools", "eval", "questions.json")))
     assert [q["id"] for q in Q] == ["q%02d" % i for i in range(1, 16)]
     for q in Q:
@@ -327,6 +358,7 @@ def test_questions_json_are_well_formed_and_expected_text_passes_scorer():
 
 # ------------------------------------------------------------------ ground_truth reproducibility
 def test_ground_truth_reproduces_committed_questions():
+    """Pins down: ground truth reproduces committed questions."""
     import ground_truth as G
     try:
         built = G.build()

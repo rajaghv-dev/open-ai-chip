@@ -4,6 +4,7 @@
 Read-only: the GDS is only read. Layer visibility, zoom and the DRC/demo marker layer live in the in-memory
 view; the only thing written is the snapshot PNG under build/agent/klayout_gui/.
 Run inside the project venv: build/agent/venv/bin/python (klayout 0.30.x).
+Docs: examples/hermes_klayout_gui/README.md, docs/HERMES_AGENT.md
 """
 import os
 import sys
@@ -13,6 +14,7 @@ sys.path.insert(0, HERE)
 import view_api as va  # noqa: E402
 from view_api import ViewBackend, ViewError  # noqa: E402
 
+# Layer 1000/0 is outside the sky130 layer map, so demo/DRC markers can never collide with real geometry.
 MARK_LD = (1000, 0)          # in-memory marker layer (never written to a file)
 MARK_COLOR = 0xFF2020
 VIEW_W, VIEW_H = 1200, 900

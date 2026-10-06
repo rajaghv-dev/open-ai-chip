@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Docs: .claude/skills/harden-design/SKILL.md, docs/VALIDATION.md
 """check_signoff.py -- "no logic lost" sign-off check for one design or all of them.
 
     scripts/flow/check_signoff.py <design>            design directory name, or upe for user_proj_example
@@ -38,11 +39,14 @@ Yosys: `yosys` on PATH when USE_DOCKER=0, otherwise the LibreLane image (honours
 """
 import argparse, glob, json, os, re, subprocess, sys
 
-REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-IMAGE = os.environ.get("DOCKER_IMAGE", "ghcr.io/librelane/librelane:3.0.2")
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "lib"))
+import repo  # noqa: E402  (scripts/lib/repo.py: config.json, dir::, image pin, DOCKER_HOST default)
+
+REPO = repo.REPO
+IMAGE = repo.librelane_image()        # env DOCKER_IMAGE, else versions.lock
 PDK_MAX_TRANSITION = 0.75
 
-DESIGNS = sorted(os.path.basename(os.path.dirname(c)) for c in glob.glob(os.path.join(REPO, "designs", "*", "config.json")))
+DESIGNS = repo.design_dirs()
 ALIAS = {"upe": "user_proj_example"}
 
 
@@ -61,24 +65,12 @@ def elaborate_only(cfg):
 
 # ---------------------------------------------------------------- RTL register count
 def read_config(design):
-    path = os.path.join(REPO, "designs", design, "config.json")
-    cfg = json.load(open(path))
-    base = os.path.dirname(path)
-
-    def fix(v):
-        if isinstance(v, str) and v.startswith("dir::"):
-            return os.path.normpath(os.path.join(base, v[5:]))
-        return v
-    files = [fix(f) for f in cfg["VERILOG_FILES"]]
-    incs = [fix(f) for f in cfg.get("VERILOG_INCLUDE_DIRS", [])]
-    defs = cfg.get("VERILOG_DEFINES", [])
-    return cfg, cfg["DESIGN_NAME"], files, incs, defs
+    """(cfg, DESIGN_NAME, VERILOG_FILES, VERILOG_INCLUDE_DIRS, VERILOG_DEFINES), dir:: paths absolute."""
+    return repo.rtl(design)
 
 
 def run_yosys(script_path):
-    sock = os.path.expanduser("~/.colima/osl/docker.sock")      # same default as the Makefile
-    if "DOCKER_HOST" not in os.environ and os.path.exists(sock):
-        os.environ["DOCKER_HOST"] = "unix://" + sock
+    os.environ.update(repo.docker_env())                         # same default as the Makefile
     if os.environ.get("USE_DOCKER", "1") == "0":
         cmd = ["yosys", "-q", script_path]
     else:

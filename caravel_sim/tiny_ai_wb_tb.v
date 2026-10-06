@@ -1,3 +1,7 @@
+// Purpose: Caravel-level testbench: watches the mprj_io result word written by tiny_ai_wb.c firmware.
+// Run: compiled by run_rtl.sh, run_gl.sh, run_fullgl.sh and run_sdf.sh (make caravel-rtl, caravel-gl, caravel-fullgl).
+// In: firmware hex via the Caravel SPI flash model. Out: PASS/FAIL on stdout, VCD.
+// Docs: docs/CARAVEL_SIM.md, caravel_sim/README.md
 // SPDX-FileCopyrightText: 2020 Efabless Corporation
 //
 // Licensed under the Apache License, Version 2.0 (the "License");

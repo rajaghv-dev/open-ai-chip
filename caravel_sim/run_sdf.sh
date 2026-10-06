@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# Purpose: Full-chip gate-level plus SDF back-annotation with Open Verilog CVC in an amd64 container.
+# Run: caravel_sim/run_sdf.sh (CORNER, SCOPE, MINIMAL, CORE_SDF env switches below); needs the CVC build.
+# In: build/caravel downloads, wrapper SDF, caravel_core SDF. Out: build/caravel/work/ logs.
+# Docs: docs/CARAVEL_SIM.md, caravel_sim/README.md
 # Full-chip gate-level + SDF back-annotation with Open Verilog CVC (cvc64 7.00b, x86_64 only) run in an amd64 container
 # (colima 'osl' profile; image openchip-cvc64-base = ubuntu 22.04 amd64 + gcc + zlib; the cvc64 binary is built from
 # github.com/cambridgehackers/open-src-cvc into build/caravel/cvc_src/build64/, see docs/CARAVEL_SIM.md).
@@ -24,7 +28,7 @@ MACRO="${MACRO_PNL:-$ROOT/build/macros/tiny_ai_core/pnl/tiny_ai_core.pnl.v}"
 [ -s "$WRAP" ] && [ -s "$WSDF" ] || { echo "run_sdf: missing $WRAP or $WSDF" >&2; exit 2; }
 [ -f "$W/tiny_ai_wb.hex" ] || "$HERE/run_rtl.sh" >/dev/null 2>&1 || true
 CVC="$B/cvc_src/build64/cvc64"; [ -x "$CVC" ] || { echo "run_sdf: $CVC missing (build cvc, see docs/CARAVEL_SIM.md)" >&2; exit 2; }
-export DOCKER_HOST="${DOCKER_HOST:-unix://$HOME/.colima/osl/docker.sock}"
+. "$ROOT/scripts/lib/common.sh"; oac_docker_host   # Colima osl socket if present (Linux: /var/run/docker.sock)
 cd "$W"
 TAG="sdf_${SCOPE}_${CORNER}_c${CORE_SDF}_m${MINIMAL}"
 # firmware (own hex so run_rtl/run_gl are untouched)

@@ -3,7 +3,8 @@
 ## What this repo is
 Twenty-five small digital designs (tiny AI engines, a precision study, KV-cache attention, a Wishbone counter, SoC macros and Caravel
 wrappers), each taken from RTL to clean GDSII on sky130A with LibreLane 3.0.2 in Docker, as a learning build toward
-a ChipFoundry ChipIgnite (Caravel) tapeout. `README.md` has the design index, the run commands and the generated
+a ChipFoundry ChipIgnite (Caravel) tapeout. `README.md` has how to open and run everything, the design index and links (keep it short: links, no duplicated content);
+`docs/RESULTS.md` has the generated
 results tables; `SPEC.md` is the plan, phases, acceptance criteria and "Agent operating rules" (the rules below
 come from it). `LOCAL_RUN_PLAN.md`, `provenance/SOURCES.md` and `versions.lock` record origin and pinned versions.
 Sibling `../open-ai-silicon` is reference material only: never edit it.
@@ -21,7 +22,8 @@ Sibling `../open-ai-silicon` is reference material only: never edit it.
 - `shared/rtl/wb_stream_adapter.v`, `shared/tb/*.vh`: adapter and shared testbench code.
 - `scripts/flow/` flow tooling (`find_reusable_run.py`, `check_signoff.py`, `signoff_allowances.json`,
   `run_capped.sh`, `gl_sim.sh`, `collect.sh`, `summary.py`); `scripts/docs/tables.py` writes the README tables;
-  `scripts/doctor.sh`, `scripts/check_generated.sh`.
+  `scripts/doctor.sh`, `scripts/check_generated.sh`; shared helpers `scripts/lib/common.sh` (shell) and `scripts/lib/repo.py`
+  (Python): repo root, design list, `dir::` paths, LibreLane image pin, DOCKER_HOST default.
 - `firmware/` + `soc_sim/`: PicoRV32 SoC simulation (`make soc-sim`; `make soc-kv` runs the KV-attention firmware, `firmware/kv/`). `caravel_sim/`: full Caravel RTL/GL sims
   (`make caravel-rtl`, `caravel-gl`, `caravel-fullgl`, `caravel-sdf-wrapper`; need `build/caravel` downloads, SDF also the amd64 CVC image). `precheck/`: ChipFoundry precheck (`make precheck`, 14/14 PASS, docs/PRECHECK.md).
 - OpenROAD engines and how LibreLane chains them: `docs/OPENROAD_ENGINES.md`. GUIs: `bash scripts/gui/open_gui.sh openroad|magic <d>` (XQuartz/X11, setup in `docs/GUI_AND_LOGS.md`).
@@ -40,6 +42,7 @@ Sibling `../open-ai-silicon` is reference material only: never edit it.
   soc-sim, soc-kv, caravel-rtl/gl; never re-runs a physical flow. Coverage map: `tests/TEST_MATRIX.md`; results: `docs/VALIDATION.md`.
 - `make flow-all DESIGN=<d>`: simulate, gds, check, gl, gl-final, collect (the one command).
 - `bash scripts/run_all_mac.sh [--all]`: every stage in order from a Mac terminal (guide `docs/RUN_ON_MAC.md`).
+- Linux (Ubuntu/Debian): `bash scripts/setup_linux.sh` once, then `bash scripts/run_all.sh [--all]` (OS-aware; `run_all_mac.sh` calls it); guide `docs/RUN_ON_LINUX.md`.
 
 ## Workflows (project skills in `.claude/skills/`)
 - `harden-design`: RTL to clean GDSII, results, the failure table, what never to do.
@@ -83,10 +86,10 @@ Evidence and hygiene
 
 ## Conventions
 - Clock 25 ns (40 MHz) on `wb_clk_i`; sky130_fd_sc_hd; `PROFILE=tight` container (2 CPUs, 8 GB).
-- Results tables in `README.md` between `<!-- results:begin ... -->` markers are generated: run `make table`, do
+- Results tables in `docs/RESULTS.md` between `<!-- results:begin ... -->` markers are generated: run `make table`, do
   not edit them by hand.
 - Handoff form for phase reports is in `SPEC.md` "Agent operating rules": status, commands and exit codes, files
   changed, evidence paths, measured budgets, first failure.
 - Other agents may work in the same tree: change only files you own for the task and say what you touched.
 
-Running every Hermes example from the terminal: `docs/HERMES_FROM_TERMINAL.md`. Read-only EDA/KLayout tools for agents: `tools/eda_tools.py` (also `tools/mcp_server.py`); local Hermes agent and its evaluation: `docs/HERMES_AGENT.md` (venv at `build/agent/venv`, tests in `tests/tools/`).
+Hermes in Open WebUI and as a Mac app (`examples/hermes_desktop/`): `docs/HERMES_DESKTOP.md`. Running every Hermes example from the terminal: `docs/HERMES_FROM_TERMINAL.md`. Read-only EDA/KLayout tools for agents: `tools/eda_tools.py` (also `tools/mcp_server.py`); local Hermes agent and its evaluation: `docs/HERMES_AGENT.md` (venv at `build/agent/venv`, tests in `tests/tools/`).

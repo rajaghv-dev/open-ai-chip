@@ -4,6 +4,7 @@
 Contract:  TOOLS  -> list of OpenAI/Ollama style tool schemas
            call(name, args) -> dict   (never raises; {"error": "..."} on bad input)
 Nothing here modifies the repository; the only writes are PNG renders under build/agent/.
+Docs: tools/README.md, docs/HERMES_AGENT.md
 """
 import glob
 import json
@@ -14,6 +15,9 @@ import subprocess
 import sys
 
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.insert(0, os.path.join(REPO, "scripts", "lib"))
+import repo  # noqa: E402  (scripts/lib/repo.py: design list, config.json, DOCKER_HOST default)
+
 AGENT_DIR = os.path.join(REPO, "build", "agent")
 RENDER_DIR = os.path.join(AGENT_DIR, "renders")
 PDK_ROOT = os.environ.get("PDK_ROOT", os.path.expanduser("~/.volare"))
@@ -21,6 +25,8 @@ LYP = os.path.join(PDK_ROOT, "sky130A", "libs.tech", "klayout", "tech", "sky130A
 MAX_ITEMS = 50
 
 # sky130 layer/datatype -> name (subset of the PDK map; enough for routing and cells)
+# sky130A GDS (layer, datatype) -> human name, used only to label output; datatype 20 = drawing, 16 = pin, 5 = label,
+# 44 = via/contact cut. Source: the sky130A layer map in the PDK (libs.tech/klayout).
 LAYER_NAMES = {
     (64, 20): "nwell drawing", (65, 20): "diff drawing", (65, 44): "tap", (66, 20): "poly drawing",
     (66, 44): "licon1", (67, 20): "li1 drawing", (67, 16): "li1 pin", (67, 5): "li1 label",
@@ -33,6 +39,7 @@ LAYER_NAMES = {
     (235, 4): "areaid boundary", (81, 4): "areaid.sc", (83, 44): "areaid.lvt", (122, 16): "prBoundary-like",
     (66, 13): "poly fuse", (125, 44): "pnp/ id", (235, 0): "areaid", (236, 0): "areaid",
 }
+# Short names the model may pass as `layer`; anything else must be an explicit 'L/D' pair (see _parse_layer).
 LAYER_ALIASES = {"li1": (67, 20), "met1": (68, 20), "met2": (69, 20), "met3": (70, 20),
                  "met4": (71, 20), "met5": (72, 20), "poly": (66, 20), "diff": (65, 20),
                  "mcon": (67, 44), "via": (68, 44), "via2": (69, 44), "via3": (70, 44), "via4": (71, 44)}
@@ -67,8 +74,7 @@ class ToolError(Exception):
 
 # ----------------------------------------------------------------- helpers
 def _designs():
-    return sorted(os.path.basename(os.path.dirname(c))
-                  for c in glob.glob(os.path.join(REPO, "designs", "*", "config.json")))
+    return repo.design_dirs()
 
 
 def _check_design(design):
@@ -78,8 +84,7 @@ def _check_design(design):
 
 
 def _config(design):
-    with open(os.path.join(REPO, "designs", design, "config.json")) as f:
-        return json.load(f)
+    return repo.config(design)
 
 
 def _top(design):
@@ -98,6 +103,7 @@ def _hardened():
     return [d for d in _designs() if os.path.isfile(os.path.join(REPO, "designs", d, "output", "metrics.json"))]
 
 
+# json.dumps would emit bare Infinity/NaN (invalid JSON for the model client); turn them into strings.
 def _jsonable(v):
     if isinstance(v, float) and (math.isinf(v) or math.isnan(v)):
         return str(v)
@@ -115,6 +121,8 @@ def _gds(design):
     return p
 
 
+# One parsed GDS kept in memory, keyed by (path, mtime): a re-run flow invalidates it, and the clear() keeps
+# at most one big layout alive (the agent asks many questions about the same design in a row).
 _LAYOUT_CACHE = {}
 
 
@@ -406,6 +414,7 @@ def _worst(m, prefix):
     return {"slack_ns": round(vals[c], 4), "corner": c}
 
 
+# Used only for read-only helper scripts (e.g. scripts/flow/check_signoff.py); cwd is pinned to the repo root.
 def _run(cmd, timeout, env=None):
     e = dict(os.environ)
     if env:
@@ -427,10 +436,7 @@ def signoff_summary(design):
            "max_slew_violations": g("design__max_slew_violation__count"),
            "max_cap_violations": g("design__max_cap_violation__count"),
            "max_fanout_violations": g("design__max_fanout_violation__count")}
-    env = {}
-    sock = os.path.expanduser("~/.colima/osl/docker.sock")
-    if "DOCKER_HOST" not in os.environ and os.path.exists(sock):
-        env["DOCKER_HOST"] = "unix://" + sock
+    env = repo.docker_env()     # Colima osl socket if present, else /var/run/docker.sock on Linux (scripts/lib/repo.py)
     try:
         r = _run([sys.executable, os.path.join(REPO, "scripts", "flow", "check_signoff.py"), design], 120, env)
         lines = [l for l in (r.stdout + r.stderr).splitlines() if l.strip()]
@@ -514,6 +520,8 @@ _IMPL = {"list_designs": list_designs, "read_metrics": read_metrics, "compare_de
          "precheck_summary": precheck_summary}
 
 
+# Single entry point for every client (Ollama loop, MCP server, tool_server). The error contract is the point:
+# a small model must always get a readable {"error": ...} back to self-correct, never a traceback or an exception.
 def call(name, args=None):
     """Dispatch a tool call. Never raises."""
     try:

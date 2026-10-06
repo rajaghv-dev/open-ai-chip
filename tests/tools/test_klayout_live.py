@@ -3,6 +3,10 @@
 Default (no GUI, no Docker): protocol, allow-list, token, a fake in-process server for LiveBackend, and the bridge
 methods run against an offscreen klayout.lay.LayoutView standing in for the GUI window (needs a local GDS, else skipped).
 Opt-in: KLAYOUT_LIVE=1 starts the real KLayout desktop app (opens a window on your screen).
+
+Run: build/agent/venv/bin/python -m pytest -q tests/tools/test_klayout_live.py (also part of `make test`, section == tools)
+Pass: every test passes or is skipped (opt-in tests need their env flag).
+Docs: tests/tools/TEST_MATRIX_TOOLS.md, examples/hermes_klayout_gui/README.md
 """
 import importlib.util
 import json
@@ -35,6 +39,7 @@ import view_api as va  # noqa: E402
 
 # ------------------------------------------------------------------ protocol
 def test_encode_decode_roundtrip():
+    """Pins down: encode decode roundtrip."""
     line = lb.encode_request(7, "zoom_to", {"target": {"full": True}}, token="t")
     req = json.loads(line)
     assert line.endswith(b"\n") and req == {"id": 7, "method": "zoom_to", "params": {"target": {"full": True}}, "token": "t"}
@@ -45,6 +50,7 @@ def test_encode_decode_roundtrip():
 
 
 def test_allow_list_refuses_everything_else():
+    """Pins down: allow list refuses everything else."""
     calls = []
     ex = lambda m, p: calls.append(m) or {"ok": True}
     for bad in ("exec", "save", "save_layout", "eval", "__import__", "quit_now", None, 5):
@@ -57,6 +63,7 @@ def test_allow_list_refuses_everything_else():
 
 
 def test_quit_is_disabled_by_default_and_bad_input():
+    """Pins down: quit is disabled by default and bad input."""
     ex = lambda m, p: {"ok": True}
     assert "disabled" in ab.process_line('{"id":1,"method":"quit"}', ex)["error"]
     assert ab.process_line('{"id":1,"method":"quit"}', ex, allow_quit=True)["result"]["ok"]
@@ -66,6 +73,7 @@ def test_quit_is_disabled_by_default_and_bad_input():
 
 
 def test_token_checked_per_request():
+    """Pins down: token checked per request."""
     ex = lambda m, p: {"ok": True}
     assert "token" in ab.process_line('{"id":1,"method":"state"}', ex, token="s3")["error"]
     assert "token" in ab.process_line('{"id":1,"method":"state","token":"no"}', ex, token="s3")["error"]
@@ -73,6 +81,7 @@ def test_token_checked_per_request():
 
 
 def test_bridge_binds_localhost_only():
+    """Pins down: bridge binds localhost only."""
     assert ab.HOST == "127.0.0.1"
     src = open(os.path.join(GUI, "klayout_macro", "agent_bridge.py")).read()
     assert "0.0.0.0" not in src.replace('never 0.0.0.0', "")
@@ -122,6 +131,7 @@ class FakeServer:
 
 
 def test_live_backend_round_trips_against_fake_server():
+    """Pins down: live backend round trips against fake server."""
     s = FakeServer()
     b = lb.LiveBackend(port=s.port)
     assert b.open_design("kv_attn_n8")["top_cell"] == "top"
@@ -143,6 +153,7 @@ def test_live_backend_round_trips_against_fake_server():
 
 
 def test_live_backend_token_and_reconnect():
+    """Pins down: live backend token and reconnect."""
     s = FakeServer(token="abc")
     with pytest.raises(lb.LiveError):
         lb.LiveBackend(port=s.port, token="wrong")
@@ -153,6 +164,7 @@ def test_live_backend_token_and_reconnect():
 
 
 def test_live_backend_clear_error_when_klayout_not_running():
+    """Pins down: live backend clear error when klayout not running."""
     sk = socket.socket()
     sk.bind(("127.0.0.1", 0))
     port = sk.getsockname()[1]
@@ -163,6 +175,7 @@ def test_live_backend_clear_error_when_klayout_not_running():
 
 
 def test_live_backend_timeout():
+    """Pins down: live backend timeout."""
     sk = socket.socket()
     sk.bind(("127.0.0.1", 0))
     sk.listen(1)
@@ -213,6 +226,7 @@ def _gds_or_skip(design):
 
 
 def test_bridge_methods_on_offscreen_stand_in():
+    """Pins down: bridge methods on offscreen stand in."""
     pytest.importorskip("klayout.lay")
     _gds_or_skip("kv_attn_n8")
     ab.pya = _shim_pya()
@@ -244,6 +258,7 @@ def test_bridge_methods_on_offscreen_stand_in():
 # ------------------------------------------------------------------ opt-in: the real desktop app
 @pytest.mark.skipif(os.environ.get("KLAYOUT_LIVE") != "1", reason="set KLAYOUT_LIVE=1 to start the real KLayout window")
 def test_real_klayout_window():
+    """Pins down: real klayout window."""
     port = int(os.environ.get("KLAYOUT_AGENT_PORT", "8765"))
     env = dict(os.environ, KLAYOUT_AGENT_PORT=str(port), KLAYOUT_AGENT_ALLOW_QUIT="1")
     env.pop("KLAYOUT_AGENT_NOSTART", None)     # set at module import for the offline tests; the real window must start the bridge

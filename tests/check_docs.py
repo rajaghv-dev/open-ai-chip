@@ -3,14 +3,19 @@
 no Docker, no build/. Each check prints one line per problem and exits 1 when there is any.
 
   links      every relative link [text](path) in every git-tracked *.md resolves to a file or directory (anchors are not checked;
-             links into git-ignored build outputs (build/, runs/) and URLs are skipped; code spans and fenced code are ignored)
+             links into git-ignored build outputs (build/, runs/), links into ../open-ai-silicon when that sibling checkout is absent,
+             and URLs are skipped; code spans and fenced code are ignored)
   targets    every `make <target>` named in a code span or code block of the docs exists in the Makefile, and every target
              listed by `make help` exists
   inventory  every design of Makefile ALL_DESIGNS has config.json, NOTES.md, README.md, tb/<d>_tb.v, output/{metrics.json,layout.png,
              flow.log}, is in scripts/docs/tables.py ORDER and named in README.md; the design directories, ALL_DESIGNS, ORDER and the
              design count words in README.md / CLAUDE.md / make help agree; every model dir is in Makefile MODELS and check_generated.sh
   evidence   numbers quoted in a design README "Status" paragraph (std cells, flip-flops, die, setup/hold slack) equal
-             designs/<d>/output/metrics.json (the README rounds: a tolerance of half a unit of the last quoted digit is allowed)"""
+             designs/<d>/output/metrics.json (the README rounds: a tolerance of half a unit of the last quoted digit is allowed)
+
+Run: python3 tests/check_docs.py <check> (all four are run by tests/run_tests.sh, section == docs; self-tested by
+     tests/lib/check_docs_selftest.sh through CHECK_DOCS_ROOT). PASS = no problem lines printed, exit 0.
+Docs: tests/TEST_MATRIX.md, README.md, CLAUDE.md"""
 import json, os, re, subprocess, sys
 
 REPO = os.path.abspath(os.environ.get("CHECK_DOCS_ROOT") or os.path.join(os.path.dirname(__file__), ".."))   # CHECK_DOCS_ROOT: self-test on a scratch tree
@@ -69,6 +74,8 @@ def links():
             rel = os.path.relpath(full, REPO)
             if rel.startswith("build" + os.sep) or "/runs/" in rel:
                 continue
+            if rel.split(os.sep)[:2] == ["..", "open-ai-silicon"] and not os.path.isdir(os.path.join(REPO, "..", "open-ai-silicon")):
+                continue                            # the reference sibling repo is not cloned here (Linux/CI checkouts)
             n += 1
             if not os.path.exists(full):
                 bad("%s: broken link %s" % (f, tgt))

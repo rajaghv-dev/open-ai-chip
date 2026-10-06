@@ -2,6 +2,10 @@
 
 Always on: scripts exist and parse, README paths exist, committed images are small PNGs.
 Opt-in: OPENROAD_GUI=1 renders one view with the LibreLane image (needs docker and a finished kv_attn_n8 run).
+
+Run: build/agent/venv/bin/python -m pytest -q tests/tools/test_openroad_gui.py (also part of `make test`, section == tools)
+Pass: every test passes or is skipped (opt-in tests need their env flag).
+Docs: tests/tools/TEST_MATRIX_TOOLS.md, examples/openroad_gui/README.md, docs/OPENROAD_ENGINES.md
 """
 import glob
 import os
@@ -19,17 +23,20 @@ README = os.path.join(EX, "README.md")
 
 
 def test_files_exist():
+    """Pins down: files exist."""
     for p in (SH, TCL, README):
         assert os.path.isfile(p), p
     assert os.access(SH, os.X_OK)
 
 
 def test_shell_parses():
+    """Pins down: shell parses."""
     r = subprocess.run(["bash", "-n", SH], capture_output=True, text=True)
     assert r.returncode == 0, r.stderr
 
 
 def test_tcl_braces_balanced_and_key_commands():
+    """Pins down: tcl braces balanced and key commands."""
     s = open(TCL).read()
     body = re.sub(r"#.*", "", s)
     body = re.sub(r'"[^"\n]*"', '""', body)
@@ -41,6 +48,7 @@ def test_tcl_braces_balanced_and_key_commands():
 
 
 def test_script_is_read_only_and_bounded():
+    """Pins down: script is read only and bounded."""
     s = open(SH).read()
     assert "QT_QPA_PLATFORM=offscreen" in s and "timeout" in s
     assert "/Users/" not in s and "/Users/" not in open(TCL).read()
@@ -48,6 +56,7 @@ def test_script_is_read_only_and_bounded():
 
 
 def test_readme_paths_exist_and_ascii():
+    """Pins down: readme paths exist and ascii."""
     t = open(README, encoding="utf-8").read()
     t.encode("ascii")
     for m in re.findall(r"\]\(([^)#]+)(?:#[^)]*)?\)", t):
@@ -62,6 +71,7 @@ def test_readme_paths_exist_and_ascii():
 
 
 def test_committed_images_small_pngs():
+    """Pins down: committed images small pngs."""
     imgs = glob.glob(os.path.join(EX, "img", "*.png"))
     assert len(imgs) >= 4
     for p in imgs:
@@ -74,6 +84,7 @@ def test_committed_images_small_pngs():
 
 
 def test_engines_page_links_example():
+    """Pins down: engines page links example."""
     assert "examples/openroad_gui/README.md" in open(os.path.join(REPO, "docs", "OPENROAD_ENGINES.md")).read()
 
 
@@ -90,6 +101,7 @@ def _docker_ok():
 
 @pytest.mark.skipif(os.environ.get("OPENROAD_GUI") != "1", reason="set OPENROAD_GUI=1 to render with docker")
 def test_render_one_view():
+    """Pins down: render one view."""
     ok, env = _docker_ok()
     if not ok:
         pytest.skip("docker not reachable")

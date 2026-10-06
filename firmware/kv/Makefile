@@ -1,3 +1,7 @@
+# Purpose: Build the KV-cache attention firmware (main.c) and run it in soc_sim/kv/.
+# Run: make soc-kv (top-level) or make -C firmware/kv sim.
+# In: main.c, ../start.S, ../link.ld, ../bin2hex.py, gen_expected.py. Out: build/firmware.hex, simulation console log.
+# Docs: firmware/README.md, docs/LLM_INFERENCE.md
 # KV-cache attention firmware (second program) for soc_sim/kv. `make -C firmware/kv sim` builds, simulates, exits non-zero unless PASS.
 # Reuses ../start.S ../link.ld ../bin2hex.py unchanged.
 CROSS  ?= riscv64-elf-

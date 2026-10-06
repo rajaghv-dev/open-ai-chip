@@ -1,6 +1,11 @@
 """Tests for scripts/gui/open_gui.sh (OpenROAD GUI / Magic from the LibreLane container on XQuartz or X11).
 Always on: shell syntax, usage errors, unknown tool. Opt-in (OPEN_GUI_LIVE=1, XQuartz listening, Docker up): opens
-Magic for a few seconds and OpenROAD (killed after it reports the loaded block) and checks the LOADED lines."""
+Magic for a few seconds and OpenROAD (killed after it reports the loaded block) and checks the LOADED lines.
+
+Run: build/agent/venv/bin/python -m pytest -q tests/tools/test_open_gui.py (also part of `make test`, section == tools)
+Pass: every test passes or is skipped (opt-in tests need their env flag).
+Docs: tests/tools/TEST_MATRIX_TOOLS.md, docs/GUI_AND_LOGS.md
+"""
 import os
 import shutil
 import subprocess
@@ -16,10 +21,12 @@ def run(args, **kw):
 
 
 def test_script_syntax():
+    """Pins down: script syntax."""
     assert subprocess.run(["bash", "-n", SCRIPT]).returncode == 0
 
 
 def test_usage_errors():
+    """Pins down: usage errors."""
     r = run([])
     assert r.returncode != 0 and "usage" in r.stderr
     r = run(["openroad"])
@@ -27,11 +34,13 @@ def test_usage_errors():
 
 
 def test_unknown_design_refused():
+    """Pins down: unknown design refused."""
     r = run(["magic", "no_such_design_xyz"])
     assert r.returncode != 0
 
 
 def test_ascii_and_no_home_paths():
+    """Pins down: ascii and no home paths."""
     s = open(SCRIPT).read()
     assert s.isascii() and "/Users/" not in s
 
@@ -48,12 +57,14 @@ live = pytest.mark.skipif(os.environ.get("OPEN_GUI_LIVE") != "1" or not _xquartz
 
 @live
 def test_magic_window_opens():
+    """Pins down: magic window opens."""
     r = run(["magic", "kv_attn_n8"], env=dict(os.environ, GUI_SECONDS="8"), timeout=180)
     assert "MAGIC_GUI_LOADED kv_attn_n8" in r.stdout + r.stderr
 
 
 @live
 def test_openroad_window_opens():
+    """Pins down: openroad window opens."""
     p = subprocess.Popen(["bash", SCRIPT, "openroad", "kv_attn_n8"], cwd=REPO, stdin=subprocess.DEVNULL,
                          stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
     seen = False
@@ -77,6 +88,7 @@ def test_openroad_window_opens():
 
 
 def test_live_heatmaps_script():
+    """Pins down: live heatmaps script."""
     t = open(os.path.join(REPO, "examples", "openroad_gui", "live_heatmaps.tcl")).read()
     assert t.count("{") == t.count("}") and t.count("[") == t.count("]")
     assert "gui::pause" in t and "after " not in t.replace("after the", "")   # after timers never fire in the OpenROAD GUI

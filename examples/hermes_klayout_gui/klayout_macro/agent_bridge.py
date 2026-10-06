@@ -6,6 +6,7 @@
 #
 # Protocol: one JSON object per line.  request  {"id": 1, "method": "zoom_to", "params": {...}, "token": "..."}
 #                                       response {"id": 1, "result": {"ok": true, ...}}  or {"id": 1, "error": "..."}
+# Docs: examples/hermes_klayout_gui/README_live.md, docs/HERMES_AGENT.md
 import hmac
 import json
 import os
@@ -53,6 +54,7 @@ def process_line(line, execute, token=None, allow_quit=False):
             return {"id": None, "error": "request must be a JSON object"}
         rid = req.get("id")
         if token:
+            # constant-time compare, so the token cannot be guessed byte by byte from response timing
             if not hmac.compare_digest(str(req.get("token", "")).encode(), token.encode()):
                 return {"id": rid, "error": "bad or missing token"}
         method = req.get("method")
@@ -260,6 +262,8 @@ class Bridge:
         return {"design": self.design, "view_bbox_um": self.view_bbox(v), "visible_layers": self.visible(v)}
 
     # ---- GUI thread side
+    # Errors become {"ok": false} replies instead of exceptions: an exception in a QTimer callback would only be
+    # printed in KLayout's log and the waiting socket thread would hang until REQUEST_TIMEOUT_S.
     def run_gui(self, method, params):
         try:
             r = getattr(self, method)(params)
@@ -271,6 +275,7 @@ class Bridge:
         except Exception as e:  # noqa: BLE001
             return {"ok": False, "error": "%s: %s" % (type(e).__name__, e)}
 
+    # Runs on the GUI thread every 50 ms (pya.QTimer). At most 8 requests per tick so a burst cannot freeze the window.
     def tick(self):
         for _ in range(8):
             try:
@@ -282,6 +287,7 @@ class Bridge:
             slot["ev"].set()
 
     # ---- socket thread side (never touches pya)
+    # Socket thread: hand the request to the GUI thread through the queue and block on an Event for the answer.
     def submit(self, method, params):
         slot = {"ev": threading.Event(), "res": None}
         self.q.put((method, params, slot))
@@ -302,6 +308,7 @@ class Bridge:
     def serve(self):
         srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        # HOST is 127.0.0.1: the bridge can move the window and read files, so it must never be reachable off-host.
         srv.bind((HOST, self.port))
         srv.listen(4)
         log("listening on %s:%d (token %s, quit %s)" % (HOST, self.port, "on" if self.token else "off",

@@ -1,3 +1,8 @@
+/* Purpose: Management-core (VexRiscv) firmware that checks tiny_ai_core through the user Wishbone window.
+ * Run: compiled by caravel_sim/run_rtl.sh with riscv64-elf-gcc (make caravel-rtl).
+ * In: Caravel defs.h/stub.c. Out: result codes on mprj_io for tiny_ai_wb_tb.v.
+ * Docs: docs/CARAVEL_SIM.md, caravel_sim/README.md
+ */
 /* Caravel management-core (VexRiscv) firmware: drives tiny_ai_core (mprj) over the user Wishbone window 0x3000_0000.
  * Result signalling (read by tiny_ai_wb_tb.v from mprj_io[31:16]): 0xAB60 started, 0xAB61 all checks passed,
  * 0xE0nn..: failure, nn = number of the failing check. Expected values from model/tiny_ai/golden.py core_run():

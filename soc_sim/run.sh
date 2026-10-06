@@ -1,4 +1,8 @@
 #!/bin/bash
+# Purpose: Compile the SoC testbench with iverilog and run a firmware hex; exit 1 unless the firmware printed PASS.
+# Run: make soc-sim (via make -C firmware sim) or soc_sim/run.sh [firmware.hex].
+# In: firmware hex, soc_tb.v, designs/user_project_wrapper RTL. Out: soc_sim/build/soc.vvp, console log.
+# Docs: firmware/README.md, docs/SOC_PLAN.md
 # run.sh [firmware.hex] -- compile the SoC testbench with iverilog and run the firmware; exit 1 unless it printed PASS.
 # Usage: make -C firmware sim   (builds the hex, then calls this)
 set -u

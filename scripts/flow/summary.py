@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Docs: .claude/skills/harden-design/SKILL.md
 """summary.py <design> <stages.txt> <total seconds> -- the five-line summary printed by `make flow-all`.
 Numbers come only from build/sim/<design>/sim.log and designs/<design>/output/{metrics,resources}.json."""
 import json, re, sys

@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
+# Purpose: Stage the project and run the local cf-precheck checks one by one with a per-check time cap.
+# Run: make precheck (optionally with a list of check names).
+# In: build/results GDS/LEF, designs/user_project_wrapper. Out: build/precheck/results_<stamp>/summary.tsv and logs.
+# Docs: docs/PRECHECK.md, precheck/README.md
 # One command: stage the project and run the local cf-precheck 1.3.7 (all checks incl. Magic DRC and LVS) in the osl-precheck image.
 # Local only: no cf login/init/push/submit, no uploads. Needs Colima/docker (DOCKER_HOST) and the sky130A PDK in ~/.volare.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-export DOCKER_HOST="${DOCKER_HOST:-unix://$HOME/.colima/osl/docker.sock}"
+. "$ROOT/scripts/lib/common.sh"; oac_docker_host   # Colima osl socket if present (Linux: /var/run/docker.sock)
 IMAGE="${PRECHECK_IMAGE:-osl-precheck:nix-klayout}"
 PDK_ROOT="${PDK_ROOT:-$ROOT/build/precheck/pdk_cf}"   # PDK_ROOT=$HOME/.volare to use the LibreLane-pinned 8afc8346 PDK instead
 [ -d "$PDK_ROOT/sky130A" ] || "$ROOT/precheck/fetch_pdk.sh"

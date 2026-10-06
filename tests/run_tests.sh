@@ -22,6 +22,9 @@
 #                 the testbenches and the model FAIL on deliberately broken input (they can catch a bug): the counter with
 #                 +2 increments; per tiny engine a corrupted expected value in vectors.hex and a broken RTL copy; a mutated
 #                 threshold in a copy of model/tiny_ai. All mutations are made in a temp dir and asserted to have applied.
+# Run: bash tests/run_tests.sh   (make test; about 65 s, no Docker). Exit 0 and a final "test: ALL PASSED" line mean PASS;
+#      every check prints one PASS/FAIL/NOTE line (NOTE = optional tool missing, skipped).
+# Docs: tests/TEST_MATRIX.md, tests/tools/TEST_MATRIX_TOOLS.md, CLAUDE.md
 set -uo pipefail
 cd "$(dirname "$0")/.."
 D=designs/user_proj_example
@@ -46,12 +49,13 @@ pass() { echo "  PASS  $*"; }
 fail() { echo "  FAIL  $*"; FAILS=$((FAILS+1)); }
 TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
 
+# == structure: Guards against: missing files, symlinks, absolute home paths and reference-repo leftovers in committed files. Docs: CLAUDE.md (Evidence and hygiene), tests/TEST_MATRIX.md
 echo "== structure"
 for f in Makefile versions.lock README.md provenance/SOURCES.md \
          $D/config.json $D/pin_order.cfg $D/base_user_proj_example.sdc \
          $D/rtl/user_proj_example.v $D/rtl/defines.v $D/rtl/LICENSE $D/rtl/UPSTREAM.txt $D/tb/user_proj_example_tb.v \
          scripts/doctor.sh scripts/flow/{run_capped.sh,find_reusable_run.py,gl_sim.sh,check_signoff.py,collect.sh,summary.py,design_info.py,signoff_allowances.json,tiny_table.py} \
-         scripts/check_generated.sh shared/tb/stream_tb.vh \
+         scripts/check_generated.sh scripts/lib/common.sh scripts/lib/repo.py shared/tb/stream_tb.vh \
          model/tiny_ai/{common.py,train.py,golden.py,gen_rom.py,spec.json,weights.json} \
          model/audio_pitch/{train.py,golden.py,gen_rom.py,spec.json,weights.json} \
          model/audio_onset/{common.py,train.py,golden.py,gen_rom.py,spec.json,weights.json} \
@@ -72,12 +76,33 @@ links=$(find . -type l -not -path './build/*' -not -path "./$D/runs/*" | head -3
 [ -z "$links" ] && pass "no symlinks" || fail "symlinks: $links"
 src=(Makefile scripts tests designs/*/config.json designs/*/rtl/*.v designs/*/tb model shared)   # rtl/UPSTREAM.txt names the reference on purpose
 hits=$(grep -rIl -e "$HOME" -e 'ci_user_proj_example' -e 'ci-upe' -e 'osl_cap_' "${src[@]}" 2>/dev/null | grep -v '^tests/run_tests.sh$' || true)
+# agent/tool/simulation code: no absolute home paths (local outputs under build/, results/ and caches are skipped)
+hits="$hits $(grep -rIl --exclude-dir=build --exclude-dir=results --exclude-dir=__pycache__ --exclude-dir=third_party -e "$HOME" \
+  tools examples caravel_sim precheck firmware soc_sim 2>/dev/null || true)"
+hits=$(echo $hits)
 [ -z "$hits" ] && pass "no absolute home paths or reference-repo names in sources" || fail "found in: $hits"
+# shared helpers (scripts/lib/common.sh, scripts/lib/repo.py): DOCKER_HOST default kept when set; the Colima osl socket only if it
+# exists; else /var/run/docker.sock on Linux if it exists; else unset (Docker's default). Image = versions.lock LIBRELANE_IMAGE.
+mkdir -p "$TMP/h0" "$TMP/h1/.colima/osl"; : > "$TMP/h1/.colima/osl/docker.sock"
+dh() { env -i HOME="$1" PATH="$PATH" ${2:+DOCKER_HOST=$2} bash -c '. scripts/lib/common.sh; oac_docker_host; echo "${DOCKER_HOST:-unset} $OAC_LIBRELANE_IMAGE"'; }
+dhp() { env -i HOME="$1" PATH="$PATH" ${2:+DOCKER_HOST=$2} python3 -c 'import sys; sys.path.insert(0, "scripts/lib"); import repo; print(repo.docker_env().get("DOCKER_HOST", "unset"), repo.librelane_image())'; }
+img=$(sed -n 's/^LIBRELANE_IMAGE=//p' versions.lock); none=unset
+[ "$(uname)" != Darwin ] && [ -e /var/run/docker.sock ] && none=unix:///var/run/docker.sock
+ok_dh=1
+for f in dh dhp; do
+  [ "$($f "$TMP/h0")" = "$none $img" ] || ok_dh=0
+  [ "$($f "$TMP/h1")" = "unix://$TMP/h1/.colima/osl/docker.sock $img" ] || ok_dh=0
+  [ "$($f "$TMP/h1" tcp://x:1)" = "$( [ $f = dh ] && echo tcp://x:1 || echo unset) $img" ] || ok_dh=0
+done
+[ "$(python3 scripts/flow/design_info.py --list | sort)" = "$(ls -d designs/*/config.json | cut -d/ -f2 | sort)" ] || ok_dh=0
+[ $ok_dh = 1 ] && pass "scripts/lib common.sh/repo.py: DOCKER_HOST default, image pin, design list" || fail "scripts/lib common.sh/repo.py helpers"
 
+# == upstream: Guards against: edits to the upstream template RTL/LICENSE (must stay byte-identical). Docs: CLAUDE.md (Evidence and hygiene), tests/TEST_MATRIX.md
 echo "== upstream"
 if shasum -a 256 -c tests/upstream.sha256 >"$TMP/sha.txt" 2>&1; then pass "RTL and LICENSE match tests/upstream.sha256"
 else fail "upstream files changed:"; grep -v ': OK$' "$TMP/sha.txt"; fi
 
+# == config: Guards against: a config.json losing a required key or a guard setting (CLOCK_PERIOD, ERROR_ON_SYNTH_CHECKS ...) or pointing at a missing file. Docs: CLAUDE.md (HARD RULES), tests/TEST_MATRIX.md
 echo "== config"
 for d in $ALL; do
 if python3 - "designs/$d/config.json" "$d" <<'PY'
@@ -117,6 +142,7 @@ for f in designs/$CORE/config.json designs/$CORE/rtl/$CORE.v designs/$CORE/tb/${
   [ -f "$f" ] || fail "missing $f"
 done
 
+# == rtl: Guards against: RTL or testbench that does not elaborate cleanly under iverilog -Wall (every design). Docs: tests/TEST_MATRIX.md
 echo "== rtl"
 for d in $ALL; do
   RTL=$(rtl_of $d)
@@ -130,6 +156,7 @@ for d in $ALL; do
   else fail "$d iverilog failed:"; head -10 "$TMP/iv_$d.log"; fi
 done
 
+# == wrapper: Guards against: a Caravel wrapper with a changed module header, wrong macro instance count or a failing RTL testbench. Docs: .claude/skills/wrapper-build/SKILL.md, tests/TEST_MATRIX.md
 echo "== wrapper"
 if [ $HAVE_WRAP = 1 ]; then
  for WRAP in $WRAPS; do
@@ -176,6 +203,7 @@ PY
  done
 else note "no designs/user_project_wrapper*: wrapper checks skipped"; fi
 
+# == model: Guards against: golden models disagreeing with their checks, and generated ROM/vectors/weights drifting from the model. Docs: CLAUDE.md (Generated files), tests/TEST_MATRIX.md
 echo "== model"
 if python3 model/tiny_ai/golden.py --check >"$TMP/golden.log" 2>&1; then
   if grep -qv ' 0 mismatches' "$TMP/golden.log"; then fail "golden.py --check reported mismatches:"; cat "$TMP/golden.log"
@@ -191,9 +219,8 @@ done
 if scripts/check_generated.sh >"$TMP/gen.log" 2>&1; then pass "regeneration reproduces every generated file"
 else fail "check_generated.sh:"; cat "$TMP/gen.log"; fi
 
+# == sim: Guards against: an engine RTL that no longer matches its generated vectors (PASS line expected). Docs: tests/TEST_MATRIX.md
 echo "== sim"
-# vsim <dir-name> <design> <vvp> <vec>: run a compiled testbench; prints exit code in $rc, log in $TMP/<name>.log
-vsim() { (cd "$TMP" && vvp -n "$3" +VEC="$4" > "$1.log" 2>&1); rc=$?; }
 for d in $TINY $CORE $NEWENG $SOCM $KV; do
   VEC="$PWD/designs/$d/tb/vectors.hex"
   t0=$(date +%s)
@@ -203,22 +230,12 @@ for d in $TINY $CORE $NEWENG $SOCM $KV; do
   else fail "$d testbench (exit $rc): $(tail -2 "$TMP/sim_$d.log" | tr '\n' ' ' | cut -c1-120)"; fi
 done
 
+# == negative: Guards against: testbenches or the model that cannot fail (each is fed a deliberately broken input and must FAIL). Docs: tests/TEST_MATRIX.md
 echo "== negative"
+# Vector corruption: tests/lib/mutate_vectors.py (one flipped expected value per design; layouts per vector family).
 # tiny_ai_core: flip the expected class (byte 11) of the first case record; the Wishbone testbench must fail
-python3 - designs/$CORE/tb/vectors.hex "$TMP/core_bad.hex" <<'PYX'
-import sys
-src, dst = sys.argv[1:3]
-out, seen = [], 0
-for ln in open(src):
-    s = ln.strip()
-    if s and not s.startswith("//"):
-        seen += 1
-        if seen == 2:                                   # record 0 is the header; record 1 is the first case
-            w = s.split(); w[11] = "%02x" % (int(w[11], 16) ^ 1); ln = " ".join(w) + "\n"
-    out.append(ln)
-open(dst, "w").writelines(out)
-PYX
-if cmp -s "$TMP/core_bad.hex" designs/$CORE/tb/vectors.hex; then fail "$CORE: vector corruption did not apply"
+python3 tests/lib/mutate_vectors.py $CORE designs/$CORE/tb/vectors.hex "$TMP/core_bad.hex"
+if [ $? -ne 0 ] || cmp -s "$TMP/core_bad.hex" designs/$CORE/tb/vectors.hex; then fail "$CORE: vector corruption did not apply"
 else
   vsim "neg_core" "$CORE" "tb_$CORE.vvp" "$TMP/core_bad.hex"
   if [ $rc -ne 0 ] && ! grep -q '^PASS' "$TMP/neg_core.log"; then pass "$CORE: testbench rejects a corrupted expected class ($(grep -m1 FAIL "$TMP/neg_core.log" | cut -c1-70))"
@@ -236,18 +253,7 @@ fi
 
 # tiny engines: (a) one expected value in vectors.hex corrupted, (b) the RTL broken
 for d in $TINY; do
-  python3 - "designs/$d/tb/vectors.hex" "$TMP/$d.bad.hex" <<'PY'
-import sys
-out, n, hit = [], 0, False
-for ln in open(sys.argv[1]).read().split("\n"):
-    if ln.strip() and not ln.startswith("//"):
-        if n == 1:                        # data record 0 is the header, record 1 the first case: word 13 = expected beat 0
-            w = ln.split(); w[13] = "%02x" % (int(w[13], 16) ^ 1); ln = " ".join(w); hit = True
-        n += 1
-    out.append(ln)
-open(sys.argv[2], "w").write("\n".join(out))
-sys.exit(0 if hit else 1)
-PY
+  python3 tests/lib/mutate_vectors.py "$d" "designs/$d/tb/vectors.hex" "$TMP/$d.bad.hex"
   if [ $? -ne 0 ] || cmp -s "$TMP/$d.bad.hex" designs/$d/tb/vectors.hex; then fail "$d: vector mutation did not apply"
   else
     vsim "negv_$d" "$d" "tb_$d.vvp" "$TMP/$d.bad.hex"
@@ -276,25 +282,7 @@ done
 
 # new engines: one corrupted expected value in vectors.hex each (audio_pitch, audio_onset: 32-bit words; the others 16-byte records)
 for d in audio_pitch audio_onset image_text_match prec_int8; do
-  python3 - "$d" "designs/$d/tb/vectors.hex" "$TMP/$d.bad.hex" <<'PY'
-import sys
-d, src, dst = sys.argv[1:4]
-lines = open(src).read().split("\n")
-out, n, hit = [], 0, False
-first = {"audio_pitch": 4, "audio_onset": 3}.get(d)       # index of the first input-beat word; None: record layout
-flag = {"audio_pitch": 9, "audio_onset": 10}.get(d)       # "a result is expected" bit
-for ln in lines:
-    if ln.strip() and not ln.startswith("//") and not hit:
-        if first is not None:
-            if n >= first and int(ln.split()[0], 16) >> flag & 1:
-                ln = "%08x" % (int(ln.split()[0], 16) ^ (1 << 11)); hit = True      # expected m_data bit 0
-        elif n == 1:                                                                 # record 1: word 13 = expected beat 0
-            w = ln.split(); w[13] = "%02x" % (int(w[13], 16) ^ 1); ln = " ".join(w); hit = True
-        n += 1
-    out.append(ln)
-open(dst, "w").write("\n".join(out))
-sys.exit(0 if hit else 1)
-PY
+  python3 tests/lib/mutate_vectors.py "$d" "designs/$d/tb/vectors.hex" "$TMP/$d.bad.hex"
   if [ $? -ne 0 ] || cmp -s "$TMP/$d.bad.hex" designs/$d/tb/vectors.hex; then fail "$d: vector mutation did not apply"
   else
     vsim "negv_$d" "$d" "tb_$d.vvp" "$TMP/$d.bad.hex"
@@ -303,20 +291,8 @@ PY
   fi
 done
 
-# kv_attn_n8: flip one expected output beat (word 4 of the first CMD record with 8 output beats) in a copy of its vectors
-python3 - designs/kv_attn_n8/tb/vectors.hex "$TMP/kv_bad.hex" <<'PY'
-import sys
-out, n, hit = [], 0, False
-for ln in open(sys.argv[1]).read().split("\n"):
-    s = ln.split("//")[0].split()
-    if s and not hit:
-        if n >= 1 and int(s[0], 16) == 1 and int(s[2], 16) == 8:
-            s[4] = "%02x" % (int(s[4], 16) ^ 1); ln = " ".join(s); hit = True
-        n += 1
-    out.append(ln)
-open(sys.argv[2], "w").write("\n".join(out))
-sys.exit(0 if hit else 1)
-PY
+# kv_attn_n8: flip one expected output beat (word 4 of the first CMD record with output beats) in a copy of its vectors
+python3 tests/lib/mutate_vectors.py kv_attn_n8 designs/kv_attn_n8/tb/vectors.hex "$TMP/kv_bad.hex"
 if [ $? -ne 0 ] || cmp -s "$TMP/kv_bad.hex" designs/kv_attn_n8/tb/vectors.hex; then fail "kv_attn_n8: vector mutation did not apply"
 else
   vsim "negv_kv" "kv_attn_n8" "tb_kv_attn_n8.vvp" "$TMP/kv_bad.hex"
@@ -339,6 +315,7 @@ else pass "golden.py --check rejects a mutated threshold ($(grep -m1 -v ' 0 mism
 # every design family: one expected value in a copy of its vectors.hex flipped (tests/lib/mutate_vectors.py); the self-checking
 # testbench (already compiled in == rtl) must exit non-zero with no PASS line. The unmodified vectors pass in == sim / == wrapper.
 # Covers what the cases above do not: kv_attn_n4/n16/n8_int4/n8_ring, soc_image_text_match, soc_kv_attn_n8, the three wrappers, 6 prec_*.
+# == negative-all: Guards against: the same blind spot as == negative for the remaining families (kv, soc macros, wrappers, prec_*), also through the adapter. Docs: tests/TEST_MATRIX.md
 echo "== negative-all"
 for d in kv_attn_n4 kv_attn_n16 kv_attn_n8_int4 kv_attn_n8_ring prec_bin prec_tern prec_int4 prec_fp8 prec_fp16 prec_bf16 \
          soc_image_text_match soc_kv_attn_n8 $WRAPS; do
@@ -358,6 +335,7 @@ else pass "adapter test rejects corrupted vectors ($(grep -c '^FAIL' "$TMP/adapt
 if bash tests/lib/check_docs_selftest.sh >"$TMP/docs_self.log" 2>&1; then pass "tests/check_docs.py self-test: $(grep -c '^ok' "$TMP/docs_self.log") cases (good tree accepted, each fault rejected)"
 else fail "check_docs.py self-test:"; grep '^BAD' "$TMP/docs_self.log"; fi
 
+# == docs: Guards against: broken markdown links, unknown make targets in docs, inventory drift, README Status numbers differing from metrics.json (tests/check_docs.py, self-tested by tests/lib/check_docs_selftest.sh). Docs: tests/TEST_MATRIX.md
 echo "== docs"
 # evidence and documentation consistency (tests/check_docs.py): relative links of every tracked *.md, make targets named in the docs,
 # design inventory (files, tables.py ORDER, README, counts, model dirs), numbers in design README Status lines vs output/metrics.json
@@ -365,7 +343,12 @@ for c in inventory evidence targets links; do
   if python3 tests/check_docs.py $c >"$TMP/docs_$c.log" 2>&1; then pass "docs $c: $(tail -1 "$TMP/docs_$c.log")"
   else fail "docs $c:"; head -20 "$TMP/docs_$c.log"; fi
 done
+# traceability: every code file names its parent .md in a "Docs:" line, or is mapped in tests/traceability_map.txt
+# (model/ is mapped, not edited: its sources are hashed into generated design inputs). Map: docs/CODE_MAP.md (make code-map)
+if python3 tests/check_traceability.py >"$TMP/trace.log" 2>&1; then pass "$(tail -1 "$TMP/trace.log")"
+else fail "traceability:"; grep -v '^traceability:' "$TMP/trace.log" | head -20; fi
 
+# == notes: Guards against: a hardened design whose NOTES.md lacks the required headings. Docs: .claude/skills/write-design-notes/SKILL.md, tests/TEST_MATRIX.md
 echo "== notes"
 # every design with output/metrics.json needs NOTES.md with these headings (## or ###, case-insensitive prefix match)
 for d in designs/*/; do
@@ -384,12 +367,14 @@ PY
   then pass "$n/NOTES.md: all required headings"; else fail "$n/NOTES.md"; fi
 done
 
+# == adapter: Guards against: wb_stream_adapter.v failing to carry any stream engine's vectors over Wishbone (tests/adapter/run.sh). Docs: tests/TEST_MATRIX.md, docs/SOC_PLAN.md
 echo "== adapter"
 # generic Wishbone-to-stream adapter with every stream engine behind it (tests/adapter/run.sh)
 t0=$(date +%s)
 if bash tests/adapter/run.sh >"$TMP/adapter.log" 2>&1; then pass "wb_stream_adapter with all stream engines: $(grep -c "^PASS" "$TMP/adapter.log") engines ($(( $(date +%s)-t0 )) s)"
 else fail "tests/adapter/run.sh:"; tail -5 "$TMP/adapter.log"; fi
 
+# == soc: Guards against: the PicoRV32 SoC + firmware simulation regressing (skipped with a NOTE without riscv64-elf-gcc). Docs: docs/SOC_PLAN.md, tests/TEST_MATRIX.md
 echo "== soc"
 # PicoRV32 runs RISC-V firmware against user_project_wrapper RTL (make -C firmware sim)
 if command -v riscv64-elf-gcc >/dev/null 2>&1; then
@@ -404,6 +389,7 @@ if command -v riscv64-elf-gcc >/dev/null 2>&1; then
 else note "riscv64-elf-gcc not found: firmware KV SoC sim skipped"; fi
 note "full-Caravel runs (make caravel-rtl, make caravel-gl) are not part of make test: they need build/caravel downloads (about 5 GB)"
 
+# == tools: Guards against: regressions in the agent/EDA tools, RAG and MCP (pytest tests/tools; skipped with a NOTE without the venv). Docs: tests/tools/TEST_MATRIX_TOOLS.md, docs/HERMES_AGENT.md
 echo "== tools"
 # agent/tools pytest (tests/tools, owned by the tools agent; no Ollama, no Docker; live tests are opt-in and skip by default)
 if [ -x build/agent/venv/bin/python ]; then
@@ -412,8 +398,9 @@ if [ -x build/agent/venv/bin/python ]; then
   else fail "tests/tools pytest:"; tail -15 "$TMP/tools.log"; fi
 else note "build/agent/venv missing: tests/tools pytest skipped (docs/HERMES_AGENT.md)"; fi
 
+# == tables: Guards against: stale generated results tables (scripts/docs/tables.py --check). Docs: docs/RESULTS.md, tests/TEST_MATRIX.md
 echo "== tables"
-if python3 scripts/docs/tables.py --check >"$TMP/tables.log" 2>&1; then pass "README results tables up to date"; else fail "tables.py --check: $(cat "$TMP/tables.log")"; fi
+if python3 scripts/docs/tables.py --check >"$TMP/tables.log" 2>&1; then pass "docs/RESULTS.md results tables up to date"; else fail "tables.py --check: $(cat "$TMP/tables.log")"; fi
 
 echo
 [ "$FAILS" = 0 ] && { echo "test: ALL PASSED"; exit 0; } || { echo "test: $FAILS FAILED"; exit 1; }

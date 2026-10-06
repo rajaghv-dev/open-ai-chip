@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Hermes (text-only, local) drives a KLayout VIEW with 7 coarse read-only commands.
+Docs: examples/hermes_klayout_gui/README.md, docs/HERMES_FROM_TERMINAL.md
 
   build/agent/venv/bin/python examples/hermes_klayout_gui/agent.py --dry-run          # scripted, no Ollama
   build/agent/venv/bin/python examples/hermes_klayout_gui/agent.py "open kv_attn_n8, show li1 and met1, zoom to the lower-left 50x50 um, snapshot"
@@ -41,11 +42,7 @@ def system_prompt(with_metrics=False):
     tools = list(va.TOOLS)
     if with_metrics:
         tools += [t for t in eda_tools.TOOLS if t["function"]["name"] == "read_metrics"]
-    blob = json.dumps([t["function"] for t in tools])
-    return (SYSTEM + "\n\nYou are a function calling AI model. You may call one or more functions to assist with the user query. "
-            f"Don't make assumptions about what values to plug into functions. Here are the available tools:\n<tools> {blob} </tools>\n"
-            "For each function call return a json object with function name and arguments within <tool_call></tool_call> XML tags:\n"
-            '<tool_call>\n{"name": <function-name>, "arguments": <args-dict>}\n</tool_call>')
+    return SYSTEM + hermes_agent.tools_suffix(tools)     # the Hermes tool list + <tool_call> format
 
 
 # ============================================================ deterministic router (guardrail)
@@ -153,7 +150,7 @@ class Scripted:
             if isinstance(args.get("target", {}).get("bbox"), str):          # LOWER_LEFT_50 -> from open_design's bbox
                 bb = self._bbox(msgs)
                 args = {"target": {"bbox": [bb[0], bb[1], bb[0] + 50, bb[1] + 50]}}
-            return '<tool_call>\n%s\n</tool_call>' % json.dumps({"name": name, "arguments": args})
+            return hermes_agent.tool_call_text(name, args)
         return "(scripted answer) Done. Last tool result: %s" % json.dumps(self.last)[:400]
 
     @staticmethod
@@ -216,14 +213,7 @@ def run_episode(request, backend, model, emit=None, with_metrics=False, use_rout
         out = model(msgs)
         content, tok = out if isinstance(out, tuple) else (out, 0)
         tokens += tok
-        tcs = hermes_agent._parse_tool_calls(content)
-        if not tcs and "<tool_call>" in content:                      # Ollama sometimes eats the closing tag
-            for raw in re.findall(r"<tool_call>\s*(\{.*)", content, re.S):
-                try:
-                    d = json.loads(raw.strip().rstrip("<>/tool_call").strip())
-                    tcs.append((d.get("name"), d.get("arguments") or {}))
-                except Exception:
-                    pass
+        tcs = hermes_agent.parse_tool_calls(content, lenient=True)    # lenient: Ollama sometimes eats the closing tag
         if tcs:
             msgs.append({"role": "assistant", "content": content})
             blocks = []
@@ -232,8 +222,8 @@ def run_episode(request, backend, model, emit=None, with_metrics=False, use_rout
                     res = {"ok": False, "error": "tool call budget exhausted; answer from what you have"}
                 else:
                     res = do(name, args, "model")
-                blocks.append(json.dumps({"name": name, "content": hermes_agent._fmt(res)}))
-            msgs.append({"role": "tool", "content": "\n</tool_response>\n<tool_response>\n".join(blocks)})
+                blocks.append(hermes_agent.tool_block(name, hermes_agent._fmt(res)))
+            msgs.append(hermes_agent.tool_message(blocks))
             continue
         # no tool call: GUARDRAIL for view requests
         view_calls = [c for c in calls if c["name"] in va.TOOL_NAMES]
@@ -248,9 +238,8 @@ def run_episode(request, backend, model, emit=None, with_metrics=False, use_rout
                 continue
             router_used = True                                         # second miss: the code makes the call itself
             res = do(suggestion["tool"], suggestion["args"], "router")
-            msgs += [{"role": "assistant", "content": '<tool_call>\n%s\n</tool_call>' % json.dumps(
-                {"name": suggestion["tool"], "arguments": suggestion["args"]})},
-                {"role": "tool", "content": json.dumps({"name": suggestion["tool"], "content": hermes_agent._fmt(res)})}]
+            msgs += [{"role": "assistant", "content": hermes_agent.tool_call_text(suggestion["tool"], suggestion["args"])},
+                     hermes_agent.tool_message([hermes_agent.tool_block(suggestion["tool"], hermes_agent._fmt(res))])]
             continue
         answer = content.strip()
         break
@@ -289,11 +278,14 @@ def make_backend(kind):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("request", nargs="*")
+    ap.add_argument("--model", default=None, help="Ollama model tag (default: env HERMES_MODEL, else hermes3:8b)")
     ap.add_argument("--backend", choices=["offscreen", "live"], default="offscreen")
     ap.add_argument("--dry-run", action="store_true", help="scripted tool calls, no Ollama (uses --scenario)")
     ap.add_argument("--scenario", type=int, default=0, help="index into SCENARIOS for --dry-run without a request")
     ap.add_argument("--with-metrics", action="store_true", help="also give the model eda_tools.read_metrics")
     a = ap.parse_args()
+    if a.model:
+        hermes_agent.MODEL = a.model
     backend = make_backend(a.backend)
     if a.dry_run:
         sc = SCENARIOS[a.scenario]

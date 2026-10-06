@@ -4,6 +4,7 @@
 Run:  build/agent/venv/bin/python examples/hermes_klayout_demo/demo.py [--dry-run] ["question"]
 Minimal on purpose: read-only, 2 tools, 3 steps max. Not fully functional (see README).
 Needs the GDS first:  make collect DESIGN=tiny_ai_core
+Docs: examples/hermes_klayout_demo/README.md, docs/HERMES_FROM_TERMINAL.md
 """
 import argparse, glob, json, os, re, sys, urllib.request
 import klayout.db as db                       # KLayout's Python API: GDS as data
@@ -49,11 +50,14 @@ SPECS = [  # what the model is told it can call (JSON schema, Hermes style)
       "layer": {"type": "string", "enum": list(LAYERS)}}, "required": ["design", "layer"]}}]
 
 # ---------------------------------------------------------------- AGENT LOOP (the thinking part)
+# Hermes-style prompt: tool specs go inside <tools>, the model answers with <tool_call>{json}</tool_call>. This text
+# format (not the Ollama native tool API) is what Hermes 3 was trained on, so a 8B model follows it reliably.
 SYSTEM = ("You are a function calling AI model. You may call functions to answer. Functions:\n"
           f"<tools>{json.dumps(SPECS)}</tools>\n"
           'To call one, reply ONLY with <tool_call>{"name": <name>, "arguments": <args>}</tool_call>.\n'
           "Answer ONLY from tool results, never from memory. When you have everything, reply in plain text.")
 
+# temperature 0 + stream False: deterministic, one JSON reply. Only network touched is localhost:11434.
 def ollama(messages):
     req = urllib.request.Request("http://localhost:11434/api/chat", json.dumps(
         {"model": "hermes3:8b", "messages": messages, "stream": False,

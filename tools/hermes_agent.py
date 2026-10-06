@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Local, offline Hermes tool-calling agent over the read-only EDA tool layer.
+Docs: docs/HERMES_AGENT.md, docs/AGENT_MODELS.md
 
 Model: Nous Research Hermes served by Ollama (http://localhost:11434). Tools: tools/eda_tools.py only
 (TOOLS schemas + call(name, args)); the agent has no shell, no file write, no network except localhost.
@@ -16,9 +17,14 @@ import eda_tools  # noqa: E402  (the only tool source)
 
 OLLAMA = os.environ.get("OLLAMA_URL", "http://localhost:11434")
 MODEL = os.environ.get("HERMES_MODEL", "hermes3:8b")
+# Models with a thinking mode get "think": false on /api/chat (tool use here wants a plain answer, not a reasoning trace).
+# hermes3:8b and other models are untouched. Override with env HERMES_THINK=on to leave thinking at the model default.
+NO_THINK_PREFIXES = ("qwen3", "gemma4")
 MAX_TOOL_CALLS = 6
 HTTP_TIMEOUT = 300
 RESULT_CHARS = 3500   # tool result characters shown to the model
+OPTS = {"temperature": 0, "seed": 42, "num_ctx": 8192, "num_predict": 700}   # deterministic decoding (also the harness and RAG agents)
+BUDGET_MSG = "tool call budget exhausted; answer from what you have or say unknown"
 
 SYSTEM_V1 = """You are an assistant for the open-ai-chip repository: tiny AI inference chips (vision, text, audio, number-format study prec_*, SoC and Caravel wrappers) hardened to GDSII on the open sky130A process.
 Rules:
@@ -52,6 +58,9 @@ SYSTEM = SYSTEM_V3
 
 
 def _post(path, payload):
+    if (path == "/api/chat" and os.environ.get("HERMES_THINK", "off") != "on" and "think" not in payload
+            and str(payload.get("model", "")).startswith(NO_THINK_PREFIXES)):
+        payload = dict(payload, think=False)
     req = urllib.request.Request(OLLAMA + path, json.dumps(payload).encode(),
                                  {"Content-Type": "application/json"})
     with urllib.request.urlopen(req, timeout=HTTP_TIMEOUT) as r:
@@ -88,16 +97,41 @@ def _fmt(res):
     return s if len(s) <= RESULT_CHARS else s[:RESULT_CHARS] + f"...[truncated {len(s)-RESULT_CHARS} chars]"
 
 
-def _hermes_system():
-    tools = json.dumps([t["function"] for t in eda_tools.TOOLS])
-    return (SYSTEM + "\n\nYou are a function calling AI model. You may call one or more functions to assist with the user query. "
+# ---------------------------------------------------------------- Hermes prompt format (shared by every agent loop of the repo:
+# examples/hermes_harness/harness.py, examples/hermes_rag/rag_agent.py, examples/hermes_klayout_gui/agent.py). Byte-stable:
+# the recorded eval results and the harness trace prompt_sha depend on these exact strings.
+def tools_suffix(schemas):
+    """The Hermes function-calling paragraph appended to a system prompt: the tool list and the <tool_call> format."""
+    tools = json.dumps([t["function"] for t in schemas])
+    return ("\n\nYou are a function calling AI model. You may call one or more functions to assist with the user query. "
             "Don't make assumptions about what values to plug into functions. Here are the available tools:\n"
             f"<tools> {tools} </tools>\n"
             "For each function call return a json object with function name and arguments within <tool_call></tool_call> XML tags:\n"
             '<tool_call>\n{"name": <function-name>, "arguments": <args-dict>}\n</tool_call>')
 
 
-def _parse_tool_calls(text):
+def tool_call_text(name, args):
+    """One tool call as the model writes it (used when code, not the model, makes a call: plan, auto-retrieve, router)."""
+    return "<tool_call>\n%s\n</tool_call>" % json.dumps({"name": name, "arguments": args})
+
+
+def tool_block(name, txt):
+    """One tool result inside a prompt-mode tool message."""
+    return json.dumps({"name": name, "content": txt})
+
+
+def tool_message(blocks):
+    """The prompt-mode tool message carrying the results of one model turn (tool_block strings)."""
+    return {"role": "tool", "content": "\n</tool_response>\n<tool_response>\n".join(blocks)}
+
+
+def _hermes_system():
+    return SYSTEM + tools_suffix(eda_tools.TOOLS)
+
+
+def parse_tool_calls(text, lenient=False):
+    """[(name, arguments)] of the <tool_call>{json}</tool_call> blocks in a reply; malformed JSON is skipped.
+    lenient: when nothing parses but a <tool_call> tag is there, also accept a block whose closing tag the server ate."""
     out = []
     for m in re.finditer(r"<tool_call>\s*(\{.*?\})\s*</tool_call>", text, re.S):
         try:
@@ -105,13 +139,23 @@ def _parse_tool_calls(text):
             out.append((d.get("name"), d.get("arguments") or d.get("parameters") or {}))
         except json.JSONDecodeError:
             pass
+    if lenient and not out and "<tool_call>" in text:                    # Ollama sometimes eats the closing tag
+        for raw in re.findall(r"<tool_call>\s*(\{.*)", text, re.S):
+            try:
+                d = json.loads(raw.strip().rstrip("<>/tool_call").strip())
+                out.append((d.get("name"), d.get("arguments") or {}))
+            except Exception:
+                pass
     return out
+
+
+_parse_tool_calls = parse_tool_calls      # the old private name (examples and tests use it)
 
 
 def ask(question, mode="prompt", model=MODEL, system=None, extra_messages=None, verbose=True):
     """Returns dict(answer, tool_calls=[{name,args,result_chars,error}], seconds, eval_tokens, eval_seconds)."""
     t0 = time.time()
-    opts = {"temperature": 0, "seed": 42, "num_ctx": 8192, "num_predict": 700}
+    opts = dict(OPTS)
     sysmsg = system or (SYSTEM if mode == "native" else _hermes_system())
     if mode == "prompt" and system is None:
         sysmsg = _hermes_system()
@@ -138,7 +182,7 @@ def ask(question, mode="prompt", model=MODEL, system=None, extra_messages=None, 
         resp_blocks = []
         for name, args in tcs:
             if len(calls) >= MAX_TOOL_CALLS:
-                res = {"error": "tool call budget exhausted; answer from what you have or say unknown"}
+                res = {"error": BUDGET_MSG}
             else:
                 res = run_tool(name, args)
                 calls.append({"name": name, "args": args, "error": "error" in res if isinstance(res, dict) else False,
@@ -149,9 +193,9 @@ def ask(question, mode="prompt", model=MODEL, system=None, extra_messages=None, 
             if mode == "native":
                 msgs.append({"role": "tool", "content": txt, "tool_name": name})
             else:
-                resp_blocks.append(json.dumps({"name": name, "content": txt}))
+                resp_blocks.append(tool_block(name, txt))
         if mode == "prompt":
-            msgs.append({"role": "tool", "content": "\n</tool_response>\n<tool_response>\n".join(resp_blocks)})
+            msgs.append(tool_message(resp_blocks))
         if len(msgs) > 40:
             answer = "unknown (too many steps)"
             break

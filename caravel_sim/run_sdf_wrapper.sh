@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# Purpose: Gate-level plus SDF simulation of our wrapper and macro only (Open Verilog CVC in an amd64 container).
+# Run: make caravel-sdf-wrapper.
+# In: wrapper run pnl and SDF, tiny_ai_wrapper_sdf_tb.v. Out: build/caravel/work/ logs.
+# Docs: docs/CARAVEL_SIM.md, caravel_sim/README.md
 # Gate-level + SDF of OUR blocks only (user_project_wrapper + tiny_ai_core), Wishbone testbench, Open Verilog CVC (cvc64, x86_64,
 # run in an amd64 container: the only SDF-capable open simulator; iverilog's $sdf_annotate is unusable). Takes ~1-2 minutes.
 #   CLK_HALF=<ns half period> (default 12.5 = 40 MHz) for a too-fast-clock negative check.
@@ -7,7 +11,7 @@ set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"; ROOT="$(cd "$HERE/.." && pwd)"
 B="$ROOT/build/caravel"; W="$B/work"; mkdir -p "$W"; cd "$W"
 VP="$B/mgmt_core_wrapper/verilog"; CVC="$B/cvc_src/build64/cvc64"; CORNER="${CORNER:-nom_tt_025C_1v80}"
-export DOCKER_HOST="${DOCKER_HOST:-unix://$HOME/.colima/osl/docker.sock}" PDK_ROOT="${PDK_ROOT:-$HOME/.volare}"
+. "$ROOT/scripts/lib/common.sh"; oac_docker_host; export PDK_ROOT="${PDK_ROOT:-$HOME/.volare}"
 WRAP_RUN="${WRAP_RUN:-$(dirname "$(dirname "$(dirname "$(dirname "$(ls -t "$ROOT"/designs/user_project_wrapper/runs/*/final/sdf/$CORNER/*.sdf | head -1)")")")")}"
 WRAP="$WRAP_RUN/final/pnl/user_project_wrapper.pnl.v"; WSDF="$WRAP_RUN/final/sdf/$CORNER/user_project_wrapper__$CORNER.sdf"
 MACRO="${MACRO_PNL:-$ROOT/build/macros/tiny_ai_core/pnl/tiny_ai_core.pnl.v}"

@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# Purpose: Stage a template-shaped copy of the Caravel user project for the precheck.
+# Run: called by precheck/run_precheck.sh (make precheck).
+# In: build/results, designs/user_project_wrapper output. Out: build/precheck/project/.
+# Docs: docs/PRECHECK.md, precheck/README.md
 # Stage a template-shaped copy of the Caravel user project under build/precheck/project/ (never touches designs/).
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"

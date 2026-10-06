@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // adapter_tb -- self-checking testbench for shared/rtl/wb_stream_adapter.v with one stream engine behind it.
+// Not a hardened-run input (never in a config.json file list). PASS = the "PASS" line from the shared checker, vvp exit 0.
+// Docs: tests/TEST_MATRIX.md, docs/SOC_PLAN.md, docs/ARCHITECTURE.md
 // Compiled once per engine by tests/adapter/run.sh with -DENG=<engine module> -DFMT=<1|2|3> -DNAME="<name>":
 //   FMT 1  frame engines (stream_tb.vh record layout: 16-byte records [0] n, [1..n] inputs, [13] beat 0, [14] beat 1)
 //   FMT 2  audio_pitch word layout (gen_rom.py: header 4 words, one word per input beat)

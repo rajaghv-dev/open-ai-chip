@@ -5,7 +5,12 @@ Skipped unless HERMES_LIVE=1 (and Ollama answering on OLLAMA_URL). Never part of
 
 Before running: `pgrep -f "eval_rag.py|eval_harness.py|run_eval.py|agent.py"` must show no other job (one model, one GPU).
 The model is deterministic at temperature 0 / seed 42 but a smoke test only asserts structure plus the scorer verdict of
-the questions that are 15/15 reproducible in the committed results (docs/HERMES_AGENT.md)."""
+the questions that are 15/15 reproducible in the committed results (docs/HERMES_AGENT.md).
+
+Run: build/agent/venv/bin/python -m pytest -q tests/tools/test_live_smoke.py (also part of `make test`, section == tools)
+Pass: every test passes or is skipped (opt-in tests need their env flag).
+Docs: tests/tools/TEST_MATRIX_TOOLS.md, docs/HERMES_AGENT.md
+"""
 import json
 import os
 import sys
@@ -41,6 +46,7 @@ Q = {q["id"]: q for q in json.load(open(os.path.join(REPO, "tools", "eval", "que
 
 
 def test_live_hermes_agent_prompt_mode():
+    """Pins down: live hermes agent prompt mode."""
     import hermes_agent
     import run_eval
     for qid in ("q01", "q14"):                    # a lookup and an unanswerable question
@@ -50,12 +56,14 @@ def test_live_hermes_agent_prompt_mode():
 
 
 def test_live_hermes_agent_native_mode_runs():
+    """Pins down: live hermes agent native mode runs."""
     import hermes_agent
     r = hermes_agent.ask("List the hardened designs using a tool; just say how many.", "native", verbose=False)
     assert isinstance(r["answer"], str) and r["answer"] and r["seconds"] > 0      # native is 6/15: only assert it runs
 
 
 def test_live_harness_all_features():
+    """Pins down: live harness all features."""
     import harness
     import run_eval
     cfg = harness.Config(guardrails=True, grounding=True, pick_extreme=True)
@@ -67,6 +75,7 @@ def test_live_harness_all_features():
 
 
 def test_live_rag_router_doc_question():
+    """Pins down: live rag router doc question."""
     import rag_agent
     import harness
     import eval_rag
@@ -83,6 +92,7 @@ def test_live_rag_router_doc_question():
 
 
 def test_live_klayout_gui_view_request():
+    """Pins down: live klayout gui view request."""
     pytest.importorskip("klayout.lay")
     import agent
     from offscreen_backend import OffscreenBackend
@@ -99,6 +109,7 @@ def test_live_klayout_gui_view_request():
 
 
 def test_live_klayout_demo_question():
+    """Pins down: live klayout demo question."""
     pytest.importorskip("klayout.db")
     import importlib.util       # by path: examples/hermes_klayout_gui/demo.py has the same module name
     spec = importlib.util.spec_from_file_location("klayout_demo_example", os.path.join(REPO, "examples", "hermes_klayout_demo", "demo.py"))

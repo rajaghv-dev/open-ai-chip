@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# Purpose: Full-chip gate-level Caravel simulation (no SDF) around our wrapper and macro netlists.
+# Run: make caravel-fullgl.
+# In: build/caravel downloads, wrapper and macro powered netlists. Out: build/caravel/work/ logs and VCD.
+# Docs: docs/CARAVEL_SIM.md, caravel_sim/README.md
 # Full-chip gate-level (no SDF): caravel-lite CC2509 gl/ netlists (caravel, chip_io, caravel_core, housekeeping, gpio blocks, mgmt_protect...),
 # mgmt_core_wrapper CC2509 gl netlist (VexRiscv SoC), RAM128/RAM256 gl, and OUR user_project_wrapper + tiny_ai_core power-aware pnl.
 # sky130 cell models: functional, unit delay (override with MODE=timing to use the specify-block models, no SDF, for run_sdf.sh).

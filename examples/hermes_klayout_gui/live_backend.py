@@ -6,6 +6,7 @@ KLayout GUI and does all window work on the GUI thread. Start the window with st
 
 Env: KLAYOUT_AGENT_PORT (default 8765), KLAYOUT_AGENT_TOKEN (optional shared secret),
      KLAYOUT_AGENT_TIMEOUT (seconds per request, default 60).
+Docs: examples/hermes_klayout_gui/README_live.md, docs/HERMES_AGENT.md
 """
 import json
 import os
@@ -21,6 +22,7 @@ class LiveError(ConnectionError):
     pass
 
 
+# Wire format shared with klayout_macro/agent_bridge.py: one compact ASCII JSON object per line (newline = frame end).
 def encode_request(rid, method, params, token=None):
     req = {"id": rid, "method": method, "params": params}
     if token:
@@ -28,6 +30,8 @@ def encode_request(rid, method, params, token=None):
     return (json.dumps(req, separators=(",", ":")) + "\n").encode("ascii")
 
 
+# A bridge reply is either {"id", "error"} (request rejected: bad token, disallowed method) or {"id", "result"}.
+# Rejections are mapped to the same {ok: False} shape as backend errors; only a malformed frame raises LiveError.
 def decode_response(line):
     """-> (id, result_dict). Raises LiveError for protocol-level errors."""
     try:

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Docs: docs/VALIDATION.md, README.md
 # check_generated.sh -- regenerate the outputs of every model directory (make generate) in a scratch copy of the repository and
 # fail if any generated file differs from the one on disk:
 #   model/{tiny_ai,audio_pitch,audio_onset,image_text_match}/weights.json  (re-fitted by train.py; deleted in the copy first)
