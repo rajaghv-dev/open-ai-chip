@@ -3,6 +3,7 @@
 # drawing on the Mac's XQuartz (or the Linux X server). Read-only: nothing is written back to the run.
 #   bash scripts/gui/open_gui.sh openroad <design>     # OpenROAD GUI on the final ODB of the current run
 #   bash scripts/gui/open_gui.sh magic    <design>     # Magic on the final GDS with the sky130A tech
+#   bash scripts/gui/open_gui.sh heatmaps <design>     # OpenROAD GUI cycling the engine heat maps (DWELL=s per view)
 # One-time macOS setup (verified 2026-10-06, XQuartz 2.8.6, Colima profile osl):
 #   defaults write org.xquartz.X11 nolisten_tcp -bool false     # let the Colima VM connect over TCP; restart XQuartz
 #   open -a XQuartz && DISPLAY=:0 /opt/X11/bin/xhost +localhost  # Colima's networking delivers the VM as localhost
@@ -10,7 +11,7 @@
 #      DOCKER_HOST (default the osl Colima socket), GUI_SECONDS (only when stdin is not a terminal: keep Magic open N s).
 # Close the window to end. Afterwards you may remove the access again: DISPLAY=:0 /opt/X11/bin/xhost -localhost
 set -euo pipefail
-tool=${1:?usage: open_gui.sh openroad|magic <design>}; design=${2:?usage: open_gui.sh openroad|magic <design>}
+tool=${1:?usage: open_gui.sh openroad|heatmaps|magic <design>}; design=${2:?usage: open_gui.sh openroad|heatmaps|magic <design>}
 cd "$(dirname "$0")/../.."
 REPO=$PWD
 IMAGE=$(sed -n 's/^LIBRELANE_IMAGE=//p' versions.lock)
@@ -36,6 +37,15 @@ case "$tool" in
     echo "OpenROAD GUI: $odb"
     docker run "${DOCKER_ARGS[@]}" "$IMAGE" openroad -no_splash -gui "$REPO/build/gui/openroad_open.tcl"
     ;;
+  heatmaps)
+    # the OpenROAD GUI cycling through the engine heat maps (examples/openroad_gui/live_heatmaps.tcl)
+    odb=$(ls "$run"/final/odb/*.odb | head -1); top=$(basename "$odb" .odb)
+    lib="$PDK_ROOT/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__tt_025C_1v80.lib"
+    echo "OpenROAD heat maps: $odb (DWELL=${DWELL:-12} s per view)"
+    docker run "${DOCKER_ARGS[@]}" -e ODB="$odb" -e LIB="$lib" -e SDC="$run/final/sdc/$top.sdc" \
+      -e SPEF="$run/final/spef/nom/$top.nom.spef" -e DWELL="${DWELL:-12}" -e ROUNDS="${ROUNDS:-3}" \
+      "$IMAGE" openroad -no_splash -gui "$REPO/examples/openroad_gui/live_heatmaps.tcl"
+    ;;
   magic)
     gds=$(ls "$run"/final/gds/*.gds | head -1)
     top=$(basename "$gds" .gds)
@@ -52,5 +62,5 @@ case "$tool" in
         docker run "${DOCKER_ARGS[@]}" "$IMAGE" magic -d XR -noconsole -T "$T/sky130A.tech" -rcfile "$T/sky130A.magicrc"
     fi
     ;;
-  *) echo "unknown tool $tool (openroad|magic)"; exit 1 ;;
+  *) echo "unknown tool $tool (openroad|heatmaps|magic)"; exit 1 ;;
 esac

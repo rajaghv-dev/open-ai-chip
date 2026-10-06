@@ -17,7 +17,8 @@ was not done. Paths are repo-relative; run everything from the repo root. `<d>` 
 | The GDS in KLayout, sky130 colours | `open -a /Applications/KLayout/klayout.app --args FILE.gds -l LYP` (verified; a fresh install needs a one-time Gatekeeper approval, section 2) | `klayout FILE.gds -l LYP` (not tested here) |
 | DRC markers in KLayout | add `-m FILE.lyrdb`, or Tools > Marker Browser (section 2) | same (not tested here) |
 | A GDS without any window | `build/agent/venv/bin/python examples/hermes_klayout_gui/agent.py --dry-run` (offscreen, no display) | same (not tested here) |
-| OpenROAD GUI on a finished run | `bash scripts/gui/open_gui.sh openroad <d>` with XQuartz (verified, section 3) | same flow with X11/Wayland socket (not tested here) |
+| OpenROAD GUI on a finished run | `bash scripts/gui/open_gui.sh openroad <d>` with XQuartz (verified, section 3) | same with the X11 socket (not tested here) |
+| OpenROAD engine heat maps, live | `bash scripts/gui/open_gui.sh heatmaps <d>` (cycles layout, placement density, routing congestion, power density, IR drop; `DWELL=12 ROUNDS=3`; verified) | same flow with X11/Wayland socket (not tested here) |
 | The GDS in Magic (the repo's default layout viewer) | `bash scripts/gui/open_gui.sh magic <d>` with XQuartz (verified, section 3) | same with the X11 socket (not tested here) |
 | Testbench result of an RTL sim | `cat build/sim/<d>/sim.log` | same |
 | Gate-level sim result | `cat build/gl/<d>/result.txt build/gl/<d>/sim/gl.log` | same |

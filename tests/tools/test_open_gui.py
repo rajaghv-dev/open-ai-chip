@@ -74,3 +74,12 @@ def test_openroad_window_opens():
                 subprocess.run(["docker", "kill", cid], capture_output=True, env=env)
         p.kill()
     assert seen
+
+
+def test_live_heatmaps_script():
+    t = open(os.path.join(REPO, "examples", "openroad_gui", "live_heatmaps.tcl")).read()
+    assert t.count("{") == t.count("}") and t.count("[") == t.count("]")
+    assert "gui::pause" in t and "after " not in t.replace("after the", "")   # after timers never fire in the OpenROAD GUI
+    for ctrl in ("Placement Density", "Routing Congestion", "Power Density", "IR Drop"):
+        assert ctrl in t
+    assert "heatmaps)" in open(SCRIPT).read()

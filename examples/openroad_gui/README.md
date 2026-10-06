@@ -167,6 +167,17 @@ details (TCP setting, `xhost +localhost`, `DISPLAY=192.168.5.2:0` inside Colima,
 View > Heat Maps (needs the run's SPEF/liberty for timing and IR views, which `views.tcl` loads; the plain opener loads
 only the ODB).
 
+### Live heat maps in the window
+
+`bash scripts/gui/open_gui.sh heatmaps <design>` opens the OpenROAD GUI on XQuartz and runs
+[live_heatmaps.tcl](live_heatmaps.tcl): it loads the final ODB, the tt liberty, the SDC and the nominal SPEF, runs the
+power-grid analysis for the IR-drop map, builds the heat maps and shows layout, placement density, routing congestion,
+power density and IR drop for `DWELL` seconds each (default 12), `ROUNDS` times (default 3), then leaves the layout up
+for interactive use (View > Heat Maps). Verified 2026-10-06 on kv_attn_n8: every view shown in turn, IR analysis ran.
+
+Learned: OpenROAD runs Qt's event loop, not Tcl's, so Tcl `after` timers never fire in the GUI; `gui::pause <ms>` is the
+way to wait while the window stays responsive.
+
 ## Tests
 
 `tests/tools/test_openroad_gui.py`: always-on checks (files exist, `bash -n`, `views.tcl` has the needed commands, the
