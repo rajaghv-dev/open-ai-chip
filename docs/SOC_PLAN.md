@@ -16,15 +16,16 @@ Ladder of section 4, all measured on this Mac without Docker:
 | (ii) wrapper RTL + GL with our Wishbone testbench | Done (784 cases, RTL, synthesised and routed) | `designs/user_project_wrapper/README.md` |
 | (iii) fake management core | Done, as a real PicoRV32 running compiled RISC-V firmware instead of a replay testbench: all 784 cases on accelerator and in pure C, 15 protocol negatives, irq; about 25 s | `make soc-sim`, `firmware/README.md`, `soc_sim/` |
 | (iv) full-Caravel RTL with real firmware | Done with iverilog and the real VexRiscv core instead of cocotb: one case per mode, PASS in about 53 s | `make caravel-rtl`, `caravel_sim/`, `docs/CARAVEL_SIM.md` |
-| (v) full-Caravel GL | Partly done: hybrid (routed wrapper and macro netlists inside RTL Caravel, unit delay), PASS in about 58 s | `make caravel-gl`, `docs/CARAVEL_SIM.md` |
-| (vi) `cf precheck` | Not done | none |
+| (v) full-Caravel GL | Done functionally: hybrid PASS 59 s (`make caravel-gl`); full-chip GL (caravel_core incl. management SoC + wrapper + macro) PASS 14 m 23 s (`make caravel-fullgl`); SDF PASS on wrapper + macro at 3 corners (`make caravel-sdf-wrapper`); full-chip GL+SDF with firmware not completed (emulated CVC too slow) | `docs/CARAVEL_SIM.md`, `build/gpio_fix_chain.log` |
+| (vi) `cf precheck` | Done locally: 14 of 14 PASS in 61 s, in our own container (not ChipFoundry's image) | `make precheck`, `precheck/results/summary.tsv`, `docs/PRECHECK.md` |
 
 Also done: the generic adapter `shared/rtl/wb_stream_adapter.v` is verified with all 13 stream engines (`make adapter-test`,
 `tests/adapter/`), and `designs/soc_image_text_match` (adapter + `image_text_match`, 109 pins) is hardened clean
 (`designs/soc_image_text_match/output/`).
 
-Not done: full-chip gate-level simulation and SDF back-annotation; `cf precheck`; a `user_project_wrapper` build that
-instantiates the adapter macro (the committed wrapper holds `tiny_ai_core`); GPIO startup modes (`user_defines.v`).
+Not done: full-chip GL+SDF with firmware; confirming the precheck with ChipFoundry's tooling (human); a `user_project_wrapper` build that
+instantiates the adapter macro (the committed wrapper holds `tiny_ai_core`). GPIO startup modes are set (owner decision 2026-10-06:
+`GPIO_MODE_MGMT_STD_INPUT_NOPULL` for 5..37 in `user_defines.v`).
 Finding: bus transactions dominate; software beats the accelerator for the 4-input networks and only `vision_block` wins (1.8x).
 
 ## 1. What "runs on the SoC" means
@@ -299,7 +300,7 @@ large downloads.
    every added engine competes for the same 109 pins and the same wrapper placement.
 2. GPIO startup modes and `io_oeb` before tapeout: `designs/user_project_wrapper/README.md` item 5 and `SPEC.md`
    Status update say the wrapper's unconnected `io_oeb` must be driven high or all user GPIO set to inputs in
-   `user_defines.v` (currently the template's). Decide which.
+   `user_defines.v`. RESOLVED 2026-10-06: all GPIO 5..37 are management-owned inputs (`GPIO_MODE_MGMT_STD_INPUT_NOPULL`); precheck OEB PASS.
 3. Slew budget interpretation (`SPEC.md` Status update, open decision 1): count only internal nets, or accept
    Caravel's 0.84-0.92 ns input transitions on `wbs_adr_i` / `wbs_dat_i` (limit 0.75 ns) as environment-limited.
    Affects whether every new macro build reports "slew 0".

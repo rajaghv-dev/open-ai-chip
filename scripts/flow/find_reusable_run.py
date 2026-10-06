@@ -69,7 +69,11 @@ def container_running(design):
     except Exception:
         return False
     for line in out.splitlines():
-        if ("oac_cap_%s_" % design) in line or ("/designs/%s " % design) in line or ("/designs/%s/" % design) in line:
+        if ("oac_cap_%s_" % design) in line:
+            return True
+        # only a LibreLane flow on this design counts (other containers, e.g. a simulator reading this design's
+        # run files, must not make the finished runs look in-progress)
+        if "librelane" in line and (("/designs/%s " % design) in line or ("/designs/%s/" % design) in line):
             return True
     return False
 

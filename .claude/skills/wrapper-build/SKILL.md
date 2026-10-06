@@ -1,0 +1,57 @@
+---
+name: wrapper-build
+description: Put a 109-pin Wishbone macro into Caravel's fixed user_project_wrapper in this repo (new designs/user_project_wrapper_<tag>/ folder, macro requirements, views export, MACROS config, placement, signoff allowance, gate-level and RTL tests, known failure modes). Use when you add a new macro to a Caravel wrapper, copy designs/user_project_wrapper_soc_itm as a template, debug a wrapper flow failure (lint, GRT congestion, hold, LVS from unpowered diodes, OOM, undriven outputs), or make the tests/run_tests.sh "== wrapper" checks pass.
+---
+
+# Build a Caravel wrapper around a macro
+
+Worked examples: [designs/user_project_wrapper/](../../../designs/user_project_wrapper/README.md) (tiny_ai_core, with the full "how it got clean" history) and [designs/user_project_wrapper_soc_itm/](../../../designs/user_project_wrapper_soc_itm/README.md) (soc_image_text_match, a straight copy with one name changed). Facts, file lists and the failure history with citations: [reference.md](reference.md). A copy helper: [new_wrapper.sh](new_wrapper.sh).
+
+## 1. The macro must satisfy (check before hardening it)
+Model on `designs/tiny_ai_core/config.json` and `designs/soc_image_text_match/config.json`.
+- Interface: only Wishbone slave (`wb_clk_i`, `wb_rst_i`, `wbs_stb_i`, `wbs_cyc_i`, `wbs_we_i`, `wbs_sel_i[3:0]`, `wbs_dat_i[31:0]`, `wbs_adr_i[31:0]`, `wbs_ack_o`, `wbs_dat_o[31:0]`), `irq[2:0]`, and power `vccd1`/`vssd1` = 109 signal pins (`designs/user_project_wrapper_soc_itm/NOTES.md`, `designs/tiny_ai_core/config.json` `//DIE_AREA`). No la_*, io_*, analog pins (a 607-pin version made global routing fail).
+- Pins: `IO_PIN_ORDER_CFG: dir::pin_order.cfg`, all 109 on the S edge (`#S` first line), ordered left to right like the wrapper DEF's Wishbone pads (x 3..624 um): wb_clk_i, wb_rst_i, then wbs_* interleaved (`wbs_adr_i[n]`, `wbs_dat_i[n]`, `wbs_dat_o[n]` ...), irq[0..2] at the right end. One explicit regex line per pin, brackets escaped (`wbs_adr_i\[29\]`). Copy `designs/tiny_ai_core/pin_order.cfg`. Notes cannot go in the file (every `#` line is a direction marker): put them in a `//IO_PIN_ORDER_CFG` config key.
+- Constraints: `PNR_SDC_FILE` and `SIGNOFF_SDC_FILE` both `dir::base_<macro>.sdc`, derived from the Caravel template macro SDC (`designs/tiny_ai_core/base_tiny_ai_core.sdc` header lists the 4 changes: drop la_/io_ lines, drop IO_SYNC, rename `user_irq` to `irq`, keep all numbers). Hardening with default constraints made the wrapper fail hold by -0.894 ns.
+- `DIODE_ON_PORTS: "in"`, `RUN_HEURISTIC_DIODE_INSERTION: false`, `RUN_ANTENNA_REPAIR: true` (so input ports get antenna diodes inside the macro, powered; the wrapper's router must not add its own).
+- Footprint: `FP_SIZING absolute`, `DIE_AREA [0,0,250,250]`: 109 pins at about 2.3 um pitch fit one 250 um edge, and 250 um still lets one full group of the wrapper's met5 straps cross it. Power nets only `VDD_NETS ["vccd1"]`, `GND_NETS ["vssd1"]`; `RT_MAX_LAYER met4`, `PDN_MULTILAYER false` so met5 straps cross over the macro.
+- Slew: `PL_RESIZER_MAX_SLEW_MARGIN` and `GRT_DESIGN_REPAIR_MAX_SLEW_PCT` = 20 (70 ran out of memory, 40 gave more violations); `MAX_FANOUT_CONSTRAINT 8`. Keep the `//SLEW` comment.
+- Macro itself passes its own flow: `make flow-all DESIGN=<macro>`.
+
+### PDN strap-crossing computation (do it for any other footprint or location)
+Wrapper met5 horizontal straps: `PDN_HOFFSET 5`, `PDN_HPITCH 180`, width 3.1, 8 nets 18.6 um apart, first strap at core y0 10.88 + 5 = 15.88, then every 180 um; group k spans about y = 15.88 + 180k .. +148.8 (`designs/user_project_wrapper/UPSTREAM.txt` MACRO PLACEMENT). With the macro at y 87.04..337.04, group k=1 (first net y = 195.88, last net ends 329.18) lies fully inside, so all 8 nets incl. vccd1/vssd1 cross it. Vertical straps: x = 10.52 + 180k. Verify in the PDN step output after the first run; the numbers in UPSTREAM.txt are labelled estimates.
+
+## 2. Export the macro views
+`make gds DESIGN=<macro>` (or `make flow-all DESIGN=<macro>`), then `make views DESIGN=<macro>` (Makefile `views` -> `find_reusable_run.py --export-views`; default macro tiny_ai_core). It writes `build/macros/<macro>/{gds,lef,nl,pnl,spef/{min,nom,max},lib/<corner>}` plus `SOURCE.txt` (run dir + sha256s) and refuses with "has no current run" if the macro was not hardened. `make wrapper` does views for every macro of user_project_wrapper then its flow; for other wrappers run views by hand, then `make flow-all DESIGN=user_project_wrapper_<tag>`.
+
+## 3. Create designs/user_project_wrapper_<tag>/
+Run `bash .claude/skills/wrapper-build/new_wrapper.sh <macro> <tag>` (copies from `designs/user_project_wrapper_soc_itm` and rewrites names; prints what to hand-check), or do it by hand:
+- The folder name MUST start with `user_project_wrapper` (tests glob `designs/user_project_wrapper*/`, allowances are keyed by folder name). `DESIGN_NAME` stays `user_project_wrapper` (Caravel requires it; run_tests.sh enforces it for every `user_project_wrapper*`).
+- Copy unchanged: `rtl/defines.v`, `rtl/user_defines.v`, `rtl/LICENSE`, `fixed_dont_change/user_project_wrapper.def`, `signoff.sdc`. Never edit these. `config.json` section `//6` ("Fixed configurations for caravel. You should NOT edit this section") and the PDN/ring values stay as they are.
+- `rtl/user_project_wrapper.v`: header and port list byte-identical to the template (test compares to `build/template/verilog/rtl/user_project_wrapper.v` when present); body is exactly one `<macro> mprj (...)`, every port to the same-named wrapper port, `irq` to `user_irq`, `.vccd1(vccd1), .vssd1(vssd1)` under `USE_POWER_PINS`, no `assign`/`always` (test fails on glue logic), io buses connected whole, analog_io and user_clock2 unconnected.
+- `config.json`: change only the MACROS key (name and every `build/macros/<macro>/...` path) and the comment text. Required MACROS keys: `gds`, `lef`, `nl`, `pnl`, `spef` (`min_*`, `nom_*`, `max_*`), `lib` (`*_tt_*`, `*_ss_*`, `*_ff_*` mapped to the three nom corners), `instances: {mprj: {location: [189.06, 87.04], orientation: "N"}}`. `pnl` is mandatory: LibreLane lints the wrapper against the macro netlist with power pins defined; `nl` alone fails lint. `PDN_MACRO_CONNECTIONS: ["mprj vccd1 vssd1 vccd1 vssd1"]`. Exactly one macro, and it must be a design in this repo (`designs/<macro>/config.json` must exist); `RUN_LINT_CHECK` and `DISABLE_LVS` must not be set. Elaborate-only block must stay: `SYNTH_ELABORATE_ONLY true`, RUN_CTS/RUN_FILL/RUN_TAP/RUN_ANTENNA_REPAIR false, `MAX_TRANSITION_CONSTRAINT 1.5`, `ERROR_ON_SYNTH_CHECKS false`.
+- Placement `[189.06, 87.04]` N: macro x 189.06..439.06, y 87.04..337.04, directly above the Wishbone pads and snapped to the site grid (x multiple of 0.46, y multiples of 2.72 from 10.88).
+- `UPSTREAM.txt` (what was copied, what changed; it is a flow input, so edit it before the run, not during), `README.md`, `NOTES.md` (use the write-design-notes skill), `lvs_config.json` optional (ChipFoundry precheck only; LibreLane ignores it).
+
+## 4. Allow the undriven outputs (required or `check` fails)
+The macro has no io/la outputs, so the wrapper's `io_out`, `io_oeb`, `la_data_out` (204 bits) are undriven. Add an entry keyed by the folder name to `scripts/flow/signoff_allowances.json`:
+`"user_project_wrapper_<tag>": {"undriven_outputs": ["io_out","io_oeb","la_data_out"], "undriven_reason": "..."}` (copy the existing reason). Only those exact port names are accepted; other driver warnings still fail. Keep the tapeout caveat: a floating `io_oeb` leaves the pad output enable undefined; before tapeout drive io_oeb high (and io_out/la_data_out low) from the macro or set every user GPIO to input in `user_defines.v`. (Another agent may own this file: coordinate; do not rewrite entries.)
+
+## 5. Testbench and simulation
+- `tb/user_project_wrapper_<tag>_tb.v` (test expects `tb/${WRAP}_tb.v`, i.e. `<folder>_tb.v`): instantiate `user_project_wrapper` through its ports only (la/io inputs tied, analog_io left alone, user_clock2 low, `user_irq` to `irq`), reuse the macro testbench body, `+VEC=` vectors (own `tb/vectors.hex` copy or the macro's). Ports-only so it also runs on netlists. Use `` `MPRJ_IO_PADS `` for widths, so `defines.v` must be compiled first (also with `--pre` at gate level; Makefile does this via `GL_PRE`).
+- `make simulate DESIGN=user_project_wrapper_<tag>` compiles wrapper RTL plus macro RTL (Makefile `SIM_RTL` from `MACROS`).
+- Gate level: `make flow-all` stages gl (synthesised) and gl-final (routed): `scripts/flow/gl_sim.sh` with `--netlist-extra build/macros/<macro>/nl/<macro>.nl.v` (macro netlist right after the wrapper netlist, since the wrapper netlist only instantiates the macro) and `--pre designs/<w>/rtl/defines.v` (Makefile `GL_NLX`, `GL_PRE`). Calling gl_sim.sh by hand: pass both, otherwise "--netlist-extra file not found (run make views DESIGN=<macro>)" or MPRJ_IO_PADS undefined.
+- `bash tests/run_tests.sh` "== structure/config/rtl/wrapper": exactly one instance `<macro> mprj`, no glue logic, module header equal to the template's, iverilog -Wall clean, testbench PASS.
+
+## 6. Run and verify
+`make flow-all DESIGN=user_project_wrapper_<tag>` (stages simulate, gds, check, gl, gl-final, collect; about 1 to 2 min, peak 0.6-0.8 GB). Expect: DRC (Magic and KLayout) 0, LVS 0, XOR 0, antenna 0, route DRC 0, slew/cap/fanout 0, setup/hold >= 0 (soc_itm: +2.965 / +0.110 ns, tiny_ai_core: +1.461 / +0.105 ns). `python3 scripts/flow/check_signoff.py user_project_wrapper_<tag>` should say 0 RTL registers and 204 undriven outputs accepted. Do not run flows from a sub-agent without being asked.
+
+## 7. If it fails (details and fixes in reference.md)
+| Symptom | Cause | Fix |
+|---|---|---|
+| Lint fails | only `nl` given | add `pnl` (powered netlist) to MACROS |
+| Global routing congestion | many macro pins (361 on one edge) 16 um above the wrapper's pin row | 109-pin macro, S edge, pad order, place at [189.06, 87.04] |
+| Hold -0.894 ns | macro hardened with default SDC, long input wires | `base_<macro>.sdc` for PNR and SIGNOFF, short wires |
+| LVS 70 errors + nwell DRC | 40 unpowered antenna diodes added by the wrapper router | DIODE_ON_PORTS "in" inside the macro, wrapper `RUN_ANTENNA_REPAIR false`; macro hardened with Caravel SDC |
+| Macro flow OOM | 70 % slew margin chasing unfixable input nets | 20 % |
+| check fails with "has no driver" | io_out/io_oeb/la_data_out undriven | allowance entry (step 4) |
+| gl_final fails right after editing a doc | UPSTREAM.txt is a flow input | repeat the run |

@@ -85,7 +85,7 @@ VIEWS_OF := $(if $(filter file,$(origin DESIGN)),tiny_ai_core,$(DESIGN))
 SIM_PLUS := $(if $(SIM_VEC),+VEC=$(abspath $(SIM_VEC)))
 GL_DESC  := $(if $(SIM_VEC),every case of tb/vectors.hex,committed tb)
 
-.PHONY: help doctor test views macro-views wrapper simulate gds flow check gl gl-final collect view flow-all tiny all-designs designs table generate check-generated model-check clean soc-sim adapter-test caravel-rtl caravel-gl
+.PHONY: help doctor test views macro-views wrapper simulate gds flow check gl gl-final collect view flow-all tiny all-designs designs table generate check-generated model-check clean soc-sim adapter-test caravel-rtl caravel-gl precheck caravel-fullgl caravel-sdf-wrapper
 .DEFAULT_GOAL := help
 
 help:
@@ -112,6 +112,9 @@ help:
 	@echo "  adapter-test  Wishbone-to-stream adapter with all 13 stream engines (tests/adapter/run.sh, ~9 s)"
 	@echo "  caravel-rtl   full-Caravel RTL sim, VexRiscv firmware (needs build/caravel downloads, ~53 s; docs/CARAVEL_SIM.md)"
 	@echo "  caravel-gl    hybrid gate-level Caravel sim (needs build/caravel, ~58 s)"
+	@echo "  precheck   local ChipFoundry cf-precheck, all 14 checks, own container (precheck/run_precheck.sh, ~1 min; docs/PRECHECK.md)"
+	@echo "  caravel-fullgl  full-chip gate-level Caravel sim, firmware, iverilog (needs build/caravel; ~14 min; docs/CARAVEL_SIM.md)"
+	@echo "  caravel-sdf-wrapper  wrapper+macro gate-level + SDF, CVC in an amd64 container (needs build/caravel + CVC image; CORNER=..., ~5 s)"
 	@echo "  table      regenerate the results tables in README.md (scripts/docs/tables.py)"
 	@echo "  clean      remove $(DDIR)/runs/ and build/"
 	@echo ""
@@ -260,6 +263,21 @@ caravel-rtl caravel-gl:
 	@[ -d build/caravel/caravel ] && [ -d build/caravel/mgmt_core_wrapper ] || { \
 	  echo "$@: build/caravel/{caravel,mgmt_core_wrapper} missing: download them first (953 MB + 4.1 GB), see caravel_sim/README.md and caravel_sim/VERSIONS.txt"; exit 1; }
 	bash caravel_sim/run_$(if $(filter caravel-rtl,$@),rtl,gl).sh
+
+precheck:
+	bash precheck/run_precheck.sh
+
+caravel-fullgl:
+	@[ -d build/caravel/caravel ] && [ -d build/caravel/mgmt_core_wrapper ] || { \
+	  echo "$@: build/caravel/{caravel,mgmt_core_wrapper} missing: download them first (see caravel_sim/README.md)"; exit 1; }
+	bash caravel_sim/run_fullgl.sh
+
+caravel-sdf-wrapper:
+	@[ -d build/caravel/caravel ] && [ -x build/caravel/cvc_src/build64/cvc64 ] || { \
+	  echo "$@: build/caravel or the CVC binary build/caravel/cvc_src/build64/cvc64 missing: build it (docs/CARAVEL_SIM.md, 'Setup used')"; exit 1; }
+	@DOCKER_HOST=$${DOCKER_HOST:-unix://$$HOME/.colima/osl/docker.sock} docker image inspect openchip-cvc64-base >/dev/null 2>&1 || { \
+	  echo "$@: docker image openchip-cvc64-base (amd64 CVC base) missing: build it (docs/CARAVEL_SIM.md, 'Setup used')"; exit 1; }
+	bash caravel_sim/run_sdf_wrapper.sh
 
 table:
 	@python3 scripts/docs/tables.py

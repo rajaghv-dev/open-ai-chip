@@ -16,6 +16,8 @@ sed -i.bak -e 's/@10/@00/g' "$W/tiny_ai_wb.hex"
 cd "$W"
 SIMDEF="-DFUNCTIONAL -DSIM -DUSE_POWER_PINS -DUNIT_DELAY=#1"
 sed -e "s#\$(VERILOG_PATH)#$VERILOG_PATH#g" -e "s#\$(CARAVEL_PATH)#$CARAVEL_PATH#g" -e "s#\$(PDK_ROOT)/\$(PDK)#$PDK_ROOT/$PDK#g" "$VERILOG_PATH/includes/includes.rtl.caravel" > inc_caravel.f
+# use THIS project's GPIO startup modes, not Caravel's default user_defines.v
+sed -i.bak "s#$CARAVEL_PATH/rtl/user_defines.v#$(cd "$ROOT" && pwd)/designs/user_project_wrapper/rtl/user_defines.v#" inc_caravel.f && rm -f inc_caravel.f.bak
 sed -e "s#@ROOT@#$(cd "$ROOT" && pwd)#g" "$HERE/includes.rtl.user" > inc_user.f
 iverilog -g2012 -Ttyp $SIMDEF -f inc_caravel.f -f inc_user.f -o tiny_ai_wb_rtl.vvp "$HERE/tiny_ai_wb_tb.v"
 vvp tiny_ai_wb_rtl.vvp | tee run_rtl.log | grep -E "Monitor|FAIL|PASS|Error"

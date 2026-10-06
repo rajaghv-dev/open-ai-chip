@@ -6,6 +6,22 @@ The key decision is to build one hard macro named `tiny_ai_core`. It contains th
 
 ## Status (as of 2026-10-05)
 
+> **Update 2026-10-06 (precheck, full-chip GL):**
+> - Owner decision: GPIO 5..37 start as `GPIO_MODE_MGMT_STD_INPUT_NOPULL` (`designs/user_project_wrapper/rtl/user_defines.v`,
+>   `designs/user_project_wrapper_soc_itm/rtl/user_defines.v`). This resolves the earlier open decision (2) on `io_oeb`: with
+>   management-owned inputs the floating `io_oeb` is irrelevant to the OEB check.
+> - Local precheck (cf-precheck 1.3.7): 14 of 14 checks PASS, 61 s, on wrapper run `RUN_2026-10-06_03-29-55`
+>   (`build/precheck_final.log`, `precheck/results/summary.tsv`, `docs/PRECHECK.md`). It ran in our own aarch64 container, not
+>   ChipFoundry's `mpw_precheck` image; confirmation with their tooling and all `cf` account steps remain human-only.
+> - Caravel sims after the fix (`build/gpio_fix_chain.log`): caravel-rtl PASS 54 s, hybrid caravel-gl PASS 59 s.
+> - Full-chip gate-level (caravel_core netlist incl. management SoC + our wrapper + macro, functional cells, unit delay, firmware):
+>   PASS in 14 m 23 s (`make caravel-fullgl`, `docs/CARAVEL_SIM.md`).
+> - SDF (CVC 7.00b, x86-only, amd64 container) on wrapper + macro: PASS at nom_tt_025C_1v80, nom_ss_100C_1v60, max_ss_100C_1v60;
+>   2186/2186 IOPATH and 2312/2348 INTERCONNECT annotated (36 to top-level output ports dropped, CVC limitation); timing checks are
+>   not enforced. Full-chip GL+SDF with firmware was NOT completed (under 0.06 simulated us per wall second); needs an x86 Linux
+>   host or a shorter SPI-flash boot.
+> - Remaining open owner decisions: the slew budget interpretation, and the host for full-chip SDF.
+
 > **Update 2026-10-06 (SoC):** Phase 8 is partly done, with evidence (all native on macOS, iverilog + riscv64-elf-gcc):
 > - `make soc-sim`: PicoRV32 firmware against `user_project_wrapper` RTL, all 784 cases on the accelerator and in pure C,
 >   15 protocol negatives, irq; PASS (`firmware/README.md`, about 25 s). This is not Caravel's management core.
@@ -47,8 +63,8 @@ evidence that `make` regenerates; everything else named is tracked.
 | 5 Human `cf` initialization checkpoint | NOT STARTED (human only) | none |
 | 6 Macro physical configuration | Done for `tiny_ai_core` standalone with LibreLane, clean. Cell budget exceeded as written (see Physical budgets) | `designs/tiny_ai_core/{config.json,output/metrics.json,output/reports/}`, `README.md` |
 | 7 Wrapper integration | NOT STARTED: no `user_project_wrapper` RTL, no wrapper hardening, no `user_defines.v`, no LVS config | none |
-| 8 Caravel verification | NOT STARTED: no Cocotb package, no management firmware, no full-Caravel RTL or GL run | none |
-| 9 Local precheck and candidate bundle | NOT STARTED: no `cf precheck`, no `release/manifest.json`, no bundle | none |
+| 8 Caravel verification | DONE with iverilog instead of Cocotb: VexRiscv firmware, Caravel RTL, hybrid GL and full-chip functional GL PASS; full-chip SDF not completed | `docs/CARAVEL_SIM.md`, `build/gpio_fix_chain.log` |
+| 9 Local precheck and candidate bundle | PARTLY DONE: local precheck 14 of 14 PASS (our container); no `release/manifest.json`, no bundle | `precheck/results/summary.tsv`, `docs/PRECHECK.md` |
 | 10 Independent verification | NOT STARTED: no fresh-clone reproduction | none |
 | 11 Human submission checkpoint | NOT STARTED (human only; not part of agent execution) | none |
 
@@ -791,10 +807,10 @@ The project is locally ChipIgnite-ready only when all items pass:
   (`designs/tiny_ai_core/output/metrics.json`). Missing: the cell budget (3,521 against 2,500 as written) awaits the
   owner's decision on the proposed amendment.
 - [ ] `user_project_wrapper` contains one macro instance and preserves the golden wrapper interface and geometry. Missing: the wrapper (Phase 7).
-- [ ] GPIO 5 through 37 all have valid startup modes. Missing: `user_defines.v` and `cf gpio-config` (Phases 5 and 7); the macro's pad directions exist but are not startup modes.
-- [ ] Full-Caravel representative RTL and GL tests pass. Missing: Phase 8.
+- [x] GPIO 5 through 37 all have valid startup modes. Evidence: `designs/user_project_wrapper/rtl/user_defines.v` (`GPIO_MODE_MGMT_STD_INPUT_NOPULL`, owner decision 2026-10-06) and precheck `gpio_defines` PASS (`precheck/results/summary.tsv`). The `cf gpio-config` account step remains human-only.
+- [x] Full-Caravel representative RTL and GL tests pass. Evidence: `make caravel-rtl` PASS 54 s, hybrid GL PASS 59 s (`build/gpio_fix_chain.log`), full-chip functional GL with firmware PASS 14 m 23 s (`docs/CARAVEL_SIM.md`). Caveat: SDF at full-chip level was not completed (SDF passes only on wrapper + macro); representative, one case per mode.
 - [ ] Wrapper-level setup and hold pass at every required corner. Missing: wrapper hardening (macro-level timing passes at nine corners).
-- [ ] Local ChipFoundry precheck passes with LVS and Magic DRC enabled. Missing: Phase 9. (Macro-level Magic DRC and LVS are 0, but that is not the precheck.)
+- [x] Local ChipFoundry precheck passes with LVS and Magic DRC enabled. Evidence: 14 of 14 PASS (`precheck/results/summary.tsv`, `docs/PRECHECK.md`). Caveat: run with `cf-precheck 1.3.7` in our own container, not ChipFoundry's `mpw_precheck` image; confirmation with their tooling is a human step.
 - [ ] The release manifest identifies the exact source, tools, PDK, template, GDS hash, and evidence logs. Missing: `release/manifest.json`.
 - [ ] An independent fresh-clone reproduction matches the candidate. Missing: Phase 10.
 - [ ] No agent has uploaded, submitted, reserved, confirmed, published, or changed repository visibility.

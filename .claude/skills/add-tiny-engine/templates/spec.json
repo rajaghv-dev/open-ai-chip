@@ -1,0 +1,19 @@
+{
+  "_what": "Source of truth for <eng>. train.py fits parameters to these label rules; golden.py and the RTL implement the widths and stream behaviour below. (From model/tiny_ai/spec.json.)",
+  "version": 1,
+  "seed": 1,
+  "stream": {
+    "input": "one item per beat in s_data[7:0]; s_last marks the final beat of a frame",
+    "output": "two beats: beat 0 = {6'b0, error, class}, beat 1 = score, m_last on beat 1",
+    "error": "a beat whose s_data exceeds input_max (the beat is not used), or a frame whose length is not exactly inputs; beats past inputs are ignored",
+    "latency": "clock edges from the edge that accepts the last input beat to the edge that raises m_valid, counting both"
+  },
+  "designs": {
+    "<eng>": {
+      "mode": 0, "inputs": 4, "input_max": 1,
+      "label": "<the answer a human wants, in words>",
+      "model": "<structure with free numbers: e.g. one binary neuron: score = matches; class = score >= threshold>",
+      "weight_bits": 1, "threshold_bits": 3, "score": "unsigned 0..4", "latency": 1
+    }
+  }
+}

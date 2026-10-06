@@ -14,6 +14,8 @@ MACRO="${MACRO_PNL:-$ROOT/build/macros/tiny_ai_core/pnl/tiny_ai_core.pnl.v}"
 [ -f "$W/tiny_ai_wb.hex" ] || "$HERE/run_rtl.sh" >/dev/null 2>&1 || true   # builds the hex (RTL run is a by-product)
 cd "$W"
 sed -e "s#\$(VERILOG_PATH)#$VERILOG_PATH#g" -e "s#\$(CARAVEL_PATH)#$CARAVEL_PATH#g" -e "s#\$(PDK_ROOT)/\$(PDK)#$PDK_ROOT/$PDK#g" "$VERILOG_PATH/includes/includes.rtl.caravel" > inc_caravel.f
+# use THIS project's GPIO startup modes, not Caravel's default user_defines.v
+sed -i.bak "s#$CARAVEL_PATH/rtl/user_defines.v#$(cd "$ROOT" && pwd)/designs/user_project_wrapper/rtl/user_defines.v#" inc_caravel.f && rm -f inc_caravel.f.bak
 iverilog -g2012 -Ttyp -DFUNCTIONAL -DSIM -DGL -DUSE_POWER_PINS -DUNIT_DELAY=#1 -o tiny_ai_wb_gl.vvp -f inc_caravel.f \
   "$WRAP" "$MACRO" "$HERE/tiny_ai_wb_tb.v"
 vvp tiny_ai_wb_gl.vvp | tee run_gl.log | grep -E "Monitor|FAIL|PASS|Error"

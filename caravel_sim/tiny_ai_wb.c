@@ -58,9 +58,11 @@ void main(void) {
 #else
     run(0, lit, 4, 0x0401, 6, 2);
 #endif
+#ifndef MINIMAL                     /* MINIMAL: ID read + one case (slow gate-level / SDF runs) */
     run(2, txt, 4, 0x0101, 6, 3);
     run(1, blk1, 9, 0x0401, 15, 4);
     run(1, blk0, 9, 0x0200, 15, 5);
+#endif
 
     flag(0xAB61);
 }

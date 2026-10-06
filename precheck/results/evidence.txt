@@ -1,0 +1,49 @@
+# cf-precheck 1.3.7 evidence (baseline, PDK 3e0e31dc, klayout 0.30.7)
+## topcell_check
+2026-10-06 02:49:57 [INFO] Single top cell 'user_project_wrapper' found
+## xor
+2026-10-06 02:50:01 [INFO] Total XOR differences: 0
+## magic_drc
+2026-10-06 02:50:08 [INFO] Found 0 violations
+2026-10-06 02:50:08 [INFO] 0 DRC violations
+## klayout_feol
+2026-10-06 02:50:13 [INFO] No DRC violations found
+## klayout_beol
+2026-10-06 02:50:21 [INFO] No DRC violations found
+## klayout_offgrid
+2026-10-06 02:50:24 [INFO] No DRC violations found
+## klayout_met_min_ca_density
+2026-10-06 02:50:26 [INFO] No DRC violations found
+## klayout_pin_label_purposes_overlapping_drawing
+2026-10-06 02:50:28 [INFO] No DRC violations found
+## klayout_zeroarea
+2026-10-06 02:50:30 [INFO] No DRC violations found
+## spike_check
+2026-10-06 02:50:31 [INFO] No spikes found
+## illegal_cellname_check
+## gpio_defines
+2026-10-06 02:49:58 [ERROR] GPIO defines: Invalid directives (33): USER_CONFIG_GPIO_5_INIT=13'hXXXX USER_CONFIG_GPIO_6_INIT=13'hXXXX USER_CONFIG_GPIO_7_INIT=13'hXXXX USER_CONFIG_GPIO_8_INIT=13'hXXXX USER_CONFIG_GPIO_9_INIT=13'hXXXX USER_CONFIG_GPIO_10_INIT=13'
+## lvs
+Final result: 
+Circuits match uniquely.
+CVC: Unexpected voltage :   28
+CVC: Total:                 28
+   7 Expected maximum io_oeb = 1.8 but found unknown
+   7 Expected maximum io_out = 1.8 but found unknown
+   7 Expected minimum io_oeb = 0.0 but found unknown
+   7 Expected minimum io_out = 0.0 but found unknown
+## oeb
+*** Detected the following warnings and/or errors: ***
+GPIO  5: ERROR: missing gpio configuration
+GPIO  6: ERROR: missing gpio configuration
+GPIO  7: ERROR: missing gpio configuration
+GPIO  8: ERROR: missing gpio configuration
+GPIO  9: ERROR: missing gpio configuration
+33
+Open PDKs 3e0e31dcce8519a7dbb82590346db16d91b7244f
+SKY130A PDK unknownKLayout: 0.30.7
+Magic: 8.3.623
+# EXPERIMENT (staged copy only, designs/ untouched; NOT release evidence): all 33 `GPIO_MODE_INVALID replaced, checks gpio_defines+lvs+oeb
+GPIO_MODE_USER_STD_INPUT_NOPULL : gpio_defines PASS, lvs PASS (CVC 28 warnings), oeb FAIL (66 ERROR/Warning lines: "user mode requires output connection / oeb connection")
+GPIO_MODE_USER_STD_OUTPUT       : gpio_defines PASS, lvs PASS, oeb FAIL ("missing user output connection / missing user oeb for output gpio")
+GPIO_MODE_MGMT_STD_INPUT_NOPULL : gpio_defines PASS, lvs PASS, oeb PASS ("No warnings or errors detected")

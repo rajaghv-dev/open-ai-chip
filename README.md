@@ -71,9 +71,16 @@ Background and plans:
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): architecture and block diagrams of every engine and of `tiny_ai_core`.
 - [docs/SOC_PLAN.md](docs/SOC_PLAN.md): the plan from engines to a Caravel SoC.
 - [docs/PRECISION_STUDY.md](docs/PRECISION_STUDY.md): number formats compared in hardware.
+- [docs/SKILLS.md](docs/SKILLS.md): the project skills in `.claude/skills/`: what they encode and why, with the chip-design basics behind each.
 
 The flow and the checks are ported from `../open-ai-silicon` (its exercise 1); see `provenance/SOURCES.md`.
-Next in `SPEC.md`: full-chip gate-level simulation, the wrapper build with the adapter macro, and the ChipFoundry precheck.
+Status (2026-10-06): the local ChipFoundry precheck passes 14 of 14 checks (61 s, `precheck/results/summary.tsv`, `docs/PRECHECK.md`; run in our own
+container, not ChipFoundry's image; `make precheck`). Full-chip gate-level Caravel simulation with firmware (management SoC + our wrapper + macro,
+functional cells) PASSES in 14 m 23 s (`make caravel-fullgl`, `docs/CARAVEL_SIM.md`). SDF back-annotation (CVC, x86-only, emulated amd64 container)
+PASSES on wrapper + macro at three corners (`make caravel-sdf-wrapper`); full-chip GL+SDF with firmware was not completed (too slow emulated; needs an
+x86 Linux host or a shorter flash boot). GPIO 5..37 are management-owned inputs (owner decision 2026-10-06, `user_defines.v`).
+Open owner decisions: the slew-budget interpretation, and the host for full-chip SDF. Next in `SPEC.md`: the wrapper build with the adapter macro,
+the release manifest, independent verification; `cf` account steps stay human-only.
 
 ## Run
 
@@ -117,7 +124,7 @@ Slack is the worst over all 9 corners (the corner is named). Max-slew / max-cap 
 | [vision_block](designs/vision_block/NOTES.md) | 297 | 24 | 80 x 80 | +13.53 (max_ss_100C_1v60) | +0.11 (min_ff_n40C_1v95) | 0/0/0/0 | 0/0/0 | 51 | 0.691 |
 | [text_sentiment](designs/text_sentiment/NOTES.md) | 200 | 12 | 80 x 80 | +14.75 (max_ss_100C_1v60) | +0.11 (min_ff_n40C_1v95) | 0/0/0/0 | 0/0/0 | 45 | 0.554 |
 | [tiny_ai_core](designs/tiny_ai_core/NOTES.md) | 1,809 | 109 | 250 x 250 | +1.46 (max_ss_100C_1v60) | +0.11 (min_ff_n40C_1v95) | 0/0/0/0 | 195/0/0 | 99 | 0.642 |
-| [user_project_wrapper](designs/user_project_wrapper/NOTES.md) | 0 | - | 2920 x 3520 | +1.46 (max_ss_100C_1v60) | +0.11 (min_ff_n40C_1v95) | 0/0/0/0 | 0/0/0 | 54 | 0.704 |
+| [user_project_wrapper](designs/user_project_wrapper/NOTES.md) | 0 | - | 2920 x 3520 | +1.46 (max_ss_100C_1v60) | +0.11 (min_ff_n40C_1v95) | 0/0/0/0 | 0/0/0 | 59 | 0.619 |
 | [audio_pitch](designs/audio_pitch/NOTES.md) | 234 | 21 | 80 x 80 | +13.35 (max_ss_100C_1v60) | +0.10 (min_ff_n40C_1v95) | 0/0/0/0 | 18/0/1 | 47 | 0.624 |
 | [audio_onset](designs/audio_onset/NOTES.md) | 316 | 25 | 80 x 80 | +13.21 (max_ss_100C_1v60) | +0.11 (min_ff_n40C_1v95) | 0/0/0/0 | 14/0/1 | 49 | 0.567 |
 | [image_text_match](designs/image_text_match/NOTES.md) | 551 | 39 | 120 x 120 | +13.42 (max_ss_100C_1v60) | +0.11 (min_ff_n40C_1v95) | 0/0/0/0 | 61/0/6 | 56 | 0.708 |
@@ -129,7 +136,7 @@ Slack is the worst over all 9 corners (the corner is named). Max-slew / max-cap 
 | [prec_fp16](designs/prec_fp16/NOTES.md) | 1,932 | 52 | 220 x 220 | +0.11 (max_ss_100C_1v60) | +0.11 (min_ff_n40C_1v95) | 0/0/0/0 | 36/0/26 | 104 | 0.707 |
 | [prec_bf16](designs/prec_bf16/NOTES.md) | 1,754 | 51 | 220 x 220 | +0.04 (max_ss_100C_1v60) | +0.11 (min_ff_n40C_1v95) | 0/0/0/0 | 45/0/29 | 93 | 0.832 |
 | [soc_image_text_match](designs/soc_image_text_match/NOTES.md) | 3,201 | 393 | 250 x 250 | +2.96 (max_ss_100C_1v60) | +0.11 (min_ff_n40C_1v95) | 0/0/0/0 | 421/0/0 | 165 | 0.802 |
-| [user_project_wrapper_soc_itm](designs/user_project_wrapper_soc_itm/NOTES.md) | 0 | - | 2920 x 3520 | +2.96 (max_ss_100C_1v60) | +0.11 (min_ff_n40C_1v95) | 0/0/0/0 | 0/0/0 | 59 | 0.800 |
+| [user_project_wrapper_soc_itm](designs/user_project_wrapper_soc_itm/NOTES.md) | 0 | - | 2920 x 3520 | +2.96 (max_ss_100C_1v60) | +0.11 (min_ff_n40C_1v95) | 0/0/0/0 | 0/0/0 | 66 | 0.790 |
 <!-- results:end signoff -->
 
 Area, power and clock:
@@ -172,8 +179,9 @@ How it got here, in short (details in `designs/user_project_wrapper/README.md`):
   limit (environment-limited); a 70% repair margin made the repair step run out of memory chasing them, 40% gave 247,
   20% gives the count in the table. At wrapper level, max-slew, max-cap and max-fanout are 0.
 - The wrapper's GPIO and logic-analyser outputs are left unconnected (owner decision for this learning build; listed
-  with the reason in `scripts/flow/signoff_allowances.json`). Tapeout caveat: drive `io_oeb` high from the macro, or
-  configure every user GPIO as an input in `user_defines.v`, before any submission.
+  with the reason in `scripts/flow/signoff_allowances.json`). Resolved 2026-10-06: every user GPIO 5..37 starts as a
+  management-owned input (`GPIO_MODE_MGMT_STD_INPUT_NOPULL`, `designs/user_project_wrapper/rtl/user_defines.v`), so the floating `io_oeb`
+  passes the precheck OEB check (14 of 14 PASS, `docs/PRECHECK.md`).
 
 Max-slew reached 0 by tightening design repair, not by loosening the limit: `MAX_FANOUT_CONSTRAINT` 8,
 `PL_RESIZER_MAX_SLEW_MARGIN` 40, `GRT_DESIGN_REPAIR_MAX_SLEW_PCT` 40, `RUN_POST_GRT_DESIGN_REPAIR`.
@@ -225,5 +233,5 @@ repository's MNIST designs and is not regenerated here (see `docs/slides/README.
 
 ## Not covered
 
-- Full-Caravel simulation (the template's `io_ports`, `la_test1`, `la_test2`), and the ChipFoundry precheck.
+- The template's cocotb tests (`io_ports`, `la_test1`, `la_test2`; replaced by `caravel_sim/` iverilog runs), full-chip SDF with firmware, and ChipFoundry's own `mpw_precheck` image (our precheck ran in our own container).
 - Max-slew / max-cap counts are reported by `make check`, not failed on: they come from the template's input-transition constraints on 541 unbuffered pins.

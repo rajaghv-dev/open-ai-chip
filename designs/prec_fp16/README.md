@@ -55,5 +55,5 @@ make simulate DESIGN=prec_fp16    # iverilog, 931 cases from tb/vectors.hex
 
 **Timing note:** the single-cycle MAC was one long path (ROM, multiplier, rounder, compare, aligner, adder, leading-zero count,
 normaliser, rounder, flush) and the sibling prec_fp8 missed 25 ns at the slow corner, so the product register (spec.md
-section 6 fallback, latency 3) is in. Closure of the two shorter paths (ROM -> multiply -> `p_bits`; `p_bits`/`acc` -> adder -> `acc`) is
-not yet confirmed by a hardening run.
+section 6 fallback, latency 3) is in. The pipelined version still missed at the slow corners; RUN_POST_GRT_RESIZER_TIMING with setup slack margins 0.5 and
+setup buffering / gate cloning (`config.json`) closed it: setup +0.111 / +0.281 / +0.434 ns at max_ss / nom_ss / min_ss (NOTES.md, Timing).

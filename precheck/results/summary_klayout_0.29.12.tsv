@@ -1,0 +1,14 @@
+topcell_check	PASS	1s
+gpio_defines	FAIL	1s
+xor	PASS	3s
+magic_drc	PASS	6s
+klayout_feol	FAIL	5s
+klayout_beol	PASS	8s
+klayout_offgrid	PASS	3s
+klayout_met_min_ca_density	PASS	2s
+klayout_pin_label_purposes_overlapping_drawing	PASS	1s
+klayout_zeroarea	PASS	2s
+spike_check	PASS	1s
+illegal_cellname_check	PASS	1s
+lvs	PASS	14s
+oeb	FAIL	14s
