@@ -41,7 +41,8 @@ EMBED_MODEL = os.environ.get("RAG_EMBED_MODEL", "qwen3-embedding:0.6b")      # a
 QUERY_PREFIX = os.environ.get("RAG_QUERY_PREFIX", "Instruct: Given a question about a chip design repository, retrieve the passages that answer it\nQuery: ")
 EMBED_CHARS, EMBED_BATCH, RRF_K, POOL = 1500, 16, 60, 60
 PER_FILE = 2
-EXCLUDE_MD = (".claude/agents", ".claude/commands", "CLAUDE.md", "docs/HERMES_AGENT.md", "examples/hermes_rag/README.md")   # agent config; docs that quote the eval questions
+EXCLUDE_MD = (".claude/agents", ".claude/commands", "CLAUDE.md", "docs/HERMES_AGENT.md", "docs/HERMES_AGENT_INTEGRATION.md",
+              "docs/HERMES_DEMOS.md", "hermes-agents.md", "examples/hermes_rag/README.md")   # agent config; docs that quote the eval questions
 CODE_DIRS = ("scripts/", "tools/", "examples/")
 CODE_EXT = (".py", ".sh")
 SKIP_PARTS = ("/runs/", "/build/", "__pycache__")

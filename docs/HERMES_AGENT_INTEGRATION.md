@@ -263,7 +263,7 @@ sequenceDiagram
   participant K as hooks and approvals
   participant B as MCP bridge (stdio)
   participant T as tool server :8770
-  participant M as make and Docker
+  participant M as Make + Docker
   O->>H: "Harden tiny_ai_core"
   H->>K: pre_tool_call run_make gds
   K-->>O: approval card (physical flow)
@@ -465,7 +465,7 @@ What it indexes (git-tracked files only; `build/`, `runs/`, generated ROM `.v`, 
 - the `Docs:`/purpose header of every script and tool (`scripts/`, `tools/`, `examples/`, `.py` and `.sh`), one chunk per file;
 - one "key facts" chunk per `designs/*/output/metrics.json` (cells, flip-flops, slack, DRC, power, area, rendered as sentences). For why/fix/limit
   questions these chunks are left out of the candidates, because they match design names strongly but never explain a cause.
-- left out on purpose: `CLAUDE.md`, agent config, and the two Hermes pages that quote the evaluation questions (`docs/HERMES_AGENT.md`,
+- left out on purpose: `CLAUDE.md`, agent config, and the Hermes pages that quote the evaluation questions (`docs/HERMES_AGENT.md`, `docs/HERMES_AGENT_INTEGRATION.md`, `docs/HERMES_DEMOS.md`, `hermes-agents.md`,
   `examples/hermes_rag/README.md`), so the evaluation does not read its own answers.
 
 How it retrieves: BM25 (the v2 scoring of `rag.py`) and cosine similarity of Ollama embeddings (`/api/embed`, `qwen3-embedding:0.6b`, override with

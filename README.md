@@ -30,7 +30,7 @@ open -a Hermes                                 # then pick the "chip" profile / 
 Ask in Hermes: "How many cells does kv_attn_n8 have?", "Why does kv_attn_n8_int4 have more flip-flops than kv_attn_n8?",
 "Show the errors in kv_attn_n8's logs", "Open kv_attn_n8 in KLayout and show met1", "Run flow-all for vision_block" (asks
 for approval, then `yes, run <id>`), "Summarize the last run", "What should I improve in prec_bf16?", "What if the clock
-were 20 ns for vision_block?", "Ask Claude to ...". How it works, safety and status:
+were 20 ns for vision_block?", "Ask Claude to ...". Every part of the integration, point by point: [hermes-agents.md](hermes-agents.md). Full map, safety and status:
 [docs/HERMES_AGENT_INTEGRATION.md](docs/HERMES_AGENT_INTEGRATION.md). Eleven narrated demos to run in the app ("run demo 4"): [docs/HERMES_DEMOS.md](docs/HERMES_DEMOS.md). Undo: `bash scripts/hermes_agent_setup.sh --uninstall --apply`.
 
 Older front ends (Open WebUI with `make hermes` / `make demo*`, the repo's wrapper app, terminal agent loops) remain in
