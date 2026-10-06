@@ -18,7 +18,12 @@ def numbers_in(text):
 
 def strip_source(ans):
     """Drop the 'Source: ...' citation tail so tool names/args cited there cannot satisfy a check."""
-    return re.split(r"\n?\s*\(?Source", ans, maxsplit=1, flags=re.I)[0]
+    # remove whole citation lines and "(Source: ...)" parentheticals wherever they are; an answer that STARTS with a
+    # citation line must keep the answer text that follows it (the old rule cut everything after the first "Source")
+    ans = re.sub(r"(?im)^\s*\(?source\b.*$", "", ans)
+    ans = re.sub(r"(?i)\(\s*source\b[^)]*\)", "", ans)
+    ans = re.sub(r"(?i)\bsource:\s.*$", "", ans.strip())     # an inline "Source: ..." tail on the last line
+    return ans.strip()
 
 
 def score(check, ans):

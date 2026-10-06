@@ -18,9 +18,9 @@ TINY         := vision_all_lit vision_block text_sentiment
 # every design, in the order make all-designs hardens them (macros before the wrapper that instantiates them)
 ALL_DESIGNS  := user_proj_example vision_all_lit vision_block text_sentiment tiny_ai_core user_project_wrapper \
                 audio_pitch audio_onset image_text_match prec_bin prec_tern prec_int4 prec_int8 prec_fp8 prec_fp16 prec_bf16 soc_image_text_match \
-                user_project_wrapper_soc_itm
+                user_project_wrapper_soc_itm kv_attn_n4 kv_attn_n8 kv_attn_n16 kv_attn_n8_int4 kv_attn_n8_ring
 # model directories (model/<dir>/); model/examples/ holds standalone teaching scripts, not generated files
-MODELS       := tiny_ai audio_pitch audio_onset image_text_match precision_hw
+MODELS       := tiny_ai audio_pitch audio_onset image_text_match precision_hw kv_attention
 DDIR         := designs/$(DESIGN)
 PDK_ROOT     ?= $(HOME)/.volare
 DOCKER_IMAGE := ghcr.io/librelane/librelane:3.0.2
@@ -85,7 +85,7 @@ VIEWS_OF := $(if $(filter file,$(origin DESIGN)),tiny_ai_core,$(DESIGN))
 SIM_PLUS := $(if $(SIM_VEC),+VEC=$(abspath $(SIM_VEC)))
 GL_DESC  := $(if $(SIM_VEC),every case of tb/vectors.hex,committed tb)
 
-.PHONY: help doctor test views macro-views wrapper simulate gds flow check gl gl-final collect view flow-all tiny all-designs designs table generate check-generated model-check clean soc-sim adapter-test caravel-rtl caravel-gl precheck caravel-fullgl caravel-sdf-wrapper
+.PHONY: help doctor test views macro-views wrapper simulate gds flow check gl gl-final collect view flow-all tiny all-designs designs table generate check-generated model-check clean soc-sim adapter-test caravel-rtl caravel-gl precheck caravel-fullgl caravel-sdf-wrapper soc-kv
 .DEFAULT_GOAL := help
 
 help:
@@ -93,7 +93,7 @@ help:
 	@echo ""
 	@echo "  generate         re-fit and regenerate ROMs, vectors, weights.json of every model dir: $(MODELS)"
 	@echo "  check-generated  fail if regenerating changes any generated file of any model dir"
-	@echo "  model-check      golden.py --check of tiny_ai, image_text_match, precision_hw (audio_* have no --check; the testbench is the check)"
+	@echo "  model-check      golden.py --check of tiny_ai, image_text_match, precision_hw, kv_attention (audio_* have no --check; the testbench is the check)"
 	@echo "  doctor     host tools, Docker daemon, LibreLane image, PDK"
 	@echo "  test       fast repository checks (structure, configs, RTL lint), no Docker"
 	@echo "  simulate   RTL simulation, self-checking testbench (iverilog)"
@@ -109,6 +109,7 @@ help:
 	@echo "  tiny       flow-all for $(TINY), then a table"
 	@echo "  all-designs  flow-all for all $(words $(ALL_DESIGNS)) designs in order (alias: designs), then the results table"
 	@echo "  soc-sim    PicoRV32 SoC sim: RISC-V firmware vs user_project_wrapper RTL, cycle table (make -C firmware sim, ~25 s)"
+	@echo "  soc-kv     KV-cache attention firmware on the PicoRV32 SoC (make -C firmware/kv sim, ~14 s)"
 	@echo "  adapter-test  Wishbone-to-stream adapter with all 13 stream engines (tests/adapter/run.sh, ~9 s)"
 	@echo "  caravel-rtl   full-Caravel RTL sim, VexRiscv firmware (needs build/caravel downloads, ~53 s; docs/CARAVEL_SIM.md)"
 	@echo "  caravel-gl    hybrid gate-level Caravel sim (needs build/caravel, ~58 s)"
@@ -236,11 +237,13 @@ generate:
 	cd model/audio_onset && python3 train.py && python3 gen_rom.py
 	cd model/image_text_match && python3 train.py && python3 gen_rom.py
 	cd model/precision_hw && python3 gen.py
+	cd model/kv_attention && python3 gen.py
 
 model-check:
 	cd model/tiny_ai && python3 golden.py --check
 	cd model/image_text_match && python3 golden.py --check
 	cd model/precision_hw && python3 golden.py --check
+	cd model/kv_attention && python3 golden.py --check
 
 # ---- every design, one after another; then the results table ----
 all-designs:
@@ -255,6 +258,10 @@ designs: all-designs
 # ---- SoC-level simulation (no Docker) ----
 soc-sim:
 	$(MAKE) -C firmware sim
+
+# KV-cache attention firmware (second program, soc_sim/kv), ~14 s
+soc-kv:
+	$(MAKE) -C firmware/kv sim
 
 adapter-test:
 	bash tests/adapter/run.sh

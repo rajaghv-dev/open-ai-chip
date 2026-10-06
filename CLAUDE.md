@@ -1,7 +1,7 @@
 # open-ai-chip: instructions for Claude
 
 ## What this repo is
-Eighteen small digital designs (tiny AI engines, a precision study, a Wishbone counter, SoC macros and Caravel
+Twenty-three small digital designs (tiny AI engines, a precision study, KV-cache attention, a Wishbone counter, SoC macros and Caravel
 wrappers), each taken from RTL to clean GDSII on sky130A with LibreLane 3.0.2 in Docker, as a learning build toward
 a ChipFoundry ChipIgnite (Caravel) tapeout. `README.md` has the design index, the run commands and the generated
 results tables; `SPEC.md` is the plan, phases, acceptance criteria and "Agent operating rules" (the rules below
@@ -17,13 +17,14 @@ Sibling `../open-ai-silicon` is reference material only: never edit it.
   - `runs/` LibreLane run dirs, git-ignored (`RUN_<date>_<time>/`)
   - `NOTES.md` the design page with required headings (checked by `make test`); some designs also have `README.md`
 - `model/<x>/` Python golden models and generators (`tiny_ai`, `audio_pitch`, `audio_onset`, `image_text_match`,
-  `precision_hw` with `spec.md`). They generate the ROM `.v`, `vectors.hex`, `weights.json`.
+  `precision_hw`, `kv_attention` with `spec.md`). They generate the ROM `.v`, `vectors.hex`, `weights.json`.
 - `shared/rtl/wb_stream_adapter.v`, `shared/tb/*.vh`: adapter and shared testbench code.
 - `scripts/flow/` flow tooling (`find_reusable_run.py`, `check_signoff.py`, `signoff_allowances.json`,
   `run_capped.sh`, `gl_sim.sh`, `collect.sh`, `summary.py`); `scripts/docs/tables.py` writes the README tables;
   `scripts/doctor.sh`, `scripts/check_generated.sh`.
-- `firmware/` + `soc_sim/`: PicoRV32 SoC simulation (`make soc-sim`). `caravel_sim/`: full Caravel RTL/GL sims
+- `firmware/` + `soc_sim/`: PicoRV32 SoC simulation (`make soc-sim`; `make soc-kv` runs the KV-attention firmware, `firmware/kv/`). `caravel_sim/`: full Caravel RTL/GL sims
   (`make caravel-rtl`, `caravel-gl`, `caravel-fullgl`, `caravel-sdf-wrapper`; need `build/caravel` downloads, SDF also the amd64 CVC image). `precheck/`: ChipFoundry precheck (`make precheck`, 14/14 PASS, docs/PRECHECK.md).
+- KV-cache attention family `kv_attn_{n4,n8,n16,n8_int4,n8_ring}`: shared engine `shared/rtl/kv_attn_core.v`, testbench `shared/tb/kv_attn_tb.vh`, model `model/kv_attention/`; background `docs/LLM_INFERENCE.md`. Agent/harness demos: `examples/hermes_klayout_demo/`, `examples/hermes_harness/`.
 - `tests/run_tests.sh` (`make test`), `tests/adapter/`, `docs/` (architecture, SoC plan, Caravel sim, precision study).
 - `build/` is git-ignored: stage logs `build/flow/`, results `build/results/<d>/`, macro views `build/macros/<m>/`.
 

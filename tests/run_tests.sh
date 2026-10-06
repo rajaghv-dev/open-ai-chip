@@ -26,7 +26,8 @@ CORE=tiny_ai_core                      # the three engines behind the Wishbone r
 NEWENG="audio_pitch audio_onset image_text_match prec_bin prec_tern prec_int4 prec_int8 prec_fp8 prec_fp16 prec_bf16"
 STREAM="$TINY $NEWENG"                 # streaming engines: stream-style testbench with +VEC (the core and wrapper use their own)
 SOCM="soc_image_text_match"          # adapter-based experiment macros (one build per experiment, docs/SOC_PLAN.md)
-ALL="user_proj_example $TINY $CORE $NEWENG $SOCM"
+KV="kv_attn_n4 kv_attn_n8 kv_attn_n16 kv_attn_n8_int4 kv_attn_n8_ring"   # KV-cache attention: shared/rtl/kv_attn_core.v, tb shared/tb/kv_attn_tb.vh, +VEC=vectors.hex
+ALL="user_proj_example $TINY $CORE $NEWENG $SOCM $KV"
 # Caravel wrappers: every designs/user_project_wrapper*/ (module user_project_wrapper, exactly one macro mprj from its MACROS)
 WRAPS=""; for _w in designs/user_project_wrapper*/; do _w=$(basename $_w); [ -f designs/$_w/config.json ] && WRAPS="$WRAPS $_w"; done
 WRAP=user_project_wrapper              # the tiny_ai_core wrapper (kept for messages)
@@ -176,7 +177,7 @@ if python3 model/tiny_ai/golden.py --check >"$TMP/golden.log" 2>&1; then
   if grep -qv ' 0 mismatches' "$TMP/golden.log"; then fail "golden.py --check reported mismatches:"; cat "$TMP/golden.log"
   else pass "golden.py --check: zero mismatches ($(grep -c mismatches "$TMP/golden.log") designs)"; fi
 else fail "golden.py --check:"; cat "$TMP/golden.log"; fi
-for m in image_text_match precision_hw; do
+for m in image_text_match precision_hw kv_attention; do
   if python3 model/$m/golden.py --check >"$TMP/golden_$m.log" 2>&1; then
     if grep -q 'mismatches' "$TMP/golden_$m.log" && grep 'mismatches' "$TMP/golden_$m.log" | grep -qv ' 0 mismatches'; then fail "$m golden.py --check reported mismatches:"; cat "$TMP/golden_$m.log"
     else pass "$m golden.py --check: $(tail -1 "$TMP/golden_$m.log" | cut -c1-70)"; fi
@@ -189,7 +190,7 @@ else fail "check_generated.sh:"; cat "$TMP/gen.log"; fi
 echo "== sim"
 # vsim <dir-name> <design> <vvp> <vec>: run a compiled testbench; prints exit code in $rc, log in $TMP/<name>.log
 vsim() { (cd "$TMP" && vvp -n "$3" +VEC="$4" > "$1.log" 2>&1); rc=$?; }
-for d in $TINY $CORE $NEWENG $SOCM; do
+for d in $TINY $CORE $NEWENG $SOCM $KV; do
   VEC="$PWD/designs/$d/tb/vectors.hex"
   t0=$(date +%s)
   vsim "sim_$d" "$d" "tb_$d.vvp" "$VEC"
@@ -298,6 +299,27 @@ PY
   fi
 done
 
+# kv_attn_n8: flip one expected output beat (word 4 of the first CMD record with 8 output beats) in a copy of its vectors
+python3 - designs/kv_attn_n8/tb/vectors.hex "$TMP/kv_bad.hex" <<'PY'
+import sys
+out, n, hit = [], 0, False
+for ln in open(sys.argv[1]).read().split("\n"):
+    s = ln.split("//")[0].split()
+    if s and not hit:
+        if n >= 1 and int(s[0], 16) == 1 and int(s[2], 16) == 8:
+            s[4] = "%02x" % (int(s[4], 16) ^ 1); ln = " ".join(s); hit = True
+        n += 1
+    out.append(ln)
+open(sys.argv[2], "w").write("\n".join(out))
+sys.exit(0 if hit else 1)
+PY
+if [ $? -ne 0 ] || cmp -s "$TMP/kv_bad.hex" designs/kv_attn_n8/tb/vectors.hex; then fail "kv_attn_n8: vector mutation did not apply"
+else
+  vsim "negv_kv" "kv_attn_n8" "tb_kv_attn_n8.vvp" "$TMP/kv_bad.hex"
+  if [ $rc -ne 0 ] && ! grep -q '^PASS' "$TMP/negv_kv.log"; then pass "kv_attn_n8: testbench rejects a corrupted expected output beat ($(grep -m1 FAIL "$TMP/negv_kv.log" | cut -c1-60))"
+  else fail "kv_attn_n8: testbench passed a corrupted vector (exit $rc)"; fi
+fi
+
 # model: a copy of model/tiny_ai with the vision_all_lit threshold changed must fail golden.py --check
 mkdir -p "$TMP/mm/model" && cp -R model/tiny_ai "$TMP/mm/model/"
 python3 - "$TMP/mm/model/tiny_ai/weights.json" <<'PY'
@@ -341,6 +363,11 @@ if command -v riscv64-elf-gcc >/dev/null 2>&1; then
   if make -s -C firmware sim >"$TMP/soc.log" 2>&1 && grep -q '^PASS' "$TMP/soc.log"; then pass "firmware SoC sim: $(grep -m1 '^PASS' "$TMP/soc.log" | cut -c1-80) ($(( $(date +%s)-t0 )) s)"
   else fail "make -C firmware sim:"; tail -5 "$TMP/soc.log"; fi
 else note "riscv64-elf-gcc not found: firmware SoC sim skipped (brew install riscv-gnu-toolchain)"; fi
+if command -v riscv64-elf-gcc >/dev/null 2>&1; then
+  t0=$(date +%s)
+  if make -s -C firmware/kv sim >"$TMP/soc_kv.log" 2>&1 && grep -q '^PASS' "$TMP/soc_kv.log"; then pass "firmware KV SoC sim (make soc-kv): $(grep -m1 '^PASS' "$TMP/soc_kv.log" | cut -c1-80) ($(( $(date +%s)-t0 )) s)"
+  else fail "make -C firmware/kv sim:"; tail -5 "$TMP/soc_kv.log"; fi
+else note "riscv64-elf-gcc not found: firmware KV SoC sim skipped"; fi
 note "full-Caravel runs (make caravel-rtl, make caravel-gl) are not part of make test: they need build/caravel downloads (about 5 GB)"
 
 echo "== tables"

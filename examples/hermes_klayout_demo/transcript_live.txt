@@ -1,0 +1,7 @@
+QUESTION: What is the die size of tiny_ai_core, and how many met4 shapes does it have?
+
+[1] ACT     die_size({"design": "tiny_ai_core"})
+[1] OBSERVE {"width_um": 250.0, "height_um": 250.0}
+[1] ACT     count_shapes({"design": "tiny_ai_core", "layer": "met4"})
+[1] OBSERVE {"layer": "met4", "shapes": 4}
+[2] ANSWER  The die size of the design tiny_ai_core is 250 um in width and 250 um in height. Additionally, there are 4 shapes on the met4 layer of the design.

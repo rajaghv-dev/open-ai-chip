@@ -1,0 +1,438 @@
+{
+  "design": "kv_attn_n8",
+  "profile": "tight",
+  "limits": {
+    "cpus": 2,
+    "memory_gb": 8
+  },
+  "cpuset": "0-1",
+  "exit_code": 0,
+  "wall_s_total": 105,
+  "container_peak_mem_bytes": 910581760,
+  "container_peak_mem_gb": 0.848,
+  "samples": 48,
+  "run_dir": "designs/kv_attn_n8/runs/RUN_2026-10-06_07-00-35",
+  "peak_rss_bytes_flow_stats_max": 607125504,
+  "steps": [
+    {
+      "step": "01-verilator-lint",
+      "wall_s": 0.828,
+      "peak_rss_bytes_flow_stats": 12582912,
+      "peak_mem_bytes_sampled": 70012928
+    },
+    {
+      "step": "02-checker-linttimingconstructs",
+      "wall_s": 0.0,
+      "peak_mem_bytes_sampled": 70012928
+    },
+    {
+      "step": "03-checker-linterrors",
+      "wall_s": 0.0,
+      "peak_mem_bytes_sampled": 70012928
+    },
+    {
+      "step": "04-checker-lintwarnings",
+      "wall_s": 0.001,
+      "peak_mem_bytes_sampled": 70012928
+    },
+    {
+      "step": "05-yosys-jsonheader",
+      "wall_s": 0.468,
+      "peak_rss_bytes_flow_stats": 42991616,
+      "peak_mem_bytes_sampled": 70012928
+    },
+    {
+      "step": "06-yosys-synthesis",
+      "wall_s": 1.641,
+      "peak_rss_bytes_flow_stats": 67108864,
+      "peak_mem_bytes_sampled": 242733056
+    },
+    {
+      "step": "07-checker-yosysunmappedcells",
+      "wall_s": 0.001,
+      "peak_mem_bytes_sampled": 242733056
+    },
+    {
+      "step": "08-checker-yosyssynthchecks",
+      "wall_s": 0.001,
+      "peak_mem_bytes_sampled": 242733056
+    },
+    {
+      "step": "09-checker-netlistassignstatements",
+      "wall_s": 0.002,
+      "peak_mem_bytes_sampled": 242733056
+    },
+    {
+      "step": "10-openroad-checksdcfiles",
+      "wall_s": 0.002,
+      "peak_mem_bytes_sampled": 242733056
+    },
+    {
+      "step": "11-openroad-checkmacroinstances",
+      "wall_s": 0.001,
+      "peak_mem_bytes_sampled": 242733056
+    },
+    {
+      "step": "12-openroad-staprepnr",
+      "wall_s": 0.74,
+      "peak_mem_bytes_sampled": 242733056
+    },
+    {
+      "step": "13-openroad-floorplan",
+      "wall_s": 0.519,
+      "peak_rss_bytes_flow_stats": 125829120,
+      "peak_mem_bytes_sampled": 115253248
+    },
+    {
+      "step": "14-openroad-dumprcvalues",
+      "wall_s": 0.424,
+      "peak_rss_bytes_flow_stats": 104857600,
+      "peak_mem_bytes_sampled": 115253248
+    },
+    {
+      "step": "15-odb-checkmacroantennaproperties",
+      "wall_s": 0.001,
+      "peak_mem_bytes_sampled": 115253248
+    },
+    {
+      "step": "16-odb-setpowerconnections",
+      "wall_s": 0.415,
+      "peak_rss_bytes_flow_stats": 128974848,
+      "peak_mem_bytes_sampled": 115253248
+    },
+    {
+      "step": "17-odb-manualmacroplacement",
+      "wall_s": 0.001,
+      "peak_mem_bytes_sampled": 115253248
+    },
+    {
+      "step": "18-openroad-cutrows",
+      "wall_s": 0.417,
+      "peak_rss_bytes_flow_stats": 105906176,
+      "peak_mem_bytes_sampled": 115253248
+    },
+    {
+      "step": "19-openroad-tapendcapinsertion",
+      "wall_s": 0.518,
+      "peak_rss_bytes_flow_stats": 122683392,
+      "peak_mem_bytes_sampled": 121577472
+    },
+    {
+      "step": "20-odb-addpdnobstructions",
+      "wall_s": 0.002,
+      "peak_mem_bytes_sampled": 121577472
+    },
+    {
+      "step": "21-openroad-generatepdn",
+      "wall_s": 0.524,
+      "peak_rss_bytes_flow_stats": 124780544,
+      "peak_mem_bytes_sampled": 121577472
+    },
+    {
+      "step": "22-odb-removepdnobstructions",
+      "wall_s": 0.001,
+      "peak_mem_bytes_sampled": 121577472
+    },
+    {
+      "step": "23-odb-addroutingobstructions",
+      "wall_s": 0.001,
+      "peak_mem_bytes_sampled": 121577472
+    },
+    {
+      "step": "24-openroad-globalplacementskipio",
+      "wall_s": 0.623,
+      "peak_rss_bytes_flow_stats": 127926272,
+      "peak_mem_bytes_sampled": 121577472
+    },
+    {
+      "step": "25-openroad-ioplacement",
+      "wall_s": 0.519,
+      "peak_rss_bytes_flow_stats": 123731968,
+      "peak_mem_bytes_sampled": 121577472
+    },
+    {
+      "step": "26-odb-customioplacement",
+      "wall_s": 0.001,
+      "peak_mem_bytes_sampled": 121577472
+    },
+    {
+      "step": "27-odb-applydeftemplate",
+      "wall_s": 0.001,
+      "peak_mem_bytes_sampled": 121577472
+    },
+    {
+      "step": "28-openroad-globalplacement",
+      "wall_s": 0.621,
+      "peak_rss_bytes_flow_stats": 161480704,
+      "peak_mem_bytes_sampled": 183902208
+    },
+    {
+      "step": "29-odb-writeverilogheader",
+      "wall_s": 0.419,
+      "peak_rss_bytes_flow_stats": 132120576,
+      "peak_mem_bytes_sampled": 183902208
+    },
+    {
+      "step": "30-checker-powergridviolations",
+      "wall_s": 0.002,
+      "peak_mem_bytes_sampled": 183902208
+    },
+    {
+      "step": "31-openroad-stamidpnr",
+      "wall_s": 0.723,
+      "peak_rss_bytes_flow_stats": 123731968,
+      "peak_mem_bytes_sampled": 183902208
+    },
+    {
+      "step": "32-openroad-repairdesignpostgpl",
+      "wall_s": 2.454,
+      "peak_rss_bytes_flow_stats": 306184192,
+      "peak_mem_bytes_sampled": 130310144
+    },
+    {
+      "step": "33-odb-manualglobalplacement",
+      "wall_s": 0.001,
+      "peak_mem_bytes_sampled": 130310144
+    },
+    {
+      "step": "34-openroad-detailedplacement",
+      "wall_s": 0.519,
+      "peak_rss_bytes_flow_stats": 125829120,
+      "peak_mem_bytes_sampled": 130310144
+    },
+    {
+      "step": "35-openroad-cts",
+      "wall_s": 4.787,
+      "peak_rss_bytes_flow_stats": 326107136,
+      "peak_mem_bytes_sampled": 221511680
+    },
+    {
+      "step": "36-openroad-stamidpnr-1",
+      "wall_s": 0.729,
+      "peak_rss_bytes_flow_stats": 124780544,
+      "peak_mem_bytes_sampled": 221511680
+    },
+    {
+      "step": "37-openroad-resizertimingpostcts",
+      "wall_s": 3.072,
+      "peak_rss_bytes_flow_stats": 308281344,
+      "peak_mem_bytes_sampled": 220962816
+    },
+    {
+      "step": "38-openroad-stamidpnr-2",
+      "wall_s": 0.723,
+      "peak_rss_bytes_flow_stats": 124780544,
+      "peak_mem_bytes_sampled": 220962816
+    },
+    {
+      "step": "39-openroad-globalrouting",
+      "wall_s": 0.525,
+      "peak_rss_bytes_flow_stats": 213909504,
+      "peak_mem_bytes_sampled": 220962816
+    },
+    {
+      "step": "40-openroad-checkantennas",
+      "wall_s": 0.839,
+      "peak_rss_bytes_flow_stats": 125829120
+    },
+    {
+      "step": "41-openroad-repairdesignpostgrt",
+      "wall_s": 2.656,
+      "peak_rss_bytes_flow_stats": 390070272,
+      "peak_mem_bytes_sampled": 169164800
+    },
+    {
+      "step": "42-odb-diodesonports",
+      "wall_s": 0.003,
+      "peak_mem_bytes_sampled": 169164800
+    },
+    {
+      "step": "43-odb-heuristicdiodeinsertion",
+      "wall_s": 1.709,
+      "peak_mem_bytes_sampled": 169164800
+    },
+    {
+      "step": "44-openroad-repairantennas",
+      "wall_s": 2.212,
+      "peak_mem_bytes_sampled": 257904640
+    },
+    {
+      "step": "45-openroad-stamidpnr-3",
+      "wall_s": 0.829,
+      "peak_rss_bytes_flow_stats": 199229440,
+      "peak_mem_bytes_sampled": 257904640
+    },
+    {
+      "step": "46-openroad-detailedrouting",
+      "wall_s": 19.22,
+      "peak_rss_bytes_flow_stats": 592445440,
+      "peak_mem_bytes_sampled": 186368000
+    },
+    {
+      "step": "47-odb-removeroutingobstructions",
+      "wall_s": 0.001,
+      "peak_mem_bytes_sampled": 186368000
+    },
+    {
+      "step": "48-openroad-checkantennas-1",
+      "wall_s": 0.718,
+      "peak_rss_bytes_flow_stats": 127926272,
+      "peak_mem_bytes_sampled": 186368000
+    },
+    {
+      "step": "49-checker-trdrc",
+      "wall_s": 0.001,
+      "peak_mem_bytes_sampled": 186368000
+    },
+    {
+      "step": "50-odb-reportdisconnectedpins",
+      "wall_s": 0.522,
+      "peak_rss_bytes_flow_stats": 160432128
+    },
+    {
+      "step": "51-checker-disconnectedpins",
+      "wall_s": 0.002
+    },
+    {
+      "step": "52-odb-reportwirelength",
+      "wall_s": 0.422,
+      "peak_rss_bytes_flow_stats": 135266304
+    },
+    {
+      "step": "53-checker-wirelength",
+      "wall_s": 0.002
+    },
+    {
+      "step": "54-openroad-fillinsertion",
+      "wall_s": 0.62,
+      "peak_rss_bytes_flow_stats": 143654912,
+      "peak_mem_bytes_sampled": 238825472
+    },
+    {
+      "step": "55-odb-cellfrequencytables",
+      "wall_s": 1.039,
+      "peak_rss_bytes_flow_stats": 171966464,
+      "peak_mem_bytes_sampled": 238825472
+    },
+    {
+      "step": "56-openroad-rcx",
+      "wall_s": 0.631,
+      "peak_mem_bytes_sampled": 615112704
+    },
+    {
+      "step": "57-openroad-stapostpnr",
+      "wall_s": 4.425,
+      "peak_mem_bytes_sampled": 394199040
+    },
+    {
+      "step": "58-openroad-irdropreport",
+      "wall_s": 1.037,
+      "peak_rss_bytes_flow_stats": 157286400,
+      "peak_mem_bytes_sampled": 394199040
+    },
+    {
+      "step": "59-magic-streamout",
+      "wall_s": 1.023,
+      "peak_rss_bytes_flow_stats": 98566144,
+      "peak_mem_bytes_sampled": 306020352
+    },
+    {
+      "step": "60-klayout-streamout",
+      "wall_s": 0.932,
+      "peak_rss_bytes_flow_stats": 368050176,
+      "peak_mem_bytes_sampled": 306020352
+    },
+    {
+      "step": "61-klayout-render",
+      "wall_s": 0.924,
+      "peak_rss_bytes_flow_stats": 389021696,
+      "peak_mem_bytes_sampled": 504385536
+    },
+    {
+      "step": "62-magic-writelef",
+      "wall_s": 1.231,
+      "peak_rss_bytes_flow_stats": 204472320,
+      "peak_mem_bytes_sampled": 504385536
+    },
+    {
+      "step": "63-odb-checkdesignantennaproperties",
+      "wall_s": 0.526,
+      "peak_rss_bytes_flow_stats": 178257920,
+      "peak_mem_bytes_sampled": 584957952
+    },
+    {
+      "step": "64-klayout-xor",
+      "wall_s": 3.25,
+      "peak_rss_bytes_flow_stats": 502267904,
+      "peak_mem_bytes_sampled": 393277440
+    },
+    {
+      "step": "65-checker-xor",
+      "wall_s": 0.001,
+      "peak_mem_bytes_sampled": 393277440
+    },
+    {
+      "step": "66-magic-drc",
+      "wall_s": 6.697,
+      "peak_rss_bytes_flow_stats": 157286400,
+      "peak_mem_bytes_sampled": 307757056
+    },
+    {
+      "step": "67-klayout-drc",
+      "wall_s": 10.975,
+      "peak_rss_bytes_flow_stats": 572522496,
+      "peak_mem_bytes_sampled": 317198336
+    },
+    {
+      "step": "68-checker-magicdrc",
+      "wall_s": 0.002,
+      "peak_mem_bytes_sampled": 317198336
+    },
+    {
+      "step": "69-checker-klayoutdrc",
+      "wall_s": 0.002,
+      "peak_mem_bytes_sampled": 317198336
+    },
+    {
+      "step": "70-magic-spiceextraction",
+      "wall_s": 14.852,
+      "peak_rss_bytes_flow_stats": 156237824,
+      "peak_mem_bytes_sampled": 463933440
+    },
+    {
+      "step": "71-checker-illegaloverlap",
+      "wall_s": 0.002,
+      "peak_mem_bytes_sampled": 463933440
+    },
+    {
+      "step": "72-netgen-lvs",
+      "wall_s": 2.854,
+      "peak_rss_bytes_flow_stats": 607125504
+    },
+    {
+      "step": "73-checker-lvs",
+      "wall_s": 0.001
+    },
+    {
+      "step": "74-checker-setupviolations",
+      "wall_s": 0.001
+    },
+    {
+      "step": "75-checker-holdviolations",
+      "wall_s": 0.001
+    },
+    {
+      "step": "76-checker-maxslewviolations",
+      "wall_s": 0.004
+    },
+    {
+      "step": "77-checker-maxcapviolations",
+      "wall_s": 0.002
+    },
+    {
+      "step": "78-misc-reportmanufacturability",
+      "wall_s": 0.001
+    }
+  ],
+  "note": "wall_s and peak_rss_bytes_flow_stats come from LibreLane per-step runtime.txt / process_stats.json (steps with no subprocess have no rss). container peak = cgroup memory.peak (sampled every 2 s; the last sample before exit); per-step memory is the max of memory.current samples inside the step's file-time window, so it is a lower bound."
+}

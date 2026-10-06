@@ -160,7 +160,7 @@ The PATH export must be repeated in every later agent shell.
 1. Start at the workspace root:
 
 ```sh
-cd /Users/raja-7384/raja/open-ai-chip
+cd <repo>
 mkdir -p run-logs
 test ! -e caravel_user_project
 git clone --depth 1 https://github.com/efabless/caravel_user_project.git caravel_user_project
@@ -214,7 +214,7 @@ grep -nE 'PDK\?=|OPENLANE_TAG|MPW_TAG|OPEN_PDKS_COMMIT' Makefile \
 From the project root, run this block at the start of every new shell used in Phases D–I:
 
 ```sh
-cd /Users/raja-7384/raja/open-ai-chip/caravel_user_project
+cd <repo>/caravel_user_project
 
 export PATH="/opt/homebrew/opt/coreutils/libexec/gnubin:$PATH"
 export CHIPIGNITE_PROJECT="$PWD"

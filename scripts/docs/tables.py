@@ -13,7 +13,8 @@ README = os.path.join(REPO, "README.md")
 ORDER = ["user_proj_example", "vision_all_lit", "vision_block", "text_sentiment", "tiny_ai_core", "user_project_wrapper",
          "audio_pitch", "audio_onset", "image_text_match",
          "prec_bin", "prec_tern", "prec_int4", "prec_int8", "prec_fp8", "prec_fp16", "prec_bf16",
-         "soc_image_text_match", "user_project_wrapper_soc_itm"]
+         "soc_image_text_match", "user_project_wrapper_soc_itm",
+         "kv_attn_n4", "kv_attn_n8", "kv_attn_n16", "kv_attn_n8_int4", "kv_attn_n8_ring"]
 
 
 def load(path):

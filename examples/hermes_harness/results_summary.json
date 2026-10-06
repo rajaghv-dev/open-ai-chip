@@ -1,0 +1,183 @@
+{
+ "source": "<repo>/build/agent/harness_eval_20261006_121338.json",
+ "model": "hermes3:8b",
+ "options": {
+  "temperature": 0,
+  "seed": 42,
+  "num_ctx": 8192,
+  "num_predict": 700
+ },
+ "total_seconds": 333,
+ "history": "An earlier run (harness_eval_20261006_120657.json: baseline 12/15, pick_extreme 14/15, all+plan 14/15) was scored with a run_eval.strip_source that cut the whole answer when it started with a 'Source:' line; that scorer under-counted. These numbers are the re-scored run.",
+ "configs": {
+  "baseline": {
+   "passed": 13,
+   "total": 15,
+   "median_latency_s": 2.83,
+   "tool_calls_per_q": 0.87,
+   "retries_total": 0,
+   "failed": [
+    "q02",
+    "q04"
+   ],
+   "trace": "<repo>/build/agent/traces/20261006_121338_baseline.jsonl"
+  },
+  "+guardrails": {
+   "passed": 13,
+   "total": 15,
+   "median_latency_s": 3.03,
+   "tool_calls_per_q": 0.87,
+   "retries_total": 0,
+   "failed": [
+    "q02",
+    "q04"
+   ],
+   "trace": "<repo>/build/agent/traces/20261006_121419_plus_guardrails.jsonl"
+  },
+  "+grounding": {
+   "passed": 13,
+   "total": 15,
+   "median_latency_s": 3.29,
+   "tool_calls_per_q": 0.87,
+   "retries_total": 2,
+   "failed": [
+    "q02",
+    "q04"
+   ],
+   "trace": "<repo>/build/agent/traces/20261006_121501_plus_grounding.jsonl"
+  },
+  "+pick_extreme": {
+   "passed": 15,
+   "total": 15,
+   "median_latency_s": 4.07,
+   "tool_calls_per_q": 0.87,
+   "retries_total": 0,
+   "failed": [],
+   "trace": "<repo>/build/agent/traces/20261006_121550_plus_pick_extreme.jsonl"
+  },
+  "all": {
+   "passed": 15,
+   "total": 15,
+   "median_latency_s": 4.4,
+   "tool_calls_per_q": 0.87,
+   "retries_total": 0,
+   "failed": [],
+   "trace": "<repo>/build/agent/traces/20261006_121655_all.jsonl"
+  },
+  "all+plan": {
+   "passed": 14,
+   "total": 15,
+   "median_latency_s": 4.36,
+   "tool_calls_per_q": 1.13,
+   "retries_total": 0,
+   "failed": [
+    "q04"
+   ],
+   "trace": "<repo>/build/agent/traces/20261006_121758_allplus_plan.jsonl"
+  }
+ },
+ "per_question": {
+  "baseline": {
+   "q01": true,
+   "q02": false,
+   "q03": true,
+   "q04": false,
+   "q05": true,
+   "q06": true,
+   "q07": true,
+   "q08": true,
+   "q09": true,
+   "q10": true,
+   "q11": true,
+   "q12": true,
+   "q13": true,
+   "q14": true,
+   "q15": true
+  },
+  "+guardrails": {
+   "q01": true,
+   "q02": false,
+   "q03": true,
+   "q04": false,
+   "q05": true,
+   "q06": true,
+   "q07": true,
+   "q08": true,
+   "q09": true,
+   "q10": true,
+   "q11": true,
+   "q12": true,
+   "q13": true,
+   "q14": true,
+   "q15": true
+  },
+  "+grounding": {
+   "q01": true,
+   "q02": false,
+   "q03": true,
+   "q04": false,
+   "q05": true,
+   "q06": true,
+   "q07": true,
+   "q08": true,
+   "q09": true,
+   "q10": true,
+   "q11": true,
+   "q12": true,
+   "q13": true,
+   "q14": true,
+   "q15": true
+  },
+  "+pick_extreme": {
+   "q01": true,
+   "q02": true,
+   "q03": true,
+   "q04": true,
+   "q05": true,
+   "q06": true,
+   "q07": true,
+   "q08": true,
+   "q09": true,
+   "q10": true,
+   "q11": true,
+   "q12": true,
+   "q13": true,
+   "q14": true,
+   "q15": true
+  },
+  "all": {
+   "q01": true,
+   "q02": true,
+   "q03": true,
+   "q04": true,
+   "q05": true,
+   "q06": true,
+   "q07": true,
+   "q08": true,
+   "q09": true,
+   "q10": true,
+   "q11": true,
+   "q12": true,
+   "q13": true,
+   "q14": true,
+   "q15": true
+  },
+  "all+plan": {
+   "q01": true,
+   "q02": true,
+   "q03": true,
+   "q04": false,
+   "q05": true,
+   "q06": true,
+   "q07": true,
+   "q08": true,
+   "q09": true,
+   "q10": true,
+   "q11": true,
+   "q12": true,
+   "q13": true,
+   "q14": true,
+   "q15": true
+  }
+ }
+}

@@ -1,0 +1,37 @@
+{
+    "PDK": "sky130A",
+    "STD_CELL_LIBRARY": "sky130_fd_sc_hd",
+    "DESIGN_NAME": "kv_attn_n8_int4",
+    "VERILOG_FILES": [
+        "dir::rtl/kv_attn_n8_int4_rom.v",
+        "dir::../../shared/rtl/kv_attn_core.v",
+        "dir::rtl/kv_attn_n8_int4.v"
+    ],
+    "CLOCK_PERIOD": 25,
+    "CLOCK_PORT": "clk",
+    "FP_SIZING": "absolute",
+    "DIE_AREA": [
+        0,
+        0,
+        220,
+        220
+    ],
+    "VDD_NETS": [
+        "vccd1"
+    ],
+    "GND_NETS": [
+        "vssd1"
+    ],
+    "RT_MAX_LAYER": "met4",
+    "PDN_MULTILAYER": false,
+    "MAGIC_DRC_USE_GDS": true,
+    "RUN_HEURISTIC_DIODE_INSERTION": true,
+    "RUN_ANTENNA_REPAIR": true,
+    "RUN_POST_GRT_DESIGN_REPAIR": true,
+    "ERROR_ON_SYNTH_CHECKS": true,
+    "MAX_FANOUT_CONSTRAINT": 8,
+    "PL_RESIZER_MAX_SLEW_MARGIN": 20,
+    "GRT_DESIGN_REPAIR_MAX_SLEW_PCT": 20,
+    "//DIE_AREA": "220 x 220 um: estimate, not yet hardened. ~420 flip-flops (256 cache + ~160 control); a cache bit is a flip-flop (about 20 um2) plus a write-enable mux (about 11 um2) and a share of the read mux, so about 35 to 45 um2 per cache bit; with the control, projections and dot unit (about 8,000 um2) the cells come to roughly 19,000 um2 of logic at the 40 percent utilisation target. Resize after the first flow run.",
+    "//SLEW": "Slew margins 20 (not the 40 copied from vision_block): with 40 the post-placement repair step ran out of the 8 GB container memory twice (at 80 and at 120 um); tiny_ai_core showed the same pattern and was fixed the same way."
+}
