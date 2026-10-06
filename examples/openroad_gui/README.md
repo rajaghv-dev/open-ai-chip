@@ -158,18 +158,14 @@ xhost -local:docker
 Or open the database by hand inside the container: `openroad -gui`, then in the Tcl console
 `read_db designs/kv_attn_n8/runs/<RUN>/final/odb/kv_attn_n8.odb`. Over ssh use `ssh -X host` first.
 
-### macOS with Colima (not tested: XQuartz is not installed on the build host, `/opt/X11` is absent)
+### macOS with Colima (verified 2026-10-06, XQuartz 2.8.6)
 
-1. `brew install --cask xquartz`, then log out and in once.
-2. XQuartz > Settings > Security: tick "Allow connections from network clients"; restart XQuartz.
-3. In a terminal: `xhost +localhost` (undo with `xhost -localhost`).
-4. Add `-e DISPLAY=host.docker.internal:0` to the `docker run` above (Docker Desktop). Under Colima the name
-   `host.docker.internal` may not resolve; use the host address that the VM sees (for example `192.168.5.2:0`
-   for a default Colima network, not verified) or the Mac's LAN IP.
-5. The first launch may print Qt xcb warnings; if the window never opens, check `echo $DISPLAY` inside the container
-   and `xhost` on the Mac. OpenGL is software-rendered over X11 and slow; that is expected.
-
-The off-screen path above does not need any of this, which is why this directory uses it.
+`bash scripts/gui/open_gui.sh openroad <design>` opens the final ODB of the current run in the OpenROAD GUI on XQuartz
+(windows "OpenROAD - kv_attn_n8" and "OpenROAD - user_project_wrapper" were opened this way). One-time setup and the
+details (TCP setting, `xhost +localhost`, `DISPLAY=192.168.5.2:0` inside Colima, harmless `qt.glx` warning) are in
+[docs/GUI_AND_LOGS.md](../../docs/GUI_AND_LOGS.md) section 3. In the window, the heat maps of this page are under
+View > Heat Maps (needs the run's SPEF/liberty for timing and IR views, which `views.tcl` loads; the plain opener loads
+only the ODB).
 
 ## Tests
 

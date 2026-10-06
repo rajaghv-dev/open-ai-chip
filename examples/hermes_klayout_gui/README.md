@@ -1,5 +1,8 @@
 # Hermes drives a KLayout view (educational)
 
+Step-by-step from the Mac terminal (setup, offscreen and live window, architecture and data flow of one request):
+[docs/HERMES_FROM_TERMINAL.md](../../docs/HERMES_FROM_TERMINAL.md).
+
 A local text-only model (`hermes3:8b` through Ollama) controls a layout viewer with seven coarse, read-only commands:
 "open kv_attn_n8, show only li1 and met1, zoom to the lower-left 50 x 50 um, snapshot". The model does not click and does not
 see pixels; it chooses commands, code executes them, and the result comes back as JSON (bounding box, visible layers, PNG path).

@@ -1,5 +1,7 @@
 # Hermes local agent
 
+How to run every Hermes example from the Mac terminal, with diagrams: [HERMES_FROM_TERMINAL.md](HERMES_FROM_TERMINAL.md).
+
 A local, offline question-answering agent for this repo's chip results. A Nous Research Hermes 3 model (8B, 4-bit)
 runs in Ollama on the Mac; it can only call the read-only tool layer `tools/eda_tools.py` (metrics.json, GDS/LEF
 via KLayout, signoff reports, precheck summary). Nothing leaves the machine; no flow, Docker or network is used.

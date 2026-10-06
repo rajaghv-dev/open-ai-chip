@@ -17,11 +17,11 @@ was not done. Paths are repo-relative; run everything from the repo root. `<d>` 
 | The GDS in KLayout, sky130 colours | `open -a /Applications/KLayout/klayout.app --args FILE.gds -l LYP` (verified; a fresh install needs a one-time Gatekeeper approval, section 2) | `klayout FILE.gds -l LYP` (not tested here) |
 | DRC markers in KLayout | add `-m FILE.lyrdb`, or Tools > Marker Browser (section 2) | same (not tested here) |
 | A GDS without any window | `build/agent/venv/bin/python examples/hermes_klayout_gui/agent.py --dry-run` (offscreen, no display) | same (not tested here) |
-| OpenROAD GUI on a finished run | LibreLane `OpenInOpenROAD` flow in the container plus XQuartz (section 3) | same flow with X11/Wayland socket (not tested here) |
-| Magic layout | `OpenInMagic` flow in the container (section 4) | same (not tested here) |
+| OpenROAD GUI on a finished run | `bash scripts/gui/open_gui.sh openroad <d>` with XQuartz (verified, section 3) | same flow with X11/Wayland socket (not tested here) |
+| The GDS in Magic (the repo's default layout viewer) | `bash scripts/gui/open_gui.sh magic <d>` with XQuartz (verified, section 3) | same with the X11 socket (not tested here) |
 | Testbench result of an RTL sim | `cat build/sim/<d>/sim.log` | same |
 | Gate-level sim result | `cat build/gl/<d>/result.txt build/gl/<d>/sim/gl.log` | same |
-| Waveforms (VCD) | `gtkwave FILE.vcd` or `surfer FILE.vcd` after `brew install` (section 4) | `apt install gtkwave` (not tested here) |
+| Waveforms (VCD) | no GTK-based viewer is used in this repo; read the testbench PASS/FAIL logs instead (section 4) | same |
 | Precheck results | `ls precheck/results; cat precheck/results/summary.tsv` | same |
 | Agent eval results | `ls build/agent/*.json` | same |
 | Docker/Colima state | `colima status -p osl`, `DOCKER_HOST=unix://$HOME/.colima/osl/docker.sock docker ps` | `docker ps` |
@@ -187,7 +187,7 @@ finished run instead of running anything:
 ```bash
 export DOCKER_HOST=unix://$HOME/.colima/osl/docker.sock          # mac only
 docker run --rm ghcr.io/librelane/librelane:3.0.2 librelane --help   # verified, read-only
-# Sketch (not tested here): open the last run of a design in the OpenROAD GUI.
+# Alternative sketch (not tested here; scripts/gui/open_gui.sh is the verified way): LibreLane's own viewer flow.
 #   librelane designs/<d>/config.json --flow OpenInOpenROAD --last-run
 # It must run inside the container (or --dockerized) with the repo mounted, the same PDK_ROOT as the Makefile, and DISPLAY set.
 ```
@@ -195,11 +195,30 @@ docker run --rm ghcr.io/librelane/librelane:3.0.2 librelane --help   # verified,
 Read the `docker run` line in the Makefile (`grep -n 'docker run' Makefile`) and copy its mounts, PDK and user flags so
 the run directory resolves to `designs/<d>/runs/`.
 
-Display, macOS (not tested here): install XQuartz (`brew install --cask xquartz`), log out and in, open XQuartz >
-Settings > Security > "Allow connections from network clients", then `xhost +localhost` and pass
-`-e DISPLAY=host.docker.internal:0` to the container (Colima may need the host IP instead). Because this is fiddly, the
-repo's default for pictures is off-screen rendering (KLayout renders, `layout.png`, Hermes PNGs) rather than a live
-OpenROAD window.
+Verified 2026-10-06 on this Mac (XQuartz 2.8.6, Colima `osl`): both GUIs open from the container on XQuartz with one
+command, `bash scripts/gui/open_gui.sh openroad|magic <design>` (windows seen: "OpenROAD - kv_attn_n8",
+"OpenROAD - user_project_wrapper", Magic "kv_attn_n8" and "soc_kv_attn_n8").
+
+One-time macOS setup:
+
+```bash
+defaults write org.xquartz.X11 nolisten_tcp -bool false   # XQuartz > Settings > Security > Allow connections from network clients
+open -a XQuartz                                            # restart it after the setting; it listens on TCP 6000
+DISPLAY=:0 /opt/X11/bin/xhost +localhost                  # Colima delivers the VM's connection as localhost
+```
+
+Then `bash scripts/gui/open_gui.sh openroad <d>` (the final ODB of the current run) or `bash scripts/gui/open_gui.sh magic <d>`
+(the final GDS). Inside the container the Mac is `192.168.5.2` (Colima's `host.lima.internal`), so the script sets
+`DISPLAY=192.168.5.2:0`; `host.docker.internal` does not resolve in Colima. Things learned:
+
+- XQuartz needs network clients allowed (the `nolisten_tcp` setting) and `xhost +localhost`; it listens on all
+  interfaces, so keep the xhost list minimal and run `DISPLAY=:0 /opt/X11/bin/xhost -localhost` when done.
+- OpenROAD prints a `qt.glx ... FBConfig` warning over XQuartz and falls back to software drawing: harmless.
+- Magic reads commands from stdin and quits at end-of-file: run it with a terminal (`docker run -it`, the script does
+  this when you start it from a terminal) or keep stdin open (the script's `GUI_SECONDS` when there is no terminal).
+- The PDK's `sky130A.magicrc` names the tech file by its build path (`/root/.ciel/...`); pass `-T` with the tech file
+  under `$PDK_ROOT/sky130A/libs.tech/magic/` (the script does).
+- Close the window to end the session; nothing is written back to the run.
 
 Display, Linux (not tested here): `docker run ... -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix ...` plus
 `xhost +local:docker` (undo with `xhost -local:docker`). Over ssh use `ssh -X host` first.
@@ -212,8 +231,8 @@ A scratch dir `build/agent/openroad_gui/` exists.
 
 ### Magic (inside the container)
 
-Magic is not on the host. The `OpenInMagic` flow opens a run's layout (same container and display rules as section 3,
-not tested here). Magic's own outputs are readable as text without a GUI: `<run>/66-magic-drc/magic-drc.log`,
+Magic is not on the host; it runs in the container: `bash scripts/gui/open_gui.sh magic <design>` (verified, section 3).
+The LibreLane `OpenInMagic` flow is an alternative (not tested here). Magic's own outputs are readable as text without a GUI: `<run>/66-magic-drc/magic-drc.log`,
 `<run>/59-magic-streamout/`, `<run>/final/mag/`.
 
 ### Waveforms (VCD)
@@ -224,8 +243,8 @@ exists; find others with `find build caravel_sim -name '*.vcd'`). The per-design
 self-checking and print PASS/FAIL, they do not dump. To get a waveform from one, add `$dumpfile`/`$dumpvars` to a
 scratch copy of the testbench, never to the committed one if the design's evidence must stay current.
 
-Viewers: macOS `brew install surfer` or `brew install --cask gtkwave` (neither is installed; verified missing), then
-`gtkwave tiny_ai_wb.vcd` or `surfer tiny_ai_wb.vcd`. Linux: `apt install gtkwave` (not tested here).
+Viewers: the repo uses no GTK-based tool (GTKWave was removed by owner decision, 2026-10-06). The testbenches are
+self-checking, so the PASS/FAIL logs below are the primary evidence; the VCD stays available for any viewer you choose.
 
 ### Simulation logs
 
@@ -274,5 +293,6 @@ command runs; `caffeinate -dims -w <pid>` attaches to an existing process.
 Verified on this Mac: every repo path and file name above (`ls`), `find_reusable_run.py`, the `jq` and python
 one-liners on `designs/kv_attn_n8/output/metrics.json`, `librelane --help` and the flow list in the container,
 `colima status -p osl`, Ollama `/api/tags` and `ollama ps`, the `.lyp` location and the KLayout app path.
-Not tested here: any GUI window (KLayout awaits Gatekeeper approval; no X server for OpenROAD/Magic), every Linux
-command, XQuartz setup, the `OpenInOpenROAD` / `OpenInKLayout` invocations, GTKWave/Surfer, `systemd-inhibit`.
+Not tested at first writing: any GUI window, every Linux
+command, the `OpenInOpenROAD` / `OpenInKLayout` invocations, `systemd-inhibit`. Verified later (2026-10-06): the KLayout
+app after the Gatekeeper approval, and the OpenROAD GUI and Magic on XQuartz (section 3).

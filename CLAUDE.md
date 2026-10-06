@@ -24,7 +24,7 @@ Sibling `../open-ai-silicon` is reference material only: never edit it.
   `scripts/doctor.sh`, `scripts/check_generated.sh`.
 - `firmware/` + `soc_sim/`: PicoRV32 SoC simulation (`make soc-sim`; `make soc-kv` runs the KV-attention firmware, `firmware/kv/`). `caravel_sim/`: full Caravel RTL/GL sims
   (`make caravel-rtl`, `caravel-gl`, `caravel-fullgl`, `caravel-sdf-wrapper`; need `build/caravel` downloads, SDF also the amd64 CVC image). `precheck/`: ChipFoundry precheck (`make precheck`, 14/14 PASS, docs/PRECHECK.md).
-- OpenROAD engines and how LibreLane chains them: `docs/OPENROAD_ENGINES.md`.
+- OpenROAD engines and how LibreLane chains them: `docs/OPENROAD_ENGINES.md`. GUIs: `bash scripts/gui/open_gui.sh openroad|magic <d>` (XQuartz/X11, setup in `docs/GUI_AND_LOGS.md`).
 - KV-cache attention family `kv_attn_{n4,n8,n16,n8_int4,n8_ring}` (SoC macro `soc_kv_attn_n8`, wrapper `user_project_wrapper_soc_kv`): shared engine `shared/rtl/kv_attn_core.v`, testbench `shared/tb/kv_attn_tb.vh`, model `model/kv_attention/`; background `docs/LLM_INFERENCE.md`. Agent/harness demos: `examples/hermes_klayout_demo/`, `examples/hermes_harness/`, `examples/hermes_rag/` (BM25 retrieval over the docs).
 - `tests/run_tests.sh` (`make test`), `tests/adapter/`, `docs/` (architecture, SoC plan, Caravel sim, precision study).
 - `build/` is git-ignored: stage logs `build/flow/`, results `build/results/<d>/`, macro views `build/macros/<m>/`.
@@ -88,4 +88,4 @@ Evidence and hygiene
   changed, evidence paths, measured budgets, first failure.
 - Other agents may work in the same tree: change only files you own for the task and say what you touched.
 
-Read-only EDA/KLayout tools for agents: `tools/eda_tools.py` (also `tools/mcp_server.py`); local Hermes agent and its evaluation: `docs/HERMES_AGENT.md` (venv at `build/agent/venv`, tests in `tests/tools/`).
+Running every Hermes example from the terminal: `docs/HERMES_FROM_TERMINAL.md`. Read-only EDA/KLayout tools for agents: `tools/eda_tools.py` (also `tools/mcp_server.py`); local Hermes agent and its evaluation: `docs/HERMES_AGENT.md` (venv at `build/agent/venv`, tests in `tests/tools/`).
