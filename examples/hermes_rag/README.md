@@ -119,9 +119,12 @@ hits from an expected file (is the answer inside what the model sees).
 | Search | Set | recall@1 | @2 | @4 | @8 | evidence in top-4 text |
 |---|---|---|---|---|---|---|
 | v1 (old) | 10 main | 5/10 | 5/10 | 8/10 | 10/10 | 4/10 |
-| v2 (new) | 10 main | 8/10 | 8/10 | 9/10 | 10/10 | 5/10 |
+| v2 (new) | 10 main | 8/10 (7/10 on 2026-10-07*) | 8/10 | 9/10 | 10/10 | 5/10 |
 | v1 (old) | 5 held-out | 3/5 | 5/5 | 5/5 | 5/5 | 5/5 |
 | v2 (new) | 5 held-out | 4/5 | 4/5 | 5/5 | 5/5 | 4/5 |
+
+\* Re-measured 2026-10-07 after new markdown pages entered the BM25 corpus: v2 recall@1 dropped from 8/10 to 7/10;
+the other columns and the router (16/17) are unchanged. Retrieval depends on the docs corpus, so it moves when docs are added.
 
 recall@1 improves on both sets; the windows did not: evidence in the text is 4 -> 5 of 10 and 5 -> 4 of 5. Most evidence misses
 are the right file but another chunk (r02, r09), or a paraphrase gap ("knee" versus "sweet spot" in r07). Router accuracy:

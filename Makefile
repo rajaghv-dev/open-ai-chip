@@ -88,7 +88,7 @@ VIEWS_OF := $(if $(filter file,$(origin DESIGN)),tiny_ai_core,$(DESIGN))
 SIM_PLUS := $(if $(SIM_VEC),+VEC=$(abspath $(SIM_VEC)))
 GL_DESC  := $(if $(SIM_VEC),every case of tb/vectors.hex,committed tb)
 
-.PHONY: help doctor test test-full views macro-views wrapper simulate gds flow check gl gl-final collect view flow-all tiny all-designs designs table results generate check-generated model-check clean soc-sim adapter-test caravel-rtl caravel-gl precheck caravel-fullgl caravel-sdf-wrapper soc-kv code-map
+.PHONY: help doctor test test-full views macro-views wrapper simulate gds flow check gl gl-final collect view flow-all tiny all-designs designs table results generate check-generated model-check clean soc-sim adapter-test caravel-rtl caravel-gl precheck caravel-fullgl caravel-sdf-wrapper soc-kv code-map hermes hermes-stop demo demo-precision demo-kv demo-rtl2gds demo-int4 demo-heatmaps demo-soc demo-gui demo-showcase
 .DEFAULT_GOAL := help
 
 help:
@@ -97,6 +97,9 @@ help:
 	@echo "  generate         re-fit and regenerate ROMs, vectors, weights.json of every model dir: $(MODELS)"
 	@echo "  check-generated  fail if regenerating changes any generated file of any model dir"
 	@echo "  model-check      golden.py --check of tiny_ai, image_text_match, precision_hw, kv_attention (audio_* have no --check; the testbench is the check)"
+	@echo "  master-prompt  regenerate tools/prompts/master_prompt.txt, the repo context prompt for Hermes / Open WebUI (scripts/docs/make_master_prompt.py)"
+	@echo "  hermes / hermes-stop   one command: set up if needed, start the Hermes chip agent and open it / stop it (docs/HERMES_DESKTOP.md)"
+	@echo "  demo   numbered menu of Hermes demos; demo-precision demo-kv demo-rtl2gds demo-int4 demo-heatmaps demo-soc demo-gui demo-showcase run one"
 	@echo "  code-map   regenerate docs/CODE_MAP.md (file -> purpose -> parent doc) from the Docs: header lines"
 	@echo "  doctor     host tools, Docker daemon, LibreLane image, PDK"
 	@echo "  test       fast repository checks (structure, configs, RTL lint), no Docker"
@@ -298,6 +301,19 @@ caravel-sdf-wrapper:
 # code-map: docs/CODE_MAP.md from the 'Docs:' header of every code file (scripts/docs/code_map.py; checker: tests/check_traceability.py)
 code-map:
 	@python3 scripts/docs/code_map.py
+
+# Hermes chip agent: one command (scripts/hermes.sh), demos from examples/hermes_desktop/demos.py
+hermes:
+	@bash scripts/hermes.sh
+hermes-stop:
+	@bash scripts/hermes.sh stop
+demo:
+	@bash scripts/hermes.sh demo
+demo-precision demo-kv demo-rtl2gds demo-int4 demo-heatmaps demo-soc demo-gui demo-showcase:
+	@bash scripts/hermes.sh demo $(subst demo-,,$@)
+
+master-prompt:
+	@python3 scripts/docs/make_master_prompt.py
 
 table:
 	@bash scripts/docs/make_thumbs.sh

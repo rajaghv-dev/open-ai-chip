@@ -60,7 +60,10 @@ def main():
     ap.add_argument("--only", default="")
     ap.add_argument("--tag", default="")
     ap.add_argument("--system-file", default="", help="override system prompt from a file")
+    ap.add_argument("--context", action="store_true", help="prepend the repo master prompt (env HERMES_CONTEXT=1)")
     a = ap.parse_args()
+    if a.context:
+        os.environ["HERMES_CONTEXT"] = "1"
     Q = json.load(open(os.path.join(HERE, "questions.json")))
     if a.only:
         Q = [q for q in Q if q["id"] in a.only.split(",")]
@@ -77,7 +80,7 @@ def main():
     npass = sum(r["pass"] for r in rows)
     lat = [r["seconds"] for r in rows]
     tok = sum(r["eval_tokens"] for r in rows); ts = sum(r["eval_seconds"] for r in rows)
-    summary = {"model": a.model, "mode": a.mode, "tag": a.tag, "passed": npass, "total": len(rows),
+    summary = {"model": a.model, "mode": a.mode, "tag": a.tag, "context": hermes_agent.context_enabled(), "passed": npass, "total": len(rows),
                "median_latency_s": round(statistics.median(lat), 1) if lat else 0,
                "tokens_per_s": round(tok / ts, 1) if ts else 0}
     ts_s = time.strftime("%Y%m%d_%H%M%S")

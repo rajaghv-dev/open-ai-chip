@@ -125,7 +125,8 @@ The lesson, in plain words:
   response once; each extra prompt token adds only one 51-cycle bus write (and 1 engine cycle). So the cost per prompt
   token falls with P: 328.0 at P = 1 to 90.6 at P = 7 (the total grows only 51 per added token).
 - **Decode pays a full round trip per token.** Every generated token is its own frame: 2 writes, a wait, and 8 response
-  reads, 670 cycles here, about 7 times a one-token prefill's 328, with nothing to share it over. Reading the 8-beat answer
+  reads, 670 cycles here: about 2 times a one-token prefill's 328 (my division 670 / 328 = 2.0) and about 7 times the
+  per-token cost of a 7-token prefill (670 / 90.6 = 7.4), with nothing to share it over. Reading the 8-beat answer
   (502 cycles) is three quarters of it.
 - **Decode engine time grows with the cache.** CYCLES minus baseline rises 7, 8, ... 14 for n = 0..7, i.e. the engine's
   n+3 latency (one cache entry per cycle through one dot-product unit). In this tiny system that growth (at most 7

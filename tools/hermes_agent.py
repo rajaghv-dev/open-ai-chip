@@ -9,6 +9,8 @@ Model: Nous Research Hermes served by Ollama (http://localhost:11434). Tools: to
   build/agent/venv/bin/python tools/hermes_agent.py            # interactive
   --mode native   Ollama /api/chat `tools` field (its template drops the system prompt)
   --mode prompt   (default) Hermes function-calling prompt format (<tools> in system prompt, <tool_call> tags parsed)
+  --context       (or env HERMES_CONTEXT=1) prepend the repo master prompt tools/prompts/master_prompt.txt to the system
+                  prompt (make master-prompt). Default OFF: the recorded eval results and prompt_sha stay reproducible.
 """
 import argparse, json, os, re, sys, time, urllib.request
 
@@ -55,6 +57,21 @@ Common mistakes to avoid:
 - Worked examples: Q: 'std cells of vision_block?' -> read_metrics(design='vision_block', pattern='count__stdcell') -> answer the value of design__instance__count__stdcell. Q: 'which design has the smallest std-cell area?' -> compare_designs(metric='design__instance__area__stdcell') -> take the first non-zero entry."""
 
 SYSTEM = SYSTEM_V3
+
+MASTER_PROMPT_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "prompts", "master_prompt.txt")
+
+
+def context_enabled():
+    return os.environ.get("HERMES_CONTEXT", "") not in ("", "0", "false", "no")
+
+
+def with_context(system):
+    """The system prompt unchanged (default), or with the generated master prompt in front when HERMES_CONTEXT=1 / --context.
+    Every agent loop of the repo passes its system text through here."""
+    if not context_enabled():
+        return system
+    with open(MASTER_PROMPT_FILE, encoding="utf-8") as f:
+        return f.read().strip() + "\n\n" + system
 
 
 def _post(path, payload):
@@ -126,7 +143,7 @@ def tool_message(blocks):
 
 
 def _hermes_system():
-    return SYSTEM + tools_suffix(eda_tools.TOOLS)
+    return with_context(SYSTEM) + tools_suffix(eda_tools.TOOLS)
 
 
 def parse_tool_calls(text, lenient=False):
@@ -156,7 +173,7 @@ def ask(question, mode="prompt", model=MODEL, system=None, extra_messages=None, 
     """Returns dict(answer, tool_calls=[{name,args,result_chars,error}], seconds, eval_tokens, eval_seconds)."""
     t0 = time.time()
     opts = dict(OPTS)
-    sysmsg = system or (SYSTEM if mode == "native" else _hermes_system())
+    sysmsg = system or (with_context(SYSTEM) if mode == "native" else _hermes_system())
     if mode == "prompt" and system is None:
         sysmsg = _hermes_system()
     msgs = [{"role": "system", "content": sysmsg}] + (extra_messages or []) + [{"role": "user", "content": question}]
@@ -208,7 +225,10 @@ def main():
     ap.add_argument("question", nargs="*")
     ap.add_argument("--mode", choices=["native", "prompt"], default="prompt")
     ap.add_argument("--model", default=MODEL)
+    ap.add_argument("--context", action="store_true", help="prepend the repo master prompt (same as env HERMES_CONTEXT=1)")
     a = ap.parse_args()
+    if a.context:
+        os.environ["HERMES_CONTEXT"] = "1"
     if a.question:
         r = ask(" ".join(a.question), a.mode, a.model)
         print(r["answer"])

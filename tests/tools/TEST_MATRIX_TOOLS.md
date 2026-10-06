@@ -24,6 +24,7 @@ new: E = test_agent_core.py, F = test_examples_harness_demo.py, G = test_rag_gui
 | examples/openroad_gui (offscreen engine views) | none | - | `test_openroad_gui.py`: scripts exist and parse (`bash -n`, Tcl braces), README paths exist, images small; opt-in `OPENROAD_GUI=1` renders one view |
 | scripts/gui/open_gui.sh (OpenROAD GUI, heat maps, Magic on XQuartz/X11) | none | - | `test_open_gui.py`: syntax, usage errors, unknown design refused, live_heatmaps.tcl uses gui::pause; opt-in `OPEN_GUI_LIVE=1` opens Magic and OpenROAD windows |
 | examples/hermes_desktop/tool_server (chip tool server, Claude bridge) | none | - | `test_tool_server.py`: OpenAPI operations, EDA results, allow-list and design refusals, image-name traversal, job lifecycle and locks, Claude command line disallows edit tools, CORS, localhost bind; opt-in `CLAUDE_LIVE=1` runs one claude_task |
+| tools/prompts/master_prompt.txt (repo context prompt), `--context` | none | - | `test_master_prompt.py`: generator deterministic and up to date, <= 900 tokens, names all 25 designs, preset (default and per-model) starts with it, `--context` off is byte-identical, on prepends |
 | examples/hermes_desktop (Open WebUI, preset, Mac app) | none | - | `test_hermes_desktop.py`: scripts parse, preset JSON valid and wired to the tool server, app builder paths, docs links; opt-in `HERMES_DESKTOP_LIVE=1` starts both servers and gets one chat completion |
 
 ## Known gaps left

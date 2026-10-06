@@ -1,0 +1,8 @@
+[
+  {"title": ["Demo: KV cache", "prefill vs decode"], "content": "Run demo kv: call the demo_steps tool with name kv and do its steps one at a time."},
+  {"title": ["Demo: precision study", "7 number formats"], "content": "Run demo precision: call the demo_steps tool with name precision and do its steps one at a time."},
+  {"title": ["Demo: SoC", "the bus dominates"], "content": "Run demo soc: call the demo_steps tool with name soc and do its steps one at a time."},
+  {"title": ["Standard cells", "kv_attn_n8"], "content": "How many standard cells does kv_attn_n8 have?"},
+  {"title": ["Why more flip-flops", "kv_attn_n8_int4"], "content": "Why does kv_attn_n8_int4 have more flip-flops than kv_attn_n8?"},
+  {"title": ["Experiments", "what can I run"], "content": "Call the list_experiments tool and show me what I can run."}
+]

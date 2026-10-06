@@ -219,6 +219,7 @@ class JobManager:
                 pass
         finally:
             job.t1 = time.time()
+            _record_history(job)
 
     @staticmethod
     def _kill(job):
@@ -236,6 +237,43 @@ class JobManager:
             job.cancelled = True
             self._kill(job)
         return job
+
+
+def _ext(fn: str):
+    """Load an extension module (examples/hermes_desktop/tool_server/<fn>.py) once, for in-process calls."""
+    import importlib.util
+    if fn not in _EXT_CACHE:
+        spec = importlib.util.spec_from_file_location("chip_hook_" + fn, os.path.join(HERE, fn + ".py"))
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        _EXT_CACHE[fn] = mod
+    return _EXT_CACHE[fn]
+
+
+_EXT_CACHE: Dict[str, Any] = {}
+
+
+def _record_history(job: "Job") -> None:
+    """Run-history hook: when a make/claude job ends, append it to the memory run history
+    (skills_memory_tools.record_run). Never raises; a missing module or any error is ignored."""
+    try:
+        if job.cancelled:
+            result = "CANCELLED"
+        else:
+            result = "PASS" if job.rc == 0 else "FAIL rc=%s" % job.rc
+        design = next((c[7:] for c in job.cmd if c.startswith("DESIGN=")), None)
+        numbers = None
+        if design and job.kind == "make":
+            try:
+                k = _ext("analysis_tools").key_numbers(eda_tools._metrics(design))
+                numbers = "cells=%s ff=%s setup=%s hold=%s" % (k["stdcells"], k["flip_flops"], (k["setup_worst"] or {}).get("slack_ns"),
+                                                               (k["hold_worst"] or {}).get("slack_ns"))
+            except Exception:  # noqa: BLE001
+                numbers = None
+        cmd = " ".join(job.cmd) if job.kind == "make" else "claude_task: " + job.label
+        _ext("skills_memory_tools").record_run(design, cmd, result, numbers, job.log)
+    except Exception:  # noqa: BLE001
+        pass
 
 
 JOBS = JobManager()
@@ -381,9 +419,12 @@ class SkillReq(BaseModel):
 
 
 class RunMakeReq(BaseModel):
-    target: str = Field(..., description="one of: " + " ".join(MAKE_ALLOW), examples=["simulate"])
+    target: Optional[str] = Field(None, description="one of: " + " ".join(MAKE_ALLOW) + ". Required on the first call.",
+                                  examples=["simulate"])
     design: Optional[str] = Field(None, description="DESIGN=<name> (must be in the Makefile design list); omit for default",
                                   examples=["vision_block"])
+    confirm_id: Optional[str] = Field(None, description="SECOND call only: the confirm_id from the first reply, after the "
+                                      "USER wrote 'yes, run <confirm_id>'. Never invent or reuse one; target/design may be omitted.")
 
 
 class JobReq(BaseModel):
@@ -391,11 +432,58 @@ class JobReq(BaseModel):
 
 
 class ClaudeTaskReq(BaseModel):
-    instructions: str = Field(..., description="what Claude should do (it can read files and run make; it cannot edit files)",
-                              min_length=1, max_length=4000)
+    instructions: Optional[str] = Field(None, description="what Claude should do (it can read files and run make; it cannot edit files); required on the first call",
+                                        max_length=4000)
+    confirm_id: Optional[str] = Field(None, description="SECOND call only: the confirm_id from the first reply, after the "
+                                      "USER wrote 'yes, run <confirm_id>'. Never invent or reuse one.")
     skill: Optional[str] = Field(None, description="optional skill name from list_skills for Claude to follow")
     design: Optional[str] = Field(None, description="optional design name")
     max_turns: Optional[int] = Field(DEFAULT_MAX_TURNS, ge=1, le=60, description="turn cap (default 30)")
+
+
+# ---------------------------------------------------------------- safety gate (two-step confirmation)
+# Measured problem: the question "How do I run the full flow for kv_attn_n8?" made the 8B model start `make flow-all`
+# three times. run_make and claude_task therefore never start anything on the first call: they return a confirm_id and
+# the exact command; the job starts only on a second call that carries that id (valid 10 min, single use).
+# CHIP_TOOLS_NO_CONFIRM=1 (read per call) skips the gate for tests and terminal use.
+CONFIRM_TTL_S = 600
+_CONFIRMS: Dict[str, dict] = {}
+_CONFIRM_LOCK = threading.Lock()
+
+
+def _no_confirm() -> bool:
+    return os.environ.get("CHIP_TOOLS_NO_CONFIRM") == "1"
+
+
+def _issue_confirm(kind: str, payload: dict, will_run: str, what: str) -> dict:
+    import secrets
+    now = time.time()
+    with _CONFIRM_LOCK:
+        for k in [k for k, v in _CONFIRMS.items() if v["expires"] < now]:
+            del _CONFIRMS[k]
+        cid = secrets.token_hex(3)
+        _CONFIRMS[cid] = {"kind": kind, "payload": payload, "expires": now + CONFIRM_TTL_S}
+    return {"needs_confirmation": True, "confirm_id": cid, "started": False, "will_run": will_run, "what": what,
+            "valid_minutes": CONFIRM_TTL_S // 60,
+            "say": "Reply 'yes, run %s' to start. Nothing has been started yet." % cid}
+
+
+def _take_confirm(kind: str, cid: str):
+    """(payload, None) when cid is valid for this kind; the id is consumed by _consume_confirm after a successful start."""
+    now = time.time()
+    with _CONFIRM_LOCK:
+        c = _CONFIRMS.get(cid)
+        if not c or c["expires"] < now:
+            _CONFIRMS.pop(cid, None)
+            return None, "unknown, expired or already used confirm_id %r; call again without confirm_id to get a new one" % cid
+        if c["kind"] != kind:
+            return None, "confirm_id %r belongs to %s, not %s" % (cid, c["kind"], kind)
+        return c["payload"], None
+
+
+def _consume_confirm(cid: str):
+    with _CONFIRM_LOCK:
+        _CONFIRMS.pop(cid, None)
 
 
 # ---------------------------------------------------------------- app
@@ -449,8 +537,20 @@ def find_pins(req: FindPinsReq) -> dict:
 
 @post("render_png", "Quick PNG render of a design")
 def render_png(req: RenderReq) -> dict:
-    """Render the GDS to a PNG (build/agent/renders/) and return its path. For a viewable image use klayout_view."""
-    return _eda("render_png", design=req.design, out=req.out, width_px=req.width_px)
+    """Render the GDS to a PNG and return its path plus a `markdown` field ![...](png_url): paste that field verbatim
+    into your answer so the image is shown in the chat. For layer/zoom control use klayout_view."""
+    r = _eda("render_png", design=req.design, out=req.out, width_px=req.width_px)
+    src = os.path.join(REPO, r["path"]) if isinstance(r, dict) and r.get("path") else None
+    if src and os.path.isfile(src):
+        try:
+            os.makedirs(IMG_DIR, exist_ok=True)
+            name = "render_%s_%s.png" % (req.design, time.strftime("%Y%m%d_%H%M%S"))
+            shutil.copyfile(src, os.path.join(IMG_DIR, name))
+            r["png_url"] = "%s/img/%s" % (PUBLIC_URL, name)
+            r["markdown"] = "![%s](%s)" % (req.design, r["png_url"])
+        except OSError:
+            pass
+    return r
 
 
 @post("signoff_summary", "Signoff summary")
@@ -483,8 +583,8 @@ _VIEW_LOCK = threading.Lock()
 
 @post("klayout_view", "Render a layout view to a PNG")
 def klayout_view(req: KlayoutViewReq) -> dict:
-    """Render a design's layout with KLayout (offscreen) and return png_url; show it in chat as ![](png_url).
-    Optionally restrict layers and zoom (bbox in um, a cell/instance name, or full)."""
+    """Render a design's layout with KLayout (offscreen) and return png_url and a `markdown` field ![...](png_url).
+    Paste the `markdown` field verbatim into your answer so the picture appears in the chat. Optionally restrict layers and zoom (bbox in um, a cell/instance name, or full)."""
     try:
         eda_tools._check_design(req.design)
         from offscreen_backend import OffscreenBackend
@@ -555,22 +655,43 @@ def get_skill(req: SkillReq) -> dict:
     return {"name": s["name"], "description": s["description"], "body": s["body"]}
 
 
-@post("run_make", "Run an allow-listed make target as a background job")
+@post("run_make", "Run an allow-listed make target as a background job (needs user confirmation)")
 def run_make(req: RunMakeReq) -> dict:
-    """Start `make <target> [DESIGN=<design>]` in the repo as a background job; returns {job_id}. Poll with job_status.
-    Allowed targets only. gds/flow-all/views/collect/test-full are physical flows: one at a time, can take minutes."""
-    if req.target not in MAKE_ALLOW:
-        return {"error": "target %r not allowed; allowed: %s" % (req.target, " ".join(MAKE_ALLOW))}
-    cmd = ["make", req.target]
-    if req.design is not None:
-        if req.design not in valid_designs():
-            return {"error": "unknown design %r; valid: %s" % (req.design, " ".join(valid_designs()))}
-        cmd.append("DESIGN=" + req.design)
+    """Start `make <target> [DESIGN=<design>]` as a background job. TWO STEPS: the first call starts NOTHING and returns
+    {needs_confirmation, confirm_id, will_run, say}: show `say` to the user and STOP. Only after the user replies
+    'yes, run <confirm_id>' call again with that confirm_id; then it returns {job_id}, poll with job_status.
+    Call it only when the user ORDERS a run; a question like 'how do I run...' is never an order.
+    gds/flow-all/views/collect/test-full are physical flows: one at a time, can take minutes."""
+    confirmed = None
+    if not req.confirm_id and req.target and re.fullmatch(r"[0-9a-f]{6}", req.target.strip()) and req.target.strip() in _CONFIRMS:
+        # the 8B model sometimes puts the id of "yes, run <id>" in `target`; a pending issued id can only mean the confirmation
+        req.confirm_id = req.target.strip()
+    if req.confirm_id:
+        payload, err = _take_confirm("make", req.confirm_id.strip())
+        if err:
+            return {"error": err}
+        confirmed = req.confirm_id.strip()
+        target, design = payload["target"], payload["design"]
+    else:
+        target, design = req.target, req.design
+    if not target or target not in MAKE_ALLOW:
+        return {"error": "target %r not allowed; allowed: %s" % (target or "", " ".join(MAKE_ALLOW))}
+    cmd = ["make", target]
+    if design is not None:
+        if design not in valid_designs():
+            return {"error": "unknown design %r; valid: %s" % (design, " ".join(valid_designs()))}
+        cmd.append("DESIGN=" + design)
+    if not confirmed and not _no_confirm():
+        return _issue_confirm("make", {"target": target, "design": design}, " ".join(cmd),
+                              "make %s%s (%s)" % (target, " for " + design if design else "",
+                                                  "physical flow, can take minutes" if target in PHYSICAL else "background job"))
     # DOCKER_HOST points the flow at the platform socket (flows run LibreLane in Docker)
     env = {"DOCKER_HOST": "unix://" + DOCKER_SOCK}
-    job, err = JOBS.start("make", cmd, " ".join(cmd[1:]), physical=req.target in PHYSICAL, env=env)
+    job, err = JOBS.start("make", cmd, " ".join(cmd[1:]), physical=target in PHYSICAL, env=env)
     if err:
         return {"error": err}
+    if confirmed:
+        _consume_confirm(confirmed)
     return {"job_id": job.id, "state": job.state, "command": " ".join(cmd), "log": os.path.relpath(job.log, REPO)}
 
 
@@ -606,24 +727,44 @@ def job_cancel(req: JobReq) -> dict:
     return {"job_id": job.id, "state": job.state, "cancel_requested": job.cancelled}
 
 
-@post("claude_task", "Hand a task to Claude Code (read and run only, cannot edit files)")
+@post("claude_task", "Hand a task to Claude Code (read and run only, cannot edit files; needs user confirmation)")
 def claude_task(req: ClaudeTaskReq) -> dict:
     """Run the Claude Code CLI headless as a background job with edit tools denied: it can read files and run make
-    targets (including flows) and reports back; it cannot create or edit files. Returns {job_id}; poll job_status.
+    targets (including flows) and reports back; it cannot create or edit files. TWO STEPS: the first call starts NOTHING
+    and returns {needs_confirmation, confirm_id, will_run, say}: show `say` to the user and STOP; call again with the
+    confirm_id only after the user replies 'yes, run <confirm_id>'. Then it returns {job_id}; poll job_status.
     Uses the owner's Claude plan: use for work that needs a stronger model, not for simple lookups."""
     if not os.path.exists(CLAUDE_BIN):
         return {"error": "claude CLI not found at %s" % CLAUDE_BIN}
-    if req.skill and req.skill not in _skills():
-        return {"error": "unknown skill %r; valid: %s" % (req.skill, ", ".join(_skills()))}
-    if req.design and req.design not in valid_designs():
-        return {"error": "unknown design %r" % req.design}
-    prompt = build_claude_prompt(req.skill, req.design, req.instructions)
-    cmd = build_claude_command(prompt, req.max_turns or DEFAULT_MAX_TURNS)
+    confirmed = None
+    if req.confirm_id:
+        payload, err = _take_confirm("claude", req.confirm_id.strip())
+        if err:
+            return {"error": err}
+        confirmed = req.confirm_id.strip()
+        instructions, skill, design, max_turns = payload["instructions"], payload["skill"], payload["design"], payload["max_turns"]
+    else:
+        instructions, skill, design, max_turns = req.instructions, req.skill, req.design, req.max_turns or DEFAULT_MAX_TURNS
+    if not instructions or not instructions.strip():
+        return {"error": "instructions are required"}
+    if skill and skill not in _skills():
+        return {"error": "unknown skill %r; valid: %s" % (skill, ", ".join(_skills()))}
+    if design and design not in valid_designs():
+        return {"error": "unknown design %r" % design}
+    prompt = build_claude_prompt(skill, design, instructions)
+    cmd = build_claude_command(prompt, max_turns)
+    if not confirmed and not _no_confirm():
+        return _issue_confirm("claude", {"instructions": instructions, "skill": skill, "design": design,
+                                         "max_turns": max_turns},
+                              " ".join(shlex.quote(c) for c in cmd),
+                              "Claude Code task (read and run only, edit tools denied): " + instructions.strip()[:200])
     env = {"DOCKER_HOST": "unix://" + DOCKER_SOCK}
-    job, err = JOBS.start("claude", cmd, "claude_task" + (" " + req.skill if req.skill else ""), claude=True,
+    job, err = JOBS.start("claude", cmd, "claude_task" + (" " + skill if skill else ""), claude=True,
                           env=env, timeout=CLAUDE_TIMEOUT_S)
     if err:
         return {"error": err}
+    if confirmed:
+        _consume_confirm(confirmed)
     return {"job_id": job.id, "state": job.state, "command": job.summary()["command"], "log": os.path.relpath(job.log, REPO)}
 
 
@@ -668,6 +809,28 @@ def health(req: Empty = Empty()) -> dict:
 @app.get("/health", include_in_schema=False)
 def health_get():
     return health()
+
+
+# ---- extension modules: every examples/hermes_desktop/tool_server/*_tools.py that defines `router` (a FastAPI APIRouter)
+# is mounted here, in file-name order, so feature modules (run analysis, GUI operation, skills/memory) are added without
+# editing this file. Each module owns its endpoints; operationIds must be unique across modules (Open WebUI tool names).
+def _mount_extensions() -> List[str]:
+    import importlib.util
+    mounted = []
+    here = os.path.dirname(os.path.abspath(__file__))
+    for fn in sorted(os.listdir(here)):
+        if not fn.endswith("_tools.py"):
+            continue
+        spec = importlib.util.spec_from_file_location("chip_ext_" + fn[:-3], os.path.join(here, fn))
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        if hasattr(mod, "router"):
+            app.include_router(mod.router)
+            mounted.append(fn)
+    return mounted
+
+
+EXTENSIONS = _mount_extensions()
 
 
 if __name__ == "__main__":

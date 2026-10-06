@@ -1,0 +1,22 @@
+/Library/Developer/CommandLineTools/usr/bin/make -C firmware sim
+../soc_sim/run.sh <repo>/firmware/build/firmware.hex
+tiny_ai_core firmware self-test (PicoRV32 rv32i)
+timer read overhead (cycles): 11
+[1] register block
+[2] protocol negative cases (each must set sticky ERROR; CLEAR removes it)
+[3] irq[0] completion pulse
+[4] exhaustive: every input of every mode, accelerator and software vs golden.py tables
+  vision_all_lit: 16 cases, accelerator mismatches 0, CYCLES mismatches 0, software mismatches 0
+  vision_block: 512 cases, accelerator mismatches 0, CYCLES mismatches 0, software mismatches 0
+  text_sentiment: 256 cases, accelerator mismatches 0, CYCLES mismatches 0, software mismatches 0
+[5] cycles per inference (CPU clock cycles, averages over all cases of the mode; timer-read overhead 11 subtracted)
+mode            cases  sw_cpu  accel_roundtrip  (write+wait+read)  accel_CYCLES_reg  sw/accel
+vision_all_lit     16  153.0  490.0  (327.0+79.0+84.0)  6.0  0.3x
+vision_block      512  1318.6  728.0  (565.0+79.0+84.0)  15.0  1.8x
+text_sentiment    256  351.0  490.0  (327.0+79.0+84.0)  6.0  0.7x
+(sw/accel = software cycles divided by accelerator round-trip cycles)
+total cycles: 1897062
+PASS
+SOC_SIM: firmware exit PASS after 1899308 cycles
+<repo>/soc_sim/soc_tb.v:97: $finish called at 18993185000 (1ps)
+soc_sim: wall time 28 s

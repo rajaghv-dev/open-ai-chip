@@ -16,7 +16,7 @@
   "main": 12,
   "heldout": 5
  },
- "history": "results_summary_v1.json is the first measurement (rag/tools-only/rag+grounding, v1 retrieval, 12 questions, run build/agent/rag_eval_20261006_144926.json)",
+ "history": "results_summary_v1.json is the first measurement (rag/tools-only/rag+grounding, v1 retrieval, 12 questions, run build/agent/rag_eval_20261006_144926.json) 2026-10-07: retrieval re-measured after new markdown pages entered the BM25 corpus (deterministic, no model): v2 recall@1 8/10 -> 7/10; @2/@4/@8, v1, held-out and router (16/17) unchanged. End-to-end scores are from 2026-10-06.",
  "retrieval": {
   "v1": {
    "mode": "v1",
@@ -227,13 +227,13 @@
    "mode": "v2",
    "questions": 10,
    "recall_at_k": {
-    "@1": "8/10",
+    "@1": "7/10",
     "@2": "8/10",
     "@4": "9/10",
     "@8": "10/10"
    },
    "recall_at_k_value": {
-    "@1": 0.8,
+    "@1": 0.7,
     "@2": 0.8,
     "@4": 0.9,
     "@8": 1.0

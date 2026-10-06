@@ -42,7 +42,7 @@ def system_prompt(with_metrics=False):
     tools = list(va.TOOLS)
     if with_metrics:
         tools += [t for t in eda_tools.TOOLS if t["function"]["name"] == "read_metrics"]
-    return SYSTEM + hermes_agent.tools_suffix(tools)     # the Hermes tool list + <tool_call> format
+    return hermes_agent.with_context(SYSTEM) + hermes_agent.tools_suffix(tools)     # the Hermes tool list + <tool_call> format
 
 
 # ============================================================ deterministic router (guardrail)
@@ -283,7 +283,10 @@ def main():
     ap.add_argument("--dry-run", action="store_true", help="scripted tool calls, no Ollama (uses --scenario)")
     ap.add_argument("--scenario", type=int, default=0, help="index into SCENARIOS for --dry-run without a request")
     ap.add_argument("--with-metrics", action="store_true", help="also give the model eda_tools.read_metrics")
+    ap.add_argument("--context", action="store_true", help="prepend the repo master prompt (env HERMES_CONTEXT=1)")
     a = ap.parse_args()
+    if a.context:
+        os.environ["HERMES_CONTEXT"] = "1"
     if a.model:
         hermes_agent.MODEL = a.model
     backend = make_backend(a.backend)

@@ -25,6 +25,13 @@ Open WebUI: Settings, Tools, add the tool server `http://127.0.0.1:8770` (spec a
 | `run_make {target, design?}` | allow-listed `make` target as a background job; returns `{job_id}` |
 | `job_status {job_id}`, `job_list`, `job_cancel {job_id}` | state `running/done/failed`, rc, seconds, last 60 log lines (logs in `build/agent/jobs/<id>.log`) |
 | `claude_task {instructions, skill?, design?, max_turns?}` | headless Claude Code CLI as a job, edit tools denied; poll with `job_status` |
+| `skill_plan {skill, design?}` | ordered steps of one project skill with the tool per step; run skills (harden-design, soc-run, wrapper-build) use `run_make`, edit skills hand off to Claude (`skills_memory_tools.py`) |
+| `remember {note, topic?}`, `recall {query?}`, `forget {id}`, `memory_digest`, `context_brief` | local markdown memory in `build/agent/memory/` (MEMORY.md, <topic>.md, runs.md; never committed; bounded, rotated, no secrets); `context_brief` = `docs/AGENT_CONTEXT.md` + digest, called at the start of a chat |
+| `run_summary {design?, run?, job_id?}` | `analysis_tools.py`: status per stage, key numbers, current-or-stale, diff vs committed metrics, plain-English `summary`; accepts a finished `run_make` job id |
+| `diagnose {design? \| job_id?}` | matches logs/metrics to the harden-design failure table (`reference.md`, as data) with evidence, fix and doc link; `clean: true` when nothing failed |
+| `suggest {design, classify?}` | rule-based suggestions (thin setup/hold, slew classification, utilisation, stale run, missing macro views, fill/tap split, removed flops, what to read next); never advises loosening constraints |
+| `notes_section {design, section?, item?}`, `explain {design, topic}` | the exact (quoted) text of a NOTES.md section / best matching paragraphs, with file, heading, lines |
+| `list_experiments {group?}`, `run_experiment {id, design?}`, `experiment_result {id, design?, job_id?}`, `engine_pictures {design?, view?}`, `list_demos`, `demo_steps {name}` | `experiments_tools.py`: the catalog of everything the repo can run (per-design flows, families, system sims, pictures), a run that goes through the gated `run_make` (same confirmation, same one-physical-flow rule), results parsed by code (soc-kv prefill/decode, soc-sim cycles, precision 7-format table, KV cache bits vs flip-flops, adapter-test, precheck), OpenROAD engine pictures with explanation, and the numbered demos (`demo_defs.py`). See docs/HERMES_DESKTOP.md "Experiments and demos" |
 | `health` | versions, Ollama, Docker (colima socket), Claude CLI path, running jobs |
 
 `run_make` targets: `doctor test simulate check gl gl-final gds flow-all views collect view soc-sim soc-kv
@@ -32,6 +39,10 @@ adapter-test model-check check-generated test-full caravel-rtl caravel-gl`. Anyt
 precheck, all-designs, ...) is refused. `design` must be in the Makefile `ALL_DESIGNS` list.
 
 ## Safety model
+
+- Two-step confirmation: `run_make` and `claude_task` start nothing on the first call; they return
+  `{needs_confirmation, confirm_id, will_run, say}`. A second call with that `confirm_id` (valid 10 min, single use)
+  starts the job. `CHIP_TOOLS_NO_CONFIRM=1` disables the gate for tests and terminal use.
 
 - Binds 127.0.0.1 only; CORS limited to the two Open WebUI origins. No authentication, so do not expose the port.
 - Tools never take paths or shell text: design names are checked against an allow-list, make targets against a
@@ -63,3 +74,10 @@ precheck, all-designs, ...) is refused. `design` must be in the Makefile `ALL_DE
 
 `build/agent/venv/bin/python -m pytest -q tests/tools/test_tool_server.py` (no Ollama, Docker or Claude needed);
 `CLAUDE_LIVE=1` adds one real `claude_task`.
+
+## Memory hook for the job system
+`skills_memory_tools.record_run(design, command, result, key_numbers=None, log_path=None)` appends a dated line to
+`build/agent/memory/runs.md` (never raises). The job manager calls it when a job finishes (import the module like
+`_mount_extensions` does, or `POST /record_run`, hidden from the model's tool list). Open WebUI side:
+`examples/hermes_desktop/install_prompts.py` (slash prompts and the memory-digest filter `memory_filter.py`);
+start.sh hook, after the preset install: `python3 "$REPO/examples/hermes_desktop/install_prompts.py" || echo "prompt install failed" >&2`.

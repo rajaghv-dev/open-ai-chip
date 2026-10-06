@@ -81,6 +81,17 @@ Ground truth refreshed (q03): `tools/eval/questions.json` was written before `so
 fail as before (`build/agent/eval_20261006_143402.json`). The previous 13/15 (`eval_20261006_121338.json`) had been scored against the
 stale q03.
 
+## Master prompt and `--context`
+
+`tools/prompts/master_prompt.txt` (about 700 tokens, budget 900 at 4 chars/token) is a generated summary of the repo: what it is, the
+25 designs by family, where results and docs live, key commands, tool routing by question type, safety rules, answer style. Regenerate
+with `make master-prompt` (`scripts/docs/make_master_prompt.py`, template `tools/prompts/master_prompt.template.txt`); `make test`
+fails when it is stale. Open WebUI uses it as the preset system prompt (docs/HERMES_DESKTOP.md). The terminal agents take it only on
+request: `--context` or env `HERMES_CONTEXT=1` (`tools/hermes_agent.py`, `tools/eval/run_eval.py`, `harness.py`, `rag_agent.py`,
+`examples/hermes_klayout_gui/agent.py`) prepend it to their system prompt through `hermes_agent.with_context`. Default OFF, so
+the recorded eval results and the harness `prompt_sha` are unchanged (tests/tools/test_master_prompt.py pins the old prompt byte-identical).
+Measured effect on the 15-question eval (hermes3:8b, prompt mode): 13/15 without `--context` (`build/agent/eval_20261006_231502.json`, median 3.1 s) and 13/15 with it (`build/agent/eval_20261006_231558.json`, median 3.3 s); the same two questions (q02, q04) fail in both. The eval questions are about numbers from tools, so the prompt neither helps nor hurts there; its value is repo context and scope in open-ended chat (docs/HERMES_DESKTOP.md).
+
 ## Good at / bad at
 
 - Good: one-call lookups of layout, pins, signoff and precheck facts; simple differences and ratios (it shows the two numbers);

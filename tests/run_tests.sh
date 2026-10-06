@@ -72,7 +72,8 @@ if [ $HAVE_WRAP = 1 ]; then
   for _w in $WRAPS; do for f in designs/$_w/config.json designs/$_w/rtl/user_project_wrapper.v; do [ -f "$f" ] || fail "missing $f"; done; done
 else note "designs/$WRAP/config.json not there yet: wrapper checks skipped"; fi
 [ "$FAILS" = 0 ] && pass "required files present"
-links=$(find . -type l -not -path './build/*' -not -path "./$D/runs/*" | head -3)
+# only files git would commit (tracked + untracked, not ignored): an ignored local .venv or build/ may contain symlinks
+links=$(git ls-files -co --exclude-standard 2>/dev/null | while read -r f; do [ -L "$f" ] && echo "$f"; done | head -3)
 [ -z "$links" ] && pass "no symlinks" || fail "symlinks: $links"
 src=(Makefile scripts tests designs/*/config.json designs/*/rtl/*.v designs/*/tb model shared)   # rtl/UPSTREAM.txt names the reference on purpose
 hits=$(grep -rIl -e "$HOME" -e 'ci_user_proj_example' -e 'ci-upe' -e 'osl_cap_' "${src[@]}" 2>/dev/null | grep -v '^tests/run_tests.sh$' || true)
@@ -401,6 +402,10 @@ else note "build/agent/venv missing: tests/tools pytest skipped (docs/HERMES_AGE
 # == tables: Guards against: stale generated results tables (scripts/docs/tables.py --check). Docs: docs/RESULTS.md, tests/TEST_MATRIX.md
 echo "== tables"
 if python3 scripts/docs/tables.py --check >"$TMP/tables.log" 2>&1; then pass "docs/RESULTS.md results tables up to date"; else fail "tables.py --check: $(cat "$TMP/tables.log")"; fi
+
+# == master prompt: Guards against: a stale generated tools/prompts/master_prompt.txt (scripts/docs/make_master_prompt.py --check). Docs: docs/HERMES_AGENT.md, tests/TEST_MATRIX.md
+echo "== master prompt"
+if python3 scripts/docs/make_master_prompt.py --check >"$TMP/mp.log" 2>&1; then pass "tools/prompts/master_prompt.txt up to date ($(cat "$TMP/mp.log"))"; else fail "make_master_prompt.py --check: $(cat "$TMP/mp.log")"; fi
 
 echo
 [ "$FAILS" = 0 ] && { echo "test: ALL PASSED"; exit 0; } || { echo "test: $FAILS FAILED"; exit 1; }

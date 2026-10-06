@@ -9,9 +9,17 @@ PY="$REPO/build/agent/venv/bin/python"
 "$PY" -c "import webview" 2>/dev/null || { echo "pywebview missing: $REPO/build/agent/venv/bin/pip install pywebview" >&2; exit 1; }
 rm -rf "$APP"; mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$HERE/app.py" "$APP/Contents/Resources/app.py"
+# icon: icon.png (committed, drawn by make_icon.py) -> icon.icns with sips + iconutil
+IS="$(mktemp -d)/icon.iconset"; mkdir -p "$IS"
+for s in 16 32 128 256 512; do
+  sips -z $s $s "$HERE/icon.png" --out "$IS/icon_${s}x${s}.png" >/dev/null
+  sips -z $((s*2)) $((s*2)) "$HERE/icon.png" --out "$IS/icon_${s}x${s}@2x.png" >/dev/null
+done
+iconutil -c icns "$IS" -o "$APP/Contents/Resources/icon.icns"
 printf '%s\n' "$REPO" > "$APP/Contents/Resources/repo_path"
 cat > "$APP/Contents/MacOS/hermes-chip-agent" <<'L'
 #!/usr/bin/env bash
+export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"   # Finder gives apps a minimal PATH
 RES="$(cd "$(dirname "$0")/../Resources" && pwd)"
 REPO="$(cat "$RES/repo_path")"
 mkdir -p "$REPO/build/webui/logs"
@@ -25,6 +33,7 @@ cat > "$APP/Contents/Info.plist" <<'P'
 <key>CFBundleName</key><string>Hermes Chip Agent</string>
 <key>CFBundleDisplayName</key><string>Hermes Chip Agent</string>
 <key>CFBundleIdentifier</key><string>local.openaichip.hermeschipagent</string>
+<key>CFBundleIconFile</key><string>icon</string>
 <key>CFBundleExecutable</key><string>hermes-chip-agent</string>
 <key>CFBundlePackageType</key><string>APPL</string>
 <key>CFBundleVersion</key><string>1</string>

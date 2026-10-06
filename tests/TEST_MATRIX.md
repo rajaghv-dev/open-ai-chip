@@ -8,7 +8,7 @@ Scope: the chip and SoC side. The agent/tools side (KLayout/OpenROAD GUI, RAG, M
 
 | Gate | Command | Needs | Contents |
 |---|---|---|---|
-| fast | `make test` (`tests/run_tests.sh`) | iverilog, python3; optional riscv64-elf-gcc and `build/agent/venv` | sections: structure, upstream, config, rtl, wrapper, model, sim, negative, negative-all, docs, notes, adapter, soc, tools, tables |
+| fast | `make test` (`tests/run_tests.sh`) | iverilog, python3; optional riscv64-elf-gcc and `build/agent/venv` | sections: structure, upstream, config, rtl, wrapper, model, sim, negative, negative-all, docs, notes, adapter, soc, tools, tables, master prompt |
 | full | `make test-full` (`tests/test_full.sh`, flags via `FLAGS="--precheck --synth-gl --fullgl --sdf --quick --only 'a b' --with-test"`) | the fast gate's tools, committed runs under `designs/*/runs/`, `build/caravel` for the Caravel items | per design: run-state (current/STALE), `make simulate`, `make check`, `make gl-final`; once: adapter-test, soc-sim, soc-kv, caravel-rtl, caravel-gl; opt-in: synth-netlist `make gl` (Docker), precheck (Docker), caravel-fullgl (~14 min), caravel-sdf-wrapper (CVC image) |
 
 `test_full.sh` never calls `make gds`. A design whose newest run is not current (`scripts/flow/find_reusable_run.py`) is printed as
@@ -52,6 +52,7 @@ C = config.json guard checks; N = NOTES.md required headings; D = inventory and 
 | Precheck | `make precheck` opt-in in `test-full` (`--precheck`, Docker) | not run when Docker is down |
 | Signoff evidence | `make check` in `test-full` (`scripts/flow/check_signoff.py`); `make test` compares README Status numbers with `output/metrics.json` (`tests/check_docs.py evidence`) | only numbers written in a recognisable form (N std cells, N flip-flops, W x H um, setup/hold slack ns, max_ss/nom_ss/min_ss WNS) are compared |
 | README tables | `scripts/docs/tables.py --check` (`== tables`) | none |
+| Hermes master prompt | `scripts/docs/make_master_prompt.py --check` (`== master prompt`) | none |
 | Docs | `check_docs.py links` (relative links of every tracked `*.md`, anchors not checked), `targets` (every `make <t>` in a code span or code block exists; SPEC.md, LOCAL_RUN_PLAN.md, docs/SOC_PLAN.md and docs/slides/README.md are skipped: historic plans and other repositories' targets), `inventory`, self-test `tests/lib/check_docs_selftest.sh` | prose mentions of make targets outside code spans are not checked |
 | Tools (agents, MCP, KLayout/OpenROAD) | `== tools`: `build/agent/venv/bin/python -m pytest -q tests/tools`; details in tools/TEST_MATRIX_TOOLS.md | needs the venv; NOTE when it is missing |
 

@@ -34,7 +34,9 @@ def test_preset_and_connection():
     assert p["base_model_id"] == "hermes3:8b" and p["params"]["temperature"] == 0
     assert p["params"]["function_calling"] == "legacy"
     assert "server:chip" in p["meta"]["toolIds"]
-    assert os.path.exists(os.path.join(D, p["params"]["system"].lstrip("@")))
+    sysf = p["params"]["system"]
+    for f in (sysf if isinstance(sysf, list) else [sysf]):
+        assert os.path.exists(os.path.join(D, f.lstrip("@")))
     c = json.load(open(os.path.join(D, "tool_server_connection.json")))
     assert c[0]["info"]["id"] == "chip" and c[0]["url"] == "http://127.0.0.1:8770"
     assert c[0]["path"] == "openapi.json"
@@ -64,6 +66,8 @@ def test_no_home_paths():
         if "tool_server" in root or "__pycache__" in root:
             continue
         for f in files:
+            if f.endswith((".png", ".icns", ".pyc")):
+                continue
             assert "/Users/" not in open(os.path.join(root, f), encoding="utf-8").read(), f
     assert "/Users/" not in read("docs", "HERMES_DESKTOP.md")
 
@@ -96,3 +100,59 @@ def test_live_start_and_chat():
         assert "297" in d["choices"][0]["message"]["content"]
     finally:
         subprocess.run(["bash", os.path.join(D, "stop.sh")])
+
+
+def test_one_command_script():
+    """Pins down: scripts/hermes.sh parses and has its subcommands; Makefile targets exist."""
+    path = os.path.join(REPO, "scripts", "hermes.sh")
+    assert os.access(path, os.X_OK)
+    subprocess.run(["bash", "-n", path], check=True)
+    s = read("scripts", "hermes.sh")
+    for k in ("demo)", "stop)", "status)", "up)", "ollama pull", "setup_webui.sh", "audit_config.py"):
+        assert k in s
+    assert subprocess.run(["bash", path, "bogus"], capture_output=True).returncode == 2
+    mk = read("Makefile")
+    for t in ("hermes:", "hermes-stop:", "demo:", "demo-kv"):
+        assert t in mk
+
+
+def test_lockdown_env_in_start_sh():
+    """Pins down: start.sh carries the lock-down settings, and the audit script expects the same ones."""
+    s = read("examples", "hermes_desktop", "start.sh")
+    for k in ("DEFAULT_MODELS=hermes-chip-agent", "ENABLE_CODE_EXECUTION=False", "ENABLE_CODE_INTERPRETER=False",
+              "ENABLE_WEB_SEARCH=False", "ENABLE_IMAGE_GENERATION=False", "ENABLE_DIRECT_CONNECTIONS=False",
+              "ENABLE_OPENAI_API=False", "ENABLE_COMMUNITY_SHARING=False", "ENABLE_SIGNUP=False", "OFFLINE_MODE=True"):
+        assert k in s, k
+    import importlib.util
+    sp = importlib.util.spec_from_file_location("audit_config", os.path.join(D, "audit_config.py"))
+    m = importlib.util.module_from_spec(sp)
+    sp.loader.exec_module(m)
+    assert m.EXPECTED["ui.default_models"] == "hermes-chip-agent" and m.EXPECTED["code_execution.enable"] is False
+    assert "audit_config.py" in s
+
+
+def test_audit_compare_offline():
+    """Pins down: the audit's pure compare() reports ok for the locked state and DRIFT for a changed one."""
+    import importlib.util
+    sp = importlib.util.spec_from_file_location("audit_config", os.path.join(D, "audit_config.py"))
+    m = importlib.util.module_from_spec(sp)
+    sp.loader.exec_module(m)
+    conns = [{"info": {"id": "chip"}, "url": "http://127.0.0.1:8770"}]
+    models = [{"id": "hermes-chip-agent"}, {"id": "phi3:14b", "info": {"meta": {"hidden": True}}}]
+    rows = m.compare(dict(m.EXPECTED), models, conns)
+    assert all(r[3] for r in rows)
+    bad = dict(m.EXPECTED, **{"web.search.enable": True})
+    assert [r[0] for r in m.compare(bad, models, conns) if not r[3]] == ["web.search.enable"]
+    models.append({"id": "phi3:14b-x"})
+    assert not all(r[3] for r in m.compare(dict(m.EXPECTED), models, conns))
+    assert m.flatten({"a": {"b": 1}}) == {"a.b": 1}
+
+
+def test_icon_and_app_polish():
+    """Pins down: icon.png is a real PNG, make_icon.py regenerates it, app opens the preset and reports missing model."""
+    png = open(os.path.join(D, "desktop", "icon.png"), "rb").read()
+    assert png[:8] == b"\x89PNG\r\n\x1a\n" and len(png) < 100000
+    assert "icon.icns" in read("examples", "hermes_desktop", "desktop", "make_app.sh")
+    app = read("examples", "hermes_desktop", "desktop", "app.py")
+    assert "models=hermes-chip-agent" in app and "ollama pull" in app and "osascript" in app
+    assert os.path.exists(os.path.join(D, "desktop", "make_icon.py"))

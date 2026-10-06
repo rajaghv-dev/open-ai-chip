@@ -1,0 +1,35 @@
+/Library/Developer/CommandLineTools/usr/bin/make -C firmware/kv sim
+../../soc_sim/kv/run.sh <repo>/firmware/kv/build/firmware.hex
+kv_attn_n8 firmware session (PicoRV32 rv32i, wb_stream_adapter)
+timer read overhead (cycles): 11
+CAPS 0x00101001
+
+PREFILL: one frame [02, t0..t(P-1)], CPU clock cycles, timer overhead removed
+  P  roundtrip  per_token  write  wait  read  CYCLES_reg
+  1        328      328.0    127    41   160          56
+  2        379      189.5    178    41   160         107
+  3        430      143.3    229    41   160         158
+  4        481      120.3    280    41   160         209
+  5        532      106.4    331    41   160         260
+  6        583       97.2    382    41   160         311
+  7        634       90.6    433    41   160         362
+
+DECODE by cache fill n (average over the sessions that decode at that n)
+  n  cases  roundtrip   write    wait    read  (wr%/wait%/rd%)  CYCLES_reg  minus_base  engine_L(n+3)
+  0      1      670.0   127.0    41.0   502.0  (18/6/74)        63.0         7.0              3
+  1      2      670.0   127.0    41.0   502.0  (18/6/74)        64.0         8.0              4
+  2      3      670.0   127.0    41.0   502.0  (18/6/74)        65.0         9.0              5
+  3      4      670.0   127.0    41.0   502.0  (18/6/74)        66.0        10.0              6
+  4      5      670.0   127.0    41.0   502.0  (18/6/74)        67.0        11.0              7
+  5      6      670.0   127.0    41.0   502.0  (18/6/74)        68.0        12.0              8
+  6      7      670.0   127.0    41.0   502.0  (18/6/74)        69.0        13.0              9
+  7      8      670.0   127.0    41.0   502.0  (18/6/74)        70.0        14.0             10
+baseline (DECODE on a full cache, 2 response beats): roundtrip 328, CYCLES_reg 56
+CYCLES_reg = first TX beat accepted to m_last captured (includes the CPU write gap and the response beats);
+minus_base = same frame shape on a full cache subtracted, expected n+7 = (n+3-2) + (8-2).
+total cycles: 1018726
+PASS
+SOC_SIM: firmware exit PASS after 1020782 cycles
+<repo>/soc_sim/kv/kv_soc_tb.v:97: $finish called at 10207925000 (1ps)
+soc_sim/kv: wall time 14 s
+make soc-kv  14.28s user 0.13s system 96% cpu 14.930 total

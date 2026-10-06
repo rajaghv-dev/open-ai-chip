@@ -43,7 +43,7 @@ def test_openapi_operations():
     for path, item in spec["paths"].items():
         for method, op in item.items():
             ops[op["operationId"]] = (path, method)
-    assert set(ops) == EXPECTED_OPS
+    assert EXPECTED_OPS <= set(ops)          # extension modules (*_tools.py) add more operations, never remove these
     for name, (path, method) in ops.items():
         assert path == "/" + name and method == "post"
     assert "/img/{name}" not in spec["paths"]
@@ -209,6 +209,9 @@ def test_claude_task_validation_and_job(monkeypatch):
     os.chmod(fake, 0o755)
     monkeypatch.setattr(ts, "CLAUDE_BIN", fake)
     monkeypatch.setattr(ts, "JOBS", ts.JobManager())
+    r = client.post("/claude_task", json={"instructions": "do it", "skill": "soc-run"}).json()
+    assert r["needs_confirmation"] and not ts.JOBS.jobs          # the safety gate: nothing started on the first call
+    monkeypatch.setenv("CHIP_TOOLS_NO_CONFIRM", "1")             # terminal/test mode: start at once
     r = client.post("/claude_task", json={"instructions": "do it", "skill": "soc-run"}).json()
     assert "--disallowedTools" in r["command"]          # exact command line is recorded
     s = wait_job(r["job_id"])

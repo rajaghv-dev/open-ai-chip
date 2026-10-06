@@ -1,0 +1,16 @@
+bash tests/adapter/run.sh
+PASS vision_all_lit: 113 input beats, 60 result beats checked (registers, burst/overflow, back-pressure, irq, CLEAR, replay), 369 bus transactions, 558 checks
+PASS vision_block: 4827 input beats, 1082 result beats checked (registers, burst/overflow, back-pressure, irq, CLEAR, replay), 10835 bus transactions, 16726 checks
+PASS text_sentiment: 1073 input beats, 540 result beats checked (registers, burst/overflow, back-pressure, irq, CLEAR, replay), 2769 bus transactions, 4398 checks
+PASS image_text_match: 20748 input beats, 4160 result beats checked (registers, burst/overflow, back-pressure, irq, CLEAR, replay), 45766 bus transactions, 70657 checks
+PASS audio_pitch: 4564 input beats, 2021 result beats checked (registers, burst/overflow, back-pressure, irq, CLEAR, replay), 11244 bus transactions, 17751 checks
+PASS audio_onset: 68829 input beats, 67740 result beats checked (registers, burst/overflow, back-pressure, irq, CLEAR, replay), 205726 bus transactions, 342503 checks
+PASS prec_bin: 8338 input beats, 1864 result beats checked (registers, burst/overflow, back-pressure, irq, CLEAR, replay), 18636 bus transactions, 28817 checks
+PASS prec_tern: 8338 input beats, 1864 result beats checked (registers, burst/overflow, back-pressure, irq, CLEAR, replay), 18636 bus transactions, 28817 checks
+PASS prec_int4: 8338 input beats, 1864 result beats checked (registers, burst/overflow, back-pressure, irq, CLEAR, replay), 18636 bus transactions, 28817 checks
+PASS prec_int8: 8338 input beats, 1864 result beats checked (registers, burst/overflow, back-pressure, irq, CLEAR, replay), 18636 bus transactions, 28817 checks
+PASS prec_fp8: 8338 input beats, 1864 result beats checked (registers, burst/overflow, back-pressure, irq, CLEAR, replay), 18636 bus transactions, 28817 checks
+PASS prec_fp16: 8338 input beats, 1864 result beats checked (registers, burst/overflow, back-pressure, irq, CLEAR, replay), 18636 bus transactions, 28817 checks
+PASS prec_bf16: 8338 input beats, 1864 result beats checked (registers, burst/overflow, back-pressure, irq, CLEAR, replay), 18636 bus transactions, 28817 checks
+PASS kv_attn_n8: 3120 input beats, 5642 result beats checked (registers, burst/overflow, back-pressure, irq, CLEAR, replay), 11993 bus transactions, 20817 checks
+adapter tests: 14 engines PASS

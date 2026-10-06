@@ -33,7 +33,7 @@ idempotent: rerun it any time, finished steps are skipped.
 
 | # | Step | What it does |
 |---|---|---|
-| 1 | apt packages | `git make python3 python3-venv python3-pip jq curl iverilog`, `gcc-riscv64-unknown-elf` + binutils (the RISC-V bare-metal compiler), `klayout`, `x11-xserver-utils` (xhost), `zstd` and `xz-utils` (Ollama installer) |
+| 1 | apt packages | git, make, python3, python3-venv, python3-pip, jq, curl, iverilog, `gcc-riscv64-unknown-elf` + binutils (the RISC-V bare-metal compiler), `klayout`, `x11-xserver-utils` (xhost), `zstd` and `xz-utils` (Ollama installer) |
 | 2 | RISC-V names | the firmware Makefiles use `CROSS ?= riscv64-elf-` (Homebrew's name); Debian names the same compiler `riscv64-unknown-elf-`. The script links `riscv64-elf-{gcc,as,ld,objcopy,size,...}` to the Debian binaries in `/usr/local/bin` (or `~/.local/bin` without sudo), so no repository file changes. Alternative without links: `make soc-sim CROSS=riscv64-unknown-elf-` (but `make test` looks for `riscv64-elf-gcc` and would skip the SoC sims) |
 | 3 | Docker Engine | `docker.io`, `systemctl enable --now docker`, you are added to the `docker` group |
 | 4 | LibreLane image | `docker pull ghcr.io/librelane/librelane:3.0.2` (from `versions.lock`) |

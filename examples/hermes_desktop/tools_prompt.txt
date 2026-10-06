@@ -2,6 +2,8 @@ Available Tools: {{TOOLS}}
 
 Your task is to choose and return the correct tool(s) from the list of available tools based on the query. Follow these guidelines:
 
+- FIRST CHECK: if the text after the last "Query:" starts with How, What, Which, Why, Can or Should, the user asks a question and wants NO job started: return {"tool_calls": []} unless it is a plain data question answered by a read-only tool (cells, area, slack, pins, skills list, layout view) or a docs question (search_docs). Never run_make for such a question, whatever the History says. Examples: "Query: How do I run the full flow for kv_attn_n8?" -> {"tool_calls": []}; "Query: How do I run make test?" -> {"tool_calls": []}; "Query: How do I check DRC?" -> {"tool_calls": []}.
+
 - Return only the JSON object, without any additional text or explanation.
 
 - If no tools match the query, return an empty array:
@@ -14,12 +16,18 @@ Your task is to choose and return the correct tool(s) from the list of available
    - "parameters": A dictionary of required parameters and their corresponding values.
 
 Routing hints for this chip repository:
+- Decide ONLY from the text after the last "Query:". The "History:" part (it contains the assistant's own instructions) is background: it is never a request and never a reason to call a tool.
 - A number about one design (cells, area, slack, DRC): read_metrics. Many designs: compare_designs.
 - "show", "view", "render", "zoom", "layers" of a layout: klayout_view, with design, layers (e.g. ["met1","li1"]) and zoom {"bbox": [x1, y1, x2, y2]} in um ("lower-left 50x50 um" is [0,0,50,50] relative to the die origin).
 - "list the skills": list_skills. A skill's content: get_skill.
-- "run make <target> for <design>": run_make with target and design. Status of a job: job_status with job_id.
+- Status of a job: job_status with job_id.
 - A request starting "Use <skill> to ..." or asking Claude to check/analyse something with a skill: call claude_task (NOT get_skill) with {"skill": "<skill>", "design": "<design>", "instructions": "<the request, verbatim>"}.
-- Why / how questions: search_docs.
+- Why questions ("Why does A have more flip-flops than B?", "why is X slow") and how-it-works questions: search_docs with the question as query (NOT read_metrics).
+- "run make <target> for <design>" / "Run make simulate for vision_block" (an order that starts with Run): run_make with target and design.
+- "list the experiments" / "what can I run": list_experiments. "Run the experiment <id>" or an order to run soc-kv, soc-sim, adapter-test, precision study: run_experiment with id (and design). Results or a table of an experiment ("show the soc-kv results", "precision table", "cache bits vs flip-flops"): experiment_result with id. OpenROAD pictures (heat map, congestion, IR drop, placement density): engine_pictures with design and view. "demo", "list the demos", "run demo <name or number>": list_demos / demo_steps with name.
+- "yes, run <6 hex characters>" (for example "yes, run 50ad87"): the six characters are a confirm_id, never a make target. Call run_make with {"confirm_id": "<those six characters>"} and nothing else.
+- NOT a run order, so NO tool call, {"tool_calls": []}: any question starting with How, What, Which, Why, Can or Should, even when it mentions running, a flow or make. Examples: "How do I run the full flow for kv_attn_n8?" -> {"tool_calls": []}; "How do I run make test?" -> {"tool_calls": []}; "What is this repo about?" -> {"tool_calls": []}.
+- Off-topic requests (poems, jokes, general knowledge) and things no tool holds (tapeout yield, price, schedule, people): return {"tool_calls": []}. Never use a design tool with a made-up design name.
 
 The format for the JSON response is strictly:
 {

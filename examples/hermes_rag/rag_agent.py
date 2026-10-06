@@ -55,7 +55,7 @@ def schemas(use_rag):
 
 
 def system_prompt(use_rag, version=None):
-    base = hermes_agent.SYSTEM + (RAG_RULES[version or PROMPT["version"]] if use_rag else "")
+    base = hermes_agent.with_context(hermes_agent.SYSTEM) + (RAG_RULES[version or PROMPT["version"]] if use_rag else "")
     return base + hermes_agent.tools_suffix(schemas(use_rag))     # the Hermes tool list + <tool_call> format
 
 
@@ -231,7 +231,10 @@ def main():
     ap.add_argument("--guardrail", action="store_true", help="reject once a doc-type answer that cites no retrieved file")
     ap.add_argument("--no-grounding", action="store_true", help="skip the grounding check and its one revision")
     ap.add_argument("--model", default=None, help="Ollama model tag (default: env HERMES_MODEL, else hermes3:8b)")
+    ap.add_argument("--context", action="store_true", help="prepend the repo master prompt (env HERMES_CONTEXT=1)")
     a = ap.parse_args()
+    if a.context:
+        os.environ["HERMES_CONTEXT"] = "1"
     if a.model:
         hermes_agent.MODEL = a.model
     use_rag = not a.no_rag

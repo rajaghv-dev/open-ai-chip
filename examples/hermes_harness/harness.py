@@ -165,7 +165,7 @@ def chat(msgs):
 
 
 def system_prompt(cfg):
-    base = hermes_agent.SYSTEM
+    base = hermes_agent.with_context(hermes_agent.SYSTEM)
     if cfg.pick_extreme:
         base = base.replace("compare_designs", "pick_extreme")   # the recipes in the prompt must name the tool that exists
         base += ("\n- For 'which design has the most/least/smallest/largest X' and for the WORST (smallest) value across timing corners, "
@@ -262,7 +262,10 @@ def main():
     for f in ("guardrails", "grounding", "pick-extreme", "plan", "all"):
         ap.add_argument("--" + f, action="store_true")
     ap.add_argument("--model", default=None, help="Ollama model tag (default: env HERMES_MODEL, else hermes3:8b)")
+    ap.add_argument("--context", action="store_true", help="prepend the repo master prompt (env HERMES_CONTEXT=1)")
     a = ap.parse_args()
+    if a.context:
+        os.environ["HERMES_CONTEXT"] = "1"
     if a.model:
         hermes_agent.MODEL = a.model
     cfg = Config(a.guardrails or a.all, a.grounding or a.all, a.pick_extreme or a.all, a.plan)

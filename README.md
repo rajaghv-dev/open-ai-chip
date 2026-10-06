@@ -16,9 +16,39 @@ bash scripts/setup_linux.sh && bash scripts/run_all.sh   # Linux: set up, then t
 
 One design end to end: `make flow-all DESIGN=kv_attn_n8`. Fast gate: `make test`. All targets: `make help`.
 
+## Hermes agent and demos
+
+```bash
+make hermes          # set up what is missing, start, open the Mac app (or http://127.0.0.1:8080)
+make demo            # numbered demo menu
+make demo-kv         # run a demo by name (or: bash scripts/hermes.sh demo 2)
+make hermes-stop     # stop everything
+```
+
+In the app or browser: ask about any design ("How many cells does kv_attn_n8 have?"), run things ("Run flow-all for
+vision_block": it asks you to reply `yes, run <id>` first), "Summarize the last run of kv_attn_n8", "What should I
+improve in prec_bf16?", `/harden kv_attn_n8`, `/demo`, or "Open kv_attn_n8 in Magic". Only the local `hermes3:8b`
+model is used; Claude is called only when you ask for `claude_task`.
+
+| # | Demo | What you see | Time |
+|---|---|---|---|
+| 1 | `precision` | the 7 number formats compared: why ternary and int4 win | ~1.5 min |
+| 2 | `kv` | KV cache on the RISC-V SoC: prefill cost per token falls, decode pays a full bus round trip | ~1.5 min |
+| 3 | `rtl2gds` | `vision_block` hardened from the chat, then run summary, suggestions, layout picture | ~1-3 min (runs a flow) |
+| 4 | `int4` | why the int4 cache has more flip-flops than int8, quoted from the design notes | ~40 s |
+| 5 | `heatmaps` | OpenROAD placement, congestion and IR-drop pictures of `kv_attn_n8`, each explained | ~35 s |
+| 6 | `soc` | firmware cycle table: the bus, not the accelerator, dominates | ~1 min |
+| 7 | `gui` | a narrated tour in the live KLayout and Magic windows (layers, rows, power straps, DRC) | ~2 min |
+
+Every demo prints a numbered narration line and pauses before each step (`--pace` seconds) so you can explain it; each
+is saved as an Open WebUI chat and a transcript. Details: [Hermes desktop](docs/HERMES_DESKTOP.md),
+[GUI demo walkthrough](examples/hermes_desktop/demos/GUI_DEMO.md).
+
+## Open by hand
+
 | Open | Command |
 |---|---|
-| Hermes agent in the browser / Mac app | `bash examples/hermes_desktop/start.sh` (http://127.0.0.1:8080), or `bash examples/hermes_desktop/desktop/make_app.sh` for "Hermes Chip Agent.app" |
+| Hermes agent in the browser / Mac app | `make hermes` (or `bash scripts/hermes.sh`) |
 | Hermes in the terminal | `build/agent/venv/bin/python tools/hermes_agent.py "How many standard cells does vision_block have?"` |
 | KLayout driven by Hermes | `bash examples/hermes_klayout_gui/start_live.sh`, then `build/agent/venv/bin/python examples/hermes_klayout_gui/agent.py --backend live "open kv_attn_n8, show met1"` |
 | OpenROAD GUI, live heat maps | `bash scripts/gui/open_gui.sh heatmaps kv_attn_n8` |
