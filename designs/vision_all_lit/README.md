@@ -28,3 +28,7 @@ make flow-all DESIGN=vision_all_lit    # simulate, gds, check, gate-level (synth
 | `output/` | committed `metrics.json`, `resources.json`, `flow.log`, LEF from the last `make collect` |
 
 The same testbench runs on the RTL, the synthesised netlist and the routed netlist.
+
+## Status
+
+Hardened: `make flow-all DESIGN=vision_all_lit` passed all 5 stages (simulate, gds, check, gate-level of the synthesised and the routed netlist, collect). 169 std cells, 10 flip-flops, 80 x 80 um die, 25 ns clock, worst setup slack 16.07 ns, worst hold 0.108 ns, DRC/LVS/antenna clean, 0 max-slew violations, flow wall time 45 s at 0.671 GB peak (`output/metrics.json`, `output/resources.json`). The design page with every step and number is [NOTES.md](NOTES.md).

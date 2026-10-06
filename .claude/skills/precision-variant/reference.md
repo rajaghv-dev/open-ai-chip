@@ -51,6 +51,5 @@ ROM exponents (biased): 0x78, 0x7D, 0x79, 0x7D, 0x79, 0x7D, 0x7A, 0x7D, 0x74 (we
 
 ## Stale text to verify, do not copy blindly
 
-- prec_bf16/README.md ends with "Closure ... is not yet confirmed by a hardening run" although its Status line reports a passing flow-all; trust the Status line and `output/metrics.json`.
-- PRECISION_STUDY sec 3 says a multiplier by a known constant is much smaller; prec_bf16/NOTES.md line ~80 says the operand is a mux of ROM constants addressed by a register, so synthesis builds a general multiplier. Check `synth_stat.rpt` before claiming either for a new format.
-- docs/PRECISION_STUDY.md Sources lists NOTES.md for bin..int8 only; all seven designs have a NOTES.md now.
+- Checked 2026-10-06: the earlier stale items (prec_bf16/README.md "not yet confirmed" sentence, PRECISION_STUDY Sources listing NOTES.md for four formats only) are fixed in the repo; all seven designs have a NOTES.md and the bf16 README now ends with the closed timing (+0.044 ns at max_ss).
+- PRECISION_STUDY sec 3 says a multiplier by a known constant is much smaller; prec_bf16/NOTES.md line ~80 says the operand is a mux of ROM constants addressed by a register, so synthesis builds a general multiplier. Check `synth_stat.rpt` before claiming either for a new format (not re-verified in this pass).

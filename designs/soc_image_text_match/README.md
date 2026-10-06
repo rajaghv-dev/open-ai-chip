@@ -6,7 +6,7 @@ Wishbone-to-stream adapter `shared/rtl/wb_stream_adapter.v` plus ONE unchanged s
 (`wb_clk_i`, `wb_rst_i`, `wbs_*`, `irq[2:0]`, optional `vccd1`/`vssd1`), so it drops into `user_project_wrapper` as `mprj`
 without touching the wrapper except for the macro name.
 
-**Status: hardened.** `make simulate DESIGN=soc_image_text_match` passes all 2,079 cases of `tb/vectors.hex` through the Wishbone bus, and `make flow-all` passed all 5 stages (186 s): 3201 std cells, 393 flip-flops, DRC/LVS/XOR/antenna 0, no setup or hold violations; 421 max-slew violations are reported, not failing. Details and evidence: [NOTES.md](NOTES.md), `output/`.
+**Status: hardened.** `make simulate DESIGN=soc_image_text_match` passes all 2,079 cases of `tb/vectors.hex` through the Wishbone bus, and `make flow-all` passed all 5 stages (185 s, my sum of `build/flow/soc_image_text_match/stages.txt`; physical flow 163 s, 0.98 GB peak, `output/resources.json`): 3201 std cells, 393 flip-flops, DRC/LVS/XOR/antenna 0, no setup or hold violations; 421 max-slew violations are reported, not failing. Details and evidence: [NOTES.md](NOTES.md), `output/`.
 
 ## Register map (base `0x3000_0000`, 256-byte window)
 
@@ -53,7 +53,8 @@ more than 16 beats without letting the engine run (a write while TX is full is d
 - `tb/soc_image_text_match_tb.v`: ports-only Wishbone testbench (runs on RTL now, on gate level later);
   `tb/vectors.hex` is a copy of `designs/image_text_match/tb/vectors.hex` (the Makefile looks for it in this directory).
 - `base_soc.sdc`, `pin_order.cfg`, `config.json`: copied from `tiny_ai_core` and adapted (names only).
-- Adapter regression for all 13 stream engines: `tests/adapter/run.sh`.
+- Adapter regression (14 engines: the 13 stream engines plus `kv_attn_n8`): `tests/adapter/run.sh`.
+- Sibling with the same adapter and a KV-cache attention engine instead: [../soc_kv_attn_n8/README.md](../soc_kv_attn_n8/README.md) (4514 cells, 570 flip-flops, 300 x 300 um; `soc_kv_attn_n8/output/metrics.json`). Its Caravel wrapper is `user_project_wrapper_soc_kv`.
 
 ## Measured size (was estimated before hardening)
 

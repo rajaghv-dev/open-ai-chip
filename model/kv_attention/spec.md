@@ -258,9 +258,24 @@ stalls, the expected values do not change). Array size: `reg [7:0] vec [0:40*(re
   (prefill wrap, `N+3` decodes past the wrap, 27-token frame, position saturation with 40 same-key tokens); same-key chains
   (recency and int4 ties); resets idle / mid-frame / with a response pending; 60 random episodes (fixed seed); a final reset.
 
-## 10. What this teaches (expectations, not measurements)
+## 10. What this teaches (schedule and golden-model numbers, then hardened results)
 
-All numbers below come from the **schedule and the golden model**, not from silicon; none has been measured on a flow run.
+The latency and accuracy numbers below come from the **schedule and the golden model** (`golden.py --check`, re-run 2026-10-06:
+69 checks PASS). The area and flip-flop statements are now **measured** on the hardened designs (all five variants have clean
+sky130A GDSII; values from `designs/kv_attn_<v>/output/metrics.json`, `design__instance__count__stdcell`,
+`design__instance__count__class:sequential_cell`, `timing__setup__ws`, `timing__hold__ws`):
+
+| design | std cells | flip-flops | die (um) | setup ws (ns) | hold ws (ns) |
+|---|---|---|---|---|---|
+| `kv_attn_n4` | 1679 | 159 | 200 x 200 | +9.349 | +0.103 |
+| `kv_attn_n8` | 2566 | 200 | 260 x 260 | +10.740 | +0.105 |
+| `kv_attn_n16` | 4169 | 277 | 340 x 340 | +8.766 | +0.096 |
+| `kv_attn_n8_int4` | 2394 | 222 | 220 x 220 | +9.667 | +0.107 |
+| `kv_attn_n8_ring` | 2621 | 198 | 260 x 260 | +10.705 | +0.106 |
+
+The engine latency n + 3 (section 6) is also confirmed end to end on the PicoRV32 SoC sim with the unchanged `kv_attn_n8`
+(`make soc-kv`, `firmware/README.md`): the adapter CYCLES register minus a full-cache baseline rises 7, 8, ... 14 for n = 0..7
+(= n + 7 as the check requires), PASS.
 
 * **Prefill is streaming, decode is serial.** Prefill costs 1 cycle per prompt token no matter how many entries are cached
   (the write needs only the new token). A decode step must look at every cached key: with one dot-product unit it costs
@@ -268,9 +283,12 @@ All numbers below come from the **schedule and the golden model**, not from sili
   A real LLM does prefill in parallel over the prompt (compute-bound) and decode one token at a time, re-reading the whole
   KV cache for every token (memory-bandwidth-bound). Here the "bandwidth" is one cache entry per cycle through one dot unit.
 * **KV cache cost = N x 2 x d x bits** (K and V, d = 4): 256 bits (N = 4), 512 (N = 8), 1024 (N = 16), int4 N = 8: 256, ring N = 8: 512.
-  It is the dominant state; the arithmetic (one 4-MAC unit, three constant projections) is small. Expect the flip-flop count
-  to scale with the cache bits, and (with `N` entries read through an N-to-1 mux per bit) the mux and wiring to grow with N.
-  Expect `kv_attn_n8_int4` to be roughly half of `kv_attn_n8` in cache flip-flops but not in total area.
+  It is the dominant state; the arithmetic (one 4-MAC unit, three constant projections) is small. Measured: the flip-flop count grows
+  with N (159, 200, 277 for N = 4, 8, 16) but far less than the nominal cache bits (256, 512, 1024), because the constant ROM
+  makes most bits of an int8 entry constants or copies that synthesis removes; the cell count grows from 1679 to 4169.
+  The earlier expectation that `kv_attn_n8_int4` would have about half the cache flip-flops was WRONG: it has 222 flip-flops
+  against 200 for `kv_attn_n8` and 2394 against 2566 std cells, with a smaller die (220 vs 260 um); explained in
+  `designs/kv_attn_n8_int4/NOTES.md`.
 * **Longer context = slower tokens.** Decode latency is `n + 3`: the worst case grows linearly with N (N = 4: 6, N = 8: 10,
   N = 16: 18 cycles for the non-ring variants). More context memory buys recall of older tokens and costs time per token.
 * **Quantising the cache trades accuracy for bits.** `--check` on the golden model (400 episodes, seed 7): int8 recalls

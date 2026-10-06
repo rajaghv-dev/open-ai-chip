@@ -1,5 +1,5 @@
 {
- "source": "<repo>/build/agent/harness_eval_20261006_121338.json",
+ "source": "<repo>/build/agent/harness_eval_20261006_143403.json",
  "model": "hermes3:8b",
  "options": {
   "temperature": 0,
@@ -7,73 +7,74 @@
   "num_ctx": 8192,
   "num_predict": 700
  },
- "total_seconds": 333,
- "history": "An earlier run (harness_eval_20261006_120657.json: baseline 12/15, pick_extreme 14/15, all+plan 14/15) was scored with a run_eval.strip_source that cut the whole answer when it started with a 'Source:' line; that scorer under-counted. These numbers are the re-scored run.",
+ "total_seconds": 305,
+ "history": "Re-run 2026-10-06 after tools/eval/ground_truth.py regenerated q03 (the design with the most flip-flops is now soc_kv_attn_n8, 570, not soc_image_text_match, 393). Previous run harness_eval_20261006_121338.json scored against the stale q03: baseline 13, guardrails 13, grounding 13, pick_extreme 15, all 15, all+plan 14. An earlier run (harness_eval_20261006_120657.json: baseline 12/15, pick_extreme 14/15, all+plan 14/15) was scored with a run_eval.strip_source that cut the whole answer when it started with a 'Source:' line; that scorer under-counted.",
  "configs": {
   "baseline": {
    "passed": 13,
    "total": 15,
-   "median_latency_s": 2.83,
+   "median_latency_s": 2.67,
    "tool_calls_per_q": 0.87,
    "retries_total": 0,
    "failed": [
     "q02",
     "q04"
    ],
-   "trace": "<repo>/build/agent/traces/20261006_121338_baseline.jsonl"
+   "trace": "build/agent/traces/20261006_143403_baseline.jsonl"
   },
   "+guardrails": {
    "passed": 13,
    "total": 15,
-   "median_latency_s": 3.03,
+   "median_latency_s": 2.62,
    "tool_calls_per_q": 0.87,
    "retries_total": 0,
    "failed": [
     "q02",
     "q04"
    ],
-   "trace": "<repo>/build/agent/traces/20261006_121419_plus_guardrails.jsonl"
+   "trace": "build/agent/traces/20261006_143443_plus_guardrails.jsonl"
   },
   "+grounding": {
    "passed": 13,
    "total": 15,
-   "median_latency_s": 3.29,
+   "median_latency_s": 3.1,
    "tool_calls_per_q": 0.87,
-   "retries_total": 2,
+   "retries_total": 1,
    "failed": [
     "q02",
     "q04"
    ],
-   "trace": "<repo>/build/agent/traces/20261006_121501_plus_grounding.jsonl"
+   "trace": "build/agent/traces/20261006_143523_plus_grounding.jsonl"
   },
   "+pick_extreme": {
    "passed": 15,
    "total": 15,
-   "median_latency_s": 4.07,
+   "median_latency_s": 3.69,
    "tool_calls_per_q": 0.87,
    "retries_total": 0,
    "failed": [],
-   "trace": "<repo>/build/agent/traces/20261006_121550_plus_pick_extreme.jsonl"
+   "trace": "build/agent/traces/20261006_143607_plus_pick_extreme.jsonl"
   },
   "all": {
    "passed": 15,
    "total": 15,
-   "median_latency_s": 4.4,
+   "median_latency_s": 3.72,
    "tool_calls_per_q": 0.87,
    "retries_total": 0,
    "failed": [],
-   "trace": "<repo>/build/agent/traces/20261006_121655_all.jsonl"
+   "trace": "build/agent/traces/20261006_143707_all.jsonl"
   },
   "all+plan": {
-   "passed": 14,
+   "passed": 13,
    "total": 15,
-   "median_latency_s": 4.36,
+   "median_latency_s": 4.19,
    "tool_calls_per_q": 1.13,
-   "retries_total": 0,
+   "retries_total": 1,
    "failed": [
+    "q03",
     "q04"
    ],
-   "trace": "<repo>/build/agent/traces/20261006_121758_allplus_plan.jsonl"
+   "trace": "build/agent/traces/20261006_143758_allplus_plan.jsonl"
   }
  },
  "per_question": {
@@ -165,7 +166,7 @@
   "all+plan": {
    "q01": true,
    "q02": true,
-   "q03": true,
+   "q03": false,
    "q04": false,
    "q05": true,
    "q06": true,

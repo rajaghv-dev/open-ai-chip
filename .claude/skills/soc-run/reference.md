@@ -10,6 +10,8 @@
 | tests/adapter/{run.sh,adapter_tb.v} | adapter + engine tests; logs in build/adapter_tests/<engine>.log |
 | shared/rtl/wb_stream_adapter.v | generic Wishbone-to-stream slave, TX/RX FIFOs (parameters TX_DEPTH/RX_DEPTH powers of 2, 2..64; tb uses 16) |
 | designs/soc_image_text_match/ | first hardened adapter+engine macro (3201 cells, all 2,079 vectors pass) |
+| designs/soc_kv_attn_n8/ | second adapter+engine macro (adapter + kv_attn_n8; 4514 cells, 300 x 300 um, 1,521 records pass); wrapper `designs/user_project_wrapper_soc_kv/` |
+| firmware/kv/{main.c,gen_expected.py,Makefile}, soc_sim/kv/{kv_soc_tb.v,run.sh} | KV-cache attention firmware and its SoC sim (`make soc-kv`); reuses firmware/{start.S,link.ld,bin2hex.py}; log soc_sim/kv/build/sim.log |
 | caravel_sim/{README.md,VERSIONS.txt,run_rtl.sh,run_gl.sh,tiny_ai_wb.c,tiny_ai_wb_tb.v,includes.rtl.user} | full-Caravel RTL / hybrid GL |
 | docs/{CARAVEL_SIM.md,SOC_PLAN.md} | results table; plan, ladder (section 4), firmware design (section 3) |
 
@@ -63,7 +65,7 @@ START or INPUT while busy; START mode 3; START with wrong input count; input out
 0 register checks; 1 phase 0 with irq disabled; 2 burst until TX full (ERR_OVF on one more write); 3 interleaved push/pop with irq
 pulse count == m_last beats while enabled; 4 ERR_UF, CLEAR, replay. `NLIM_AUDIO_ONSET=<n>` caps audio_onset beats (default 68,829).
 Engines in run.sh: vision_all_lit, vision_block, text_sentiment, image_text_match (FRAME); audio_pitch (PITCH); audio_onset (ONSET);
-prec_{bin,tern,int4,int8,fp8,fp16,bf16} (FRAME).
+prec_{bin,tern,int4,int8,fp8,fp16,bf16} (FRAME); kv_attn_n8 (KV: header record + 40-word records). That is 14 engines; the other four kv_attn_* variants are not in the adapter test.
 
 ## Open items
 

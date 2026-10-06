@@ -345,6 +345,6 @@ fp32 reference. For a task this easy, beyond a few bits you are paying for preci
 
 - `model/precision_hw/spec.md` (contract, timing finding), `golden.py` (data, training, reference), `gen.py` (ROM and
   vectors), `report.py` (tables above)
-- `designs/prec_<fmt>/README.md`, `NOTES.md` (bin, tern, int4, int8), `config.json`, `rtl/`, `output/metrics.json`,
+- `designs/prec_<fmt>/README.md`, `NOTES.md` (all seven formats), `config.json`, `rtl/`, `output/metrics.json`,
   `output/resources.json`, `output/reports/synth_stat.rpt`, `runs/RUN_*/final/metrics.json`
 - `docs/WHY_AI.md` section 8 and `model/examples/precision.py` (the software version of the same question)

@@ -1,9 +1,11 @@
 # Architecture of the AI hardware
 
-This page describes the three tiny neural-network engines and the `tiny_ai_core` macro that wraps them: trained models
-running inference in hardware, with numbers learned from labelled examples rather than written by a designer.
+This page describes the three tiny neural-network engines and the `tiny_ai_core` macro that wraps them (sections 1 to 6): trained
+models running inference in hardware, with numbers learned from labelled examples rather than written by a designer. Section 7 maps
+the rest of the repository (25 hardened designs in 11 families): audio, image-text matching, the precision study, the KV-cache
+attention family, the Wishbone adapter, the SoC macros and their Caravel wrappers, each linked to its design notes.
 Sources: `SPEC.md`, `docs/WHY_AI.md`, `designs/*/NOTES.md`, `designs/*/rtl/*.v`, `model/tiny_ai/`, and
-`../open-ai-silicon/docs/ARCH_STUDY_PLAN.md` sections 2 and 3.
+`../open-ai-silicon/docs/ARCH_STUDY_PLAN.md` sections 2 and 3 (sibling repository, reference only).
 
 ## 1. Overview
 Learning happens offline in Python; only the finished numbers reach silicon, as ROM constants. The chip never learns.
@@ -281,7 +283,10 @@ constraints. Core: Magic and KLayout DRC 0, LVS 0, XOR 0, antenna 0, worst setup
 corners, 109 of 109 RTL registers surviving; 195 max-slew violations reported, mostly on nets driven directly by
 Wishbone input ports whose Caravel input transition already exceeds the limit. Wrapper: all of these 0, including
 max-slew. The Wishbone testbench (784 cases, 39,956 checks) passes on the RTL, synthesised and routed netlists of the
-core and of the wrapper. Not yet done: full-Caravel simulation and the ChipFoundry precheck.
+core and of the wrapper. System checks for this wrapper (the other wrappers were not run through them): full-Caravel RTL
+simulation with real management-core firmware, hybrid and full-chip gate-level simulation, wrapper SDF at 3 corners
+(`docs/CARAVEL_SIM.md`) and the local ChipFoundry precheck, 14 of 14 checks PASS in our own container (`docs/PRECHECK.md`). Not done:
+confirmation with ChipFoundry's own tooling (human step) and full-chip GL+SDF with firmware.
 
 `tiny_ai_core` puts the three engines (instances `u_vision_all_lit`, `u_vision_block`, `u_text_sentiment`, unchanged)
 behind one Wishbone register window: exactly three compute nodes (`SPEC.md`, chip hierarchy).
@@ -403,5 +408,105 @@ The mappings follow `docs/WHY_AI.md` section 10; no figures are given because no
 - MAC and systolic arrays: `vision_block` is the serial extreme (one neuron, four cycles); four neurons would finish
   in one cycle, trading area for time. `frame` plus the window mux is the small form of systolic data movement.
 - Attention: summing embeddings ignores word order; attention restores it (`docs/WHY_AI.md` section 7, a tiny
-  transformer). Audio on a stream: `docs/WHY_AI.md` section 6 (computed, not built). Precision: section 8 compares
-  fp32, bf16, fp16, fp8, int8, int4 and 1-bit on one trained model.
+  transformer); `docs/LLM_INFERENCE.md` and the `kv_attn_*` family (section 7.5) build the smallest attention head with a KV
+  cache. Audio on a stream: `docs/WHY_AI.md` section 6; built as `audio_pitch` and `audio_onset` (section 7.1). Precision:
+  `docs/WHY_AI.md` section 8 compares fp32, bf16, fp16, fp8, int8, int4 and 1-bit on one trained model in software, and
+  `docs/PRECISION_STUDY.md` builds seven of those formats in silicon (section 7.3).
+
+## 7. The rest of the repository
+Sections 1 to 6 cover the first three engines and `tiny_ai_core`. The repository now holds 25 hardened designs, all signoff-clean
+(DRC, LVS, XOR, antenna 0; all five `make flow-all` stages pass; numbers below are from each `output/metrics.json` and
+`resources.json`). Sizes are standard cells (`design__instance__count__stdcell`), flip-flops are sequential cells.
+
+```mermaid
+flowchart TB
+    subgraph BASE["Baseline (not AI)"]
+        UPE["user_proj_example"]
+    end
+    subgraph ENG["Stream engines: the 24-pin valid/ready interface"]
+        TINY["vision_all_lit, vision_block, text_sentiment"]
+        AUD["audio_pitch, audio_onset"]
+        ITM["image_text_match"]
+        PREC["prec_bin, tern, int4, int8, fp8, fp16, bf16"]
+        KV["kv_attn_n4, n8, n16, n8_int4, n8_ring"]
+    end
+    TAI["tiny_ai_core: 3 engines behind Wishbone"]
+    ADP["wb_stream_adapter.v: Wishbone to stream"]
+    SITM["soc_image_text_match"]
+    SKV["soc_kv_attn_n8"]
+    WR0["user_project_wrapper"]
+    WR1["user_project_wrapper_soc_itm"]
+    WR2["user_project_wrapper_soc_kv"]
+    TINY --> TAI --> WR0
+    ITM --> ADP
+    KV --> ADP
+    ADP --> SITM --> WR1
+    ADP --> SKV --> WR2
+    PREC -.->|"adapter regression only"| ADP
+    AUD -.->|"adapter regression only"| ADP
+```
+
+| Family | Designs (notes) | Size and timing |
+|---|---|---|
+| Baseline | [user_proj_example](../designs/user_proj_example/NOTES.md): the template's 16-bit counter, the non-AI control | 1,421 cells, 33 flip-flops, 200 x 200 um, setup +5.995 ns |
+| Tiny engines | [vision_all_lit](../designs/vision_all_lit/NOTES.md), [vision_block](../designs/vision_block/NOTES.md), [text_sentiment](../designs/text_sentiment/NOTES.md) (sections 3, 5) | 169 / 297 / 200 cells, 80 x 80 um |
+| First SoC | [tiny_ai_core](../designs/tiny_ai_core/NOTES.md), [user_project_wrapper](../designs/user_project_wrapper/NOTES.md) (section 4) | 1,809 cells, 109 flip-flops, 250 x 250 um, setup +1.456 ns |
+| Audio | [audio_pitch](../designs/audio_pitch/NOTES.md), [audio_onset](../designs/audio_onset/NOTES.md) (7.1) | 234 / 316 cells, 80 x 80 um |
+| Multimodal | [image_text_match](../designs/image_text_match/NOTES.md) (7.2) | 551 cells, 39 flip-flops, 120 x 120 um |
+| Precision | [prec_bin](../designs/prec_bin/NOTES.md), [tern](../designs/prec_tern/NOTES.md), [int4](../designs/prec_int4/NOTES.md), [int8](../designs/prec_int8/NOTES.md), [fp8](../designs/prec_fp8/NOTES.md), [fp16](../designs/prec_fp16/NOTES.md), [bf16](../designs/prec_bf16/NOTES.md) (7.3) | 199 to 1,932 cells, 80 to 220 um |
+| Adapter SoC | [soc_image_text_match](../designs/soc_image_text_match/NOTES.md), [user_project_wrapper_soc_itm](../designs/user_project_wrapper_soc_itm/NOTES.md) (7.4) | 3,201 cells, 393 flip-flops, 250 x 250 um, setup +2.956 ns |
+| KV cache | [kv_attn_n4](../designs/kv_attn_n4/NOTES.md), [n8](../designs/kv_attn_n8/NOTES.md), [n16](../designs/kv_attn_n16/NOTES.md), [n8_int4](../designs/kv_attn_n8_int4/NOTES.md), [n8_ring](../designs/kv_attn_n8_ring/NOTES.md) (7.5) | 1,679 to 4,169 cells, 200 to 340 um |
+| KV SoC | [soc_kv_attn_n8](../designs/soc_kv_attn_n8/NOTES.md), [user_project_wrapper_soc_kv](../designs/user_project_wrapper_soc_kv/NOTES.md) (7.4, 7.5) | 4,514 cells, 570 flip-flops, 300 x 300 um, setup +1.442 ns |
+
+### 7.1 Audio: streaming engines
+`audio_pitch` and `audio_onset` take one sample per beat and keep answering (one result per input beat after a warm-up), unlike the
+frame engines of section 3 that return two beats per frame. `audio_pitch`: one-bit samples, count the sign changes in the last 8, class =
+count >= 4 (threshold fitted by `model/audio_pitch/train.py`; 21 flip-flops). `audio_onset`: 4-bit loudness values, a 4-tap filter with
+weights `[-1, -1, +1, +1]`, class = sum >= 4 (found by exhaustive search, `model/audio_onset/`; 25 flip-flops; warm-up 3 samples). State is
+sized by the window, not by the stream. Notes: `designs/audio_pitch/NOTES.md`, `designs/audio_onset/NOTES.md`; concept: `docs/WHY_AI.md`
+section 6.
+
+### 7.2 Multimodal: image_text_match
+A 3 x 3 one-bit image (9 beats) plus one caption token (beat 10: EMPTY, VERT, HORIZ, DIAG) go through two small encoders into one shared
+6-number space; a dot product and threshold decide whether the caption describes the image. Output: two beats (`{error, class}`, then a
+signed score), latency 10 edges. Learned kernels, thresholds and the text table are in a generated ROM (`model/image_text_match/`).
+Notes: `designs/image_text_match/NOTES.md`.
+
+### 7.3 Precision: one neuron, seven number formats
+`prec_{bin,tern,int4,int8,fp8,fp16,bf16}` are one 9-weight neuron on a 3 x 3 image with identical pins and protocol (24-pin stream, 9
+beats in, 2 out) and one serial MAC; only the arithmetic differs. The cost grows from 199 cells (bin) to 1,932 (fp16) while test accuracy
+is flat from ternary up; fp8, fp16 and bf16 close timing at 40 MHz only by +0.26, +0.11 and +0.04 ns. Full tables and analysis:
+`docs/PRECISION_STUDY.md` (generated by `python3 model/precision_hw/report.py`), design notes `designs/prec_<fmt>/NOTES.md`.
+
+### 7.4 The adapter, SoC macros and Caravel wrappers
+`shared/rtl/wb_stream_adapter.v` is a generic Caravel Wishbone slave that drives ONE unchanged 24-pin stream engine: a TX FIFO and an RX FIFO
+(16 entries of 9 bits each), registers ID, CTRL, STATUS, TXDATA, TXLAST, RXDATA, RXSTATUS, CYCLES, CAPS (base `0x3000_0000`), `irq[0]` on the last
+result beat. Software pushes beats and drains results; frame and streaming engines look the same to it. It is regression-tested with 14
+engines (13 stream engines plus `kv_attn_n8`) by `make adapter-test` (`tests/adapter/`). Register map and plan: `docs/SOC_PLAN.md`.
+
+```mermaid
+flowchart LR
+    CPU["Caravel management core"] -->|"Wishbone 0x3000_0000"| ADPT["wb_stream_adapter: TX FIFO, RX FIFO, registers, irq"]
+    ADPT -->|"s_valid, s_data, s_last"| ENGN["one stream engine, unchanged"]
+    ENGN -->|"m_valid, m_data, m_last"| ADPT
+```
+
+Two adapter macros exist, each with `tiny_ai_core`'s 109-pin port list so it drops into the fixed `user_project_wrapper` as `mprj`:
+`soc_image_text_match` (adapter + `image_text_match`, 250 x 250 um) and `soc_kv_attn_n8` (adapter + `kv_attn_n8`, 300 x 300 um). Each has a wrapper
+build (`user_project_wrapper_soc_itm`, `user_project_wrapper_soc_kv`: the fixed 2920 x 3520 um shell with one macro and no glue logic), signoff-clean
+including max-slew 0, with the macro testbench passing on RTL and on the synthesised and routed wrapper netlists. The adapter, not the engine,
+dominates the flip-flops: 354 of the 393 in `soc_image_text_match` (engine 39) and 370 of the 570 in `soc_kv_attn_n8` (engine 200)
+(each `NOTES.md`). The wrapper still holds only one macro per build; which single macro is taped out is an open owner decision
+(`docs/SOC_PLAN.md`, section 6).
+
+### 7.5 KV-cache attention family
+`kv_attn_{n4,n8,n16,n8_int4,n8_ring}` are one attention head (model dimension 4) with a KV cache in flip-flops, sharing one engine
+`shared/rtl/kv_attn_core.v` (contract `model/kv_attention/spec.md`). Commands: RESET_CACHE, PREFILL (1 cycle per token) and DECODE (one
+dot-product unit scans the n cached entries: n + 3 cycles). Variants: 4, 8 or 16 entries; 4-bit stored values (`n8_int4`, recall 81.65 %);
+a ring buffer that overwrites the oldest entry (`n8_ring`). `soc_kv_attn_n8` puts `kv_attn_n8` behind the adapter; PicoRV32 firmware in
+`firmware/kv/` (`make soc-kv`) measures prefill versus decode on it. Numbers and discussion: `docs/LLM_INFERENCE.md` section 5.1.
+
+### 7.6 System checks around the designs
+`firmware/` + `soc_sim/`: PicoRV32 running compiled C against the real `user_project_wrapper` (`make soc-sim`) and the KV firmware (`make soc-kv`).
+`caravel_sim/`: full-Caravel simulations, run for `user_project_wrapper` (`tiny_ai_core`) only (`docs/CARAVEL_SIM.md`). `precheck/`: local ChipFoundry
+precheck, 14 of 14 PASS for the same wrapper (`docs/PRECHECK.md`). `tools/`: read-only EDA tools for agents (`docs/HERMES_AGENT.md`).

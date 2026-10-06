@@ -4,6 +4,10 @@ Date: 2026-10-06. Tool: `cf-precheck 1.3.7` (PyPI), run locally on this MacBook 
 emulation, no cloud). No `cf login/init/push/submit`, no account, no upload: precheck needs none of them (it writes
 only `<project>/.cf/project.json` locally; nothing from `cf init` was required or created).
 
+Scope: the precheck was run for `user_project_wrapper` (macro `tiny_ai_core`) only. `user_project_wrapper_soc_itm` and
+`user_project_wrapper_soc_kv` were not run through the precheck (not verified to pass it; they carry the same GPIO fix in their
+`user_defines.v`, but that is not precheck evidence). `make precheck` takes no wrapper argument; `stage_project.sh` stages `user_project_wrapper`.
+
 ## Command
 
     precheck/run_precheck.sh              # stage + all 14 checks, one container per check, 45 min cap per check
@@ -83,7 +87,7 @@ github d-m-bailey/cvc master 23c3867); KLayout binary **0.30.7** (LibreLane imag
    | `GPIO_MODE_USER_STD_OUTPUT` | PASS | PASS | FAIL (missing user output/oeb) |
 
    Applied: `GPIO_MODE_MGMT_STD_INPUT_NOPULL` for 5..37 in both `designs/user_project_wrapper/rtl/user_defines.v` and
-   `designs/user_project_wrapper_soc_itm/rtl/user_defines.v` (header comment "LOCAL CHANGE (owner decision 2026-10-06)"); `caravel_sim/run_rtl.sh`
+   `designs/user_project_wrapper_soc_itm/rtl/user_defines.v` and `designs/user_project_wrapper_soc_kv/rtl/user_defines.v` (header comment "LOCAL CHANGE (owner decision 2026-10-06)"); `caravel_sim/run_rtl.sh`
    and `run_gl.sh` now use the project's `user_defines.v` instead of Caravel's default. Caravel sims after the fix
    (`build/gpio_fix_chain.log`): caravel-rtl PASS 54 s, caravel-gl (hybrid) PASS 59 s; full-chip GL also PASS (`docs/CARAVEL_SIM.md`).
 

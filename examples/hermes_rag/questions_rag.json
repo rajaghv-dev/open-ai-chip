@@ -1,0 +1,200 @@
+[
+ {
+  "id": "r01",
+  "question": "Why does kv_attn_n8_int4 have more flip-flops than kv_attn_n8 even though its cache has half the bits?",
+  "sources": [
+   "designs/kv_attn_n8_int4/NOTES.md"
+  ],
+  "check": {
+   "type": "words",
+   "any_words": [
+    "pruned",
+    "constant",
+    "merge",
+    "merged",
+    "clamp"
+   ],
+   "all_words": []
+  },
+  "expect": "the int8 baseline cache was already pruned by Yosys (constant ROM bits and merged K3/V3); the int4 clamp logic hides constants, so 96 vs 72 cache flops (222 vs 200)"
+ },
+ {
+  "id": "r02",
+  "question": "What limits the setup slack of soc_kv_attn_n8?",
+  "sources": [
+   "designs/soc_kv_attn_n8/NOTES.md"
+  ],
+  "check": {
+   "type": "words",
+   "any_words": [
+    "wb_rst_i",
+    "reset"
+   ],
+   "all_words": [
+    "12.5"
+   ]
+  },
+  "expect": "the Caravel SDC input delay of 12.5 ns on wb_rst_i, which fans out to all 570 flip-flops"
+ },
+ {
+  "id": "r03",
+  "question": "What fixed the GRT-0116 global routing congestion for tiny_ai_core in the wrapper?",
+  "sources": [
+   "designs/user_project_wrapper/README.md",
+   "designs/user_project_wrapper/NOTES.md",
+   "README.md"
+  ],
+  "check": {
+   "type": "words",
+   "any_words": [
+    "pad",
+    "order",
+    "bottom"
+   ],
+   "all_words": [
+    "109"
+   ]
+  },
+  "expect": "a simpler macro with 109 pins (instead of 361) on the S edge in the order of the wrapper's Wishbone pads"
+ },
+ {
+  "id": "r04",
+  "question": "Why is the slew repair margin 20 percent and not 70 percent for the macro build?",
+  "sources": [
+   "designs/user_project_wrapper/README.md",
+   "designs/user_project_wrapper/NOTES.md",
+   "designs/tiny_ai_core/NOTES.md",
+   "README.md",
+   "docs/SKILLS.md"
+  ],
+  "check": {
+   "type": "words",
+   "any_words": [
+    "memory",
+    "oom"
+   ],
+   "all_words": [
+    "20"
+   ]
+  },
+  "expect": "70 percent ran out of memory chasing input nets already above the slew limit"
+ },
+ {
+  "id": "r05",
+  "question": "What caused the 70 LVS errors in the user_project_wrapper?",
+  "sources": [
+   "designs/user_project_wrapper/README.md",
+   "designs/user_project_wrapper/NOTES.md",
+   "README.md"
+  ],
+  "check": {
+   "type": "words",
+   "any_words": [
+    "diode"
+   ],
+   "all_words": []
+  },
+  "expect": "40 antenna diodes added by the router that were not connected to power (unpowered)"
+ },
+ {
+  "id": "r06",
+  "question": "Why did the ChipFoundry precheck go from 12 of 14 to 14 of 14 checks passing?",
+  "sources": [
+   "docs/PRECHECK.md",
+   "designs/user_project_wrapper/README.md",
+   "designs/user_project_wrapper/NOTES.md"
+  ],
+  "check": {
+   "type": "words",
+   "any_words": [
+    "gpio",
+    "user_defines"
+   ],
+   "all_words": []
+  },
+  "expect": "user_defines.v: GPIO 5..37 set to GPIO_MODE_MGMT_STD_INPUT_NOPULL instead of the template's GPIO_MODE_INVALID (gpio_defines and oeb checks)"
+ },
+ {
+  "id": "r07",
+  "question": "Which number format is the cost versus accuracy knee in the precision study?",
+  "sources": [
+   "docs/PRECISION_STUDY.md"
+  ],
+  "check": {
+   "type": "words",
+   "any_words": [
+    "tern",
+    "int4"
+   ],
+   "all_words": []
+  },
+  "expect": "ternary or int4: accuracy is flat from tern upward while fp16 costs 4.8x tern"
+ },
+ {
+  "id": "r08",
+  "question": "On the SoC, how many CPU cycles does a one-token prefill and a decode cost?",
+  "sources": [
+   "firmware/README.md"
+  ],
+  "check": {
+   "type": "words",
+   "any_words": [],
+   "all_words": [
+    "328",
+    "670"
+   ]
+  },
+  "expect": "one-token prefill 328 cycles round trip; decode 670 cycles per token (about 2x)"
+ },
+ {
+  "id": "r09",
+  "question": "Why was soc_image_text_match re-run on 2026-10-06?",
+  "sources": [
+   "designs/soc_image_text_match/NOTES.md"
+  ],
+  "check": {
+   "type": "words",
+   "any_words": [
+    "kv_attn_core"
+   ],
+   "all_words": []
+  },
+  "expect": "shared/rtl/kv_attn_core.v was added next to the adapter and find_reusable_run.py watches the whole directory; metrics identical"
+ },
+ {
+  "id": "r10",
+  "question": "Why did simplifying the tiny_ai_core pins roughly halve its standard cell count?",
+  "sources": [
+   "designs/tiny_ai_core/NOTES.md"
+  ],
+  "check": {
+   "type": "words",
+   "any_words": [
+    "tap",
+    "buffer"
+   ],
+   "all_words": [
+    "1809"
+   ]
+  },
+  "expect": "the 400 um build with 609 I/O had 3521 std cells (2115 tap cells, 468 repair buffers); the 250 um 109-pin build has 1809 (765 taps)"
+ },
+ {
+  "id": "u01",
+  "question": "What did the first packaged chips measure for power consumption on the bench, in milliwatts?",
+  "sources": [],
+  "check": {
+   "type": "unknown"
+  },
+  "expect": "unknown (no silicon measured)"
+ },
+ {
+  "id": "u02",
+  "question": "Which customer has ordered the kv_attn_n8 chip and at what unit price?",
+  "sources": [],
+  "check": {
+   "type": "unknown"
+  },
+  "expect": "unknown (not in the repo)"
+ }
+]

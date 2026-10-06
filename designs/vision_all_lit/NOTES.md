@@ -155,13 +155,13 @@ the routed post-PnR netlist (`make gl-final DESIGN=vision_all_lit`:
 `designs/vision_all_lit/runs/RUN_2026-10-05_18-14-33/final/nl/vision_all_lit.nl.v`, 963 cells), compiled by
 `scripts/flow/gl_sim.sh` against the sky130_fd_sc_hd functional models with a unit gate delay of `#0.01`
 (`GL_UNIT_DELAY`, default in gl_sim.sh; it must be above 0 to avoid flip-flop races and below the 1 ns sample
-point). Results on disk: `build/flow/vision_all_lit/stage_gl_synth.log` and `stage_gl_final.log` both end
-`gl_sim: vision_all_lit PASS`; `build/gl/vision_all_lit/result.txt` reads `vision_all_lit |
+point). Results on disk: `build/flow/vision_all_lit/stages.txt` lists `gl_synth PASS` and `gl_final PASS` (the `stage_*.log`
+files there hold only the recipe command lines, not simulator output); `build/gl/vision_all_lit/result.txt` reads `vision_all_lit |
 final:vision_all_lit.nl.v | every case of tb/vectors.hex | PASS | 0 s`.
 `build/gl/vision_all_lit/synth_checks.txt` reads `synthesis__check_error__count = 0`.
 
-Signoff checks that are verification (`scripts/flow/check_signoff.py vision_all_lit`,
-`build/flow/vision_all_lit/stage_check.log`): no logic lost, RTL 10 registers, 10 surviving sequential cells,
+Signoff checks that are verification (`python3 scripts/flow/check_signoff.py vision_all_lit`,
+the `check` stage in `build/flow/vision_all_lit/stages.txt`): no logic lost, RTL 10 registers, 10 surviving sequential cells,
 allowance 0 (the declared 9 bits become 10 flip-flops because Yosys recoded the 3-state FSM to one-hot); Yosys
 driver warnings (multiple drivers / no driver) 0, synthesis check errors 0 (`synth_checks.txt`).
 
@@ -350,8 +350,8 @@ constrained 25 ns clock that is 150 ns per frame, about 6.7 million frames per s
 
 **Verification lessons.** The 16 possible images are all tested, so "tested" means every input, plus 13 protocol cases
 (3 short frames, 2 long, 8 out-of-range items; `model/tiny_ai/gen_rom.py` `cases()`): 29 cases, 158 checks, passing on the
-RTL, the synthesised netlist and the routed netlist (`build/flow/vision_all_lit/stage_simulate.log`, `stage_gl_synth.log`,
-`stage_gl_final.log`). The negative tests in `tests/run_tests.sh` corrupt an expected vector, break a copy of the RTL and
+RTL, the synthesised netlist and the routed netlist (`build/sim/vision_all_lit/sim.log`, and the `gl_synth` / `gl_final` PASS lines in
+`build/flow/vision_all_lit/stages.txt`). The negative tests in `tests/run_tests.sh` corrupt an expected vector, break a copy of the RTL and
 mutate a threshold, and each asserts the mutation applied, so the checks are shown able to fail. The first ROM was an
 `always @(*)` block whose inputs never changed, so simulation never evaluated it; `gen_rom.py` now emits only continuous
 assignments (comment at line 27), and the ROM here is `assign weight = WEIGHTS[addr]`. Finally, flip-flop counts need

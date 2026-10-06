@@ -34,7 +34,7 @@ Take rows from `timing_summary.rpt`; overall worst is the min over all nine corn
 End with the result line: class, beat 0/1 hex, latency, quoting the golden `--trace` output verbatim.
 
 ## Wrapper notes
-Wrapper designs (designs/user_project_wrapper*/) follow the same headings; see [designs/user_project_wrapper/NOTES.md](../../../designs/user_project_wrapper/NOTES.md): "register table" becomes a connection table, no CTS ("Not run (`RUN_CTS` false)"), 0 std cells.
+Wrapper designs (designs/user_project_wrapper*/, three of them: tiny_ai_core, soc_itm, soc_kv) follow the same headings; note the `gds` stage may print "REUSED" in seconds: quote `wall_s_total` from `output/resources.json`, not the stage time (soc_kv NOTES.md). See [designs/user_project_wrapper/NOTES.md](../../../designs/user_project_wrapper/NOTES.md): "register table" becomes a connection table, no CTS ("Not run (`RUN_CTS` false)"), 0 std cells.
 
 ## Mermaid example that passes the lint
 ```mermaid

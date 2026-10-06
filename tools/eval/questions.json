@@ -37,10 +37,10 @@
   "check": {
    "type": "words",
    "any_words": [
-    "soc_image_text_match"
+    "soc_kv_attn_n8"
    ]
   },
-  "expected": "soc_image_text_match (393)"
+  "expected": "soc_kv_attn_n8 (570)"
  },
  {
   "id": "q04",

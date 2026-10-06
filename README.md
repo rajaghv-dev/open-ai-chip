@@ -76,7 +76,7 @@ Areas are std-cell um2 from `metrics.json`; flow times are from `resources.json`
 | 8 | KV cache | [kv_attn_n4](designs/kv_attn_n4/NOTES.md), [n8](designs/kv_attn_n8/NOTES.md), [n16](designs/kv_attn_n16/NOTES.md), [n8_int4](designs/kv_attn_n8_int4/NOTES.md), [n8_ring](designs/kv_attn_n8_ring/NOTES.md) | One attention head with a KV cache: prefill and decode | 1,679-4,169 cells, 200-340 um, 82-142 s |
 | 9 | KV SoC | [soc_kv_attn_n8](designs/soc_kv_attn_n8/NOTES.md), [user_project_wrapper_soc_kv](designs/user_project_wrapper_soc_kv/NOTES.md) | The KV engine behind the adapter, inside Caravel's wrapper | 4,514 cells, +1.44 ns; wrapper 76 s |
 | 10 | System checks | [firmware](firmware/README.md), [Caravel sims](docs/CARAVEL_SIM.md), [precheck](docs/PRECHECK.md) | RISC-V firmware, full-chip gate level, ChipFoundry precheck | full-chip GL 14 m 23 s; precheck 14/14 |
-| 11 | Agents | [Hermes agent](docs/HERMES_AGENT.md), [KLayout demo](examples/hermes_klayout_demo/README.md), [harness](examples/hermes_harness/README.md) | A local LLM that reads chip results through read-only tools | 13/15, then 15/15 with one deterministic tool |
+| 11 | Agents | [Hermes agent](docs/HERMES_AGENT.md), [KLayout demo](examples/hermes_klayout_demo/README.md), [harness](examples/hermes_harness/README.md), [RAG](examples/hermes_rag/README.md) | A local LLM that reads chip results through read-only tools and searches the docs | 13/15, then 15/15 with one deterministic tool; RAG 2/10 -> 4/10 |
 
 ### Chip design perspective
 
@@ -106,7 +106,7 @@ approximate: no proprietary tool was run in this repository, so there is no head
 | Gate-level simulation | Icarus Verilog | VCS, Xcelium, Questa | Synthesised and routed netlists of all 25 designs; full-chip GL 14 m 23 s. |
 | SDF timing simulation | Open Verilog CVC | VCS, Xcelium | Iverilog mis-parses SDF; only CVC worked, and timing checks are not enforced. |
 | Synthesis | Yosys + ABC | Synopsys Design Compiler / Fusion Compiler, Cadence Genus | One-hot FSM recoding and duplicate-flop merging; a no-logic-lost check guards it. |
-| Floorplan, place, CTS, route | OpenROAD | Cadence Innovus, Synopsys IC Compiler II | Worked at these sizes; a 70 % slew margin ran out of memory, and 361 pins congested. |
+| Floorplan, place, CTS, route | OpenROAD ([engines](docs/OPENROAD_ENGINES.md)) | Cadence Innovus, Synopsys IC Compiler II | Worked at these sizes; a 70 % slew margin ran out of memory, and 361 pins congested. |
 | Static timing | OpenSTA | Synopsys PrimeTime, Cadence Tempus | 9 corners per design; thinnest margin +0.04 ns (bf16). |
 | Parasitic extraction | OpenRCX | Synopsys StarRC, Cadence Quantus | Min / nom / max SPEF exported for every macro view. |
 | DRC | Magic + KLayout | Siemens Calibre, Synopsys IC Validator, Cadence Pegasus | 0 violations in both tools for all 25 designs. |
@@ -138,12 +138,15 @@ The kind of AI problem each example solves, its input and output, and where the 
 | [n8_int4](designs/kv_attn_n8_int4/NOTES.md), [n8_ring](designs/kv_attn_n8_ring/NOTES.md) | Memory-bounded context: quantised cache, sliding window | Same, with a 4-bit cache or only the last 8 tokens | Long-context LLM serving |
 | [KV SoC](designs/soc_kv_attn_n8/NOTES.md) | LLM decode driven by firmware | `PREFILL` / `DECODE` commands over Wishbone | On-device assistant |
 | [Hermes agent](docs/HERMES_AGENT.md) | Question answering with tool use (LLM agent) | Question -> answer read from chip reports | Engineering copilot |
+| [Hermes RAG](examples/hermes_rag/README.md) | Retrieval-augmented QA over the design notes (BM25) | "Why / what fixed" question -> cited answer from NOTES.md | Design-knowledge search |
 
 Measured where it applies:
 - Audio: pitch 85.5 % at W = 8 and 100 % at W = 16; onset 95.63 % on noisy labels, 100 % on clean.
 - Precision: six formats at 94.00-94.25 % and binary at 88.95 % (fp32 is 94.05 %).
 - KV cache: int4 recall 81.65 % vs 100 %; ring 91.11 % against the unbounded cache.
 - Hermes agent: 13/15 baseline, 15/15 with one deterministic tool.
+- Hermes RAG: retrieval finds the right file in the top 4 for 9 of 10 questions; end to end 2/10 without and 4/10 with retrieval,
+  because the 8B model calls `search_docs` on only 6 of 12 questions (`examples/hermes_rag/results_summary.json`).
 
 `user_proj_example` is the non-AI control ([docs/WHY_AI.md](docs/WHY_AI.md)).
 
@@ -224,6 +227,7 @@ Background and plans:
 - [docs/PRECISION_STUDY.md](docs/PRECISION_STUDY.md): number formats compared in hardware.
 - [docs/HERMES_AGENT.md](docs/HERMES_AGENT.md): a local, offline agent (Hermes 3 8B in Ollama) answering questions about the chips through read-only KLayout/EDA tools (`tools/`, also an MCP server); 13/15 on a ground-truth evaluation.
 - [docs/LLM_INFERENCE.md](docs/LLM_INFERENCE.md): prefill vs decode, the KV cache and what they mean for hardware; the KV engines are the `kv_attn_*` designs.
+- [docs/OPENROAD_ENGINES.md](docs/OPENROAD_ENGINES.md): every OpenROAD engine (floorplan, placement, resizer, CTS, routing, extraction, STA, IR drop), how LibreLane chains them, with a diagram per engine and numbers from this repo's runs.
 - [examples/hermes_klayout_demo/README.md](examples/hermes_klayout_demo/README.md): a 99-line walkthrough of a local model with one KLayout tool.
 - [examples/hermes_harness/README.md](examples/hermes_harness/README.md): loop and harness engineering: the same model goes 13/15 to 15/15 by adding a deterministic tool.
 - [docs/SKILLS.md](docs/SKILLS.md): the project skills in `.claude/skills/`: what they encode and why, with the chip-design basics behind each.
@@ -234,8 +238,7 @@ container, not ChipFoundry's image; `make precheck`). Full-chip gate-level Carav
 functional cells) PASSES in 14 m 23 s (`make caravel-fullgl`, `docs/CARAVEL_SIM.md`). SDF back-annotation (CVC, x86-only, emulated amd64 container)
 PASSES on wrapper + macro at three corners (`make caravel-sdf-wrapper`); full-chip GL+SDF with firmware was not completed (too slow emulated; needs an
 x86 Linux host or a shorter flash boot). GPIO 5..37 are management-owned inputs (owner decision 2026-10-06, `user_defines.v`).
-Open owner decisions: the slew-budget interpretation, and the host for full-chip SDF. Next in `SPEC.md`: the wrapper build with the adapter macro,
-the release manifest, independent verification; `cf` account steps stay human-only.
+Open owner decisions: the slew-budget interpretation, and the host for full-chip SDF. The wrapper builds with the adapter macros are done (`user_project_wrapper_soc_itm`, `user_project_wrapper_soc_kv`); the full-Caravel sims and the precheck ran for `user_project_wrapper` (tiny_ai_core) only. Next in `SPEC.md`: the release manifest, independent verification; `cf` account steps stay human-only.
 
 ## Run
 
@@ -244,14 +247,14 @@ make doctor      # tools, Docker daemon, LibreLane image, sky130A PDK at the pin
 make test        # fast checks, no Docker: structure, configs, lint, model, RTL sims, negative tests
 make flow-all    # user_proj_example: simulate -> gds -> check -> gl (synthesised) -> gl-final (routed) -> collect
 make tiny        # the same for the three tiny AI engines, then a comparison table
-make all-designs # the same for all 17 designs in a fixed order (hours), then `make table`
+make all-designs # the same for all 25 designs in a fixed order (hours), then `make table`
 make table       # regenerate the results tables below from designs/*/output (no Docker)
 make flow-all DESIGN=tiny_ai_core   # the combined Wishbone macro
 ```
 
 Any design: `make flow-all DESIGN=<name>`. Single stages: `make simulate | gds | check | gl | gl-final | collect | view`
-(with `DESIGN=`). Models (all five dirs under `model/`): `make model-check` (`golden.py --check` of tiny_ai, image_text_match and
-precision_hw; the two audio models have none, their testbenches check the RTL against `golden.py`), `make generate`
+(with `DESIGN=`). Models (the six engine dirs under `model/`, plus `model/examples/`): `make model-check` (`golden.py --check` of tiny_ai, image_text_match,
+precision_hw and kv_attention; the two audio models have none, their testbenches check the RTL against `golden.py`), `make generate`
 (re-fit, regenerate ROMs and vectors), `make check-generated` (regeneration reproduces every committed generated file). Defaults: `PROFILE=tight`
 (container capped at 2 CPUs / 8 GB), `CPUSET=0-1`. If `DOCKER_HOST` is unset and `~/.colima/osl/docker.sock` exists,
 the Makefile uses it.
@@ -403,4 +406,7 @@ repository's MNIST designs and is not regenerated here (see `docs/slides/README.
 ## Not covered
 
 - The template's cocotb tests (`io_ports`, `la_test1`, `la_test2`; replaced by `caravel_sim/` iverilog runs), full-chip SDF with firmware, and ChipFoundry's own `mpw_precheck` image (our precheck ran in our own container).
-- Max-slew / max-cap counts are reported by `make check`, not failed on: they come from the template's input-transition constraints on 541 unbuffered pins.
+- Max-slew / max-cap counts are reported by `make check`, not failed on. Part of them is environment-limited (input
+  transitions set by the SDC exceed the 0.75 ns limit: the template's 541 port bits in `user_proj_example`, the Caravel
+  Wishbone inputs at 0.84-0.92 ns in the SoC macros), part is internal nets; the split is classified per design in its
+  NOTES.md where it was traced (e.g. `tiny_ai_core`, `soc_kv_attn_n8`). Counts per design: the signoff table above.

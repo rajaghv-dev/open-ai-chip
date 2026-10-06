@@ -24,7 +24,7 @@ prec_fp8: -2.144 ns at max_ss_100C_1v60), and fp16/bf16 chains are longer.
 | unpack, zero test | exponent == 0 | 8-bit exponent |
 | multiply (stage 1) | significand x pixel (exact) | 8 x 4 multiplier |
 | normalise, RNE | LZC (<= 4 places), incrementer | product rounded to the format |
-| *product register* | 16-bit `p_bits` + `p_vld` | pipeline cut |
+| *product register* | `p_bits_r` (15 stored bits, the 16th is rebuilt) + `p_vld` | pipeline cut |
 | align (stage 2) | right shifter with sticky | exponent difference of 8 bits |
 | add / subtract | magnitude add or subtract | 11-bit aligned operands, 12-bit sum |
 | normalise | LZC and left shifter | up to the full sum width |

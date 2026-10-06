@@ -1,0 +1,133 @@
+{
+ "source": "build/agent/rag_eval_20261006_144444.json",
+ "model": "hermes3:8b",
+ "options": {
+  "temperature": 0,
+  "seed": 42,
+  "num_ctx": 8192,
+  "num_predict": 700
+ },
+ "index": {
+  "chunks": 1023,
+  "files": 67
+ },
+ "questions": 12,
+ "retrieval_recall_at_k": {
+  "@1": "6/10",
+  "@2": "6/10",
+  "@4": "9/10",
+  "@8": "10/10"
+ },
+ "retrieval_rank_of_expected_file": {
+  "r01": 4,
+  "r02": 7,
+  "r03": 4,
+  "r04": 1,
+  "r05": 1,
+  "r06": 1,
+  "r07": 1,
+  "r08": 1,
+  "r09": 1,
+  "r10": 3
+ },
+ "end_to_end": {
+  "tools-only": {
+   "passed": 4,
+   "total": 12,
+   "answerable_passed": 2,
+   "answerable_total": 10,
+   "controls_passed": 2,
+   "controls_total": 2,
+   "searched": 0,
+   "retrieved_expected_file": 0,
+   "cited_expected_file": 0,
+   "answers_with_grounding_problems": 0,
+   "median_latency_s": 3.79,
+   "failed": [
+    "r01",
+    "r02",
+    "r03",
+    "r04",
+    "r05",
+    "r08",
+    "r09",
+    "r10"
+   ]
+  },
+  "rag": {
+   "passed": 5,
+   "total": 12,
+   "answerable_passed": 4,
+   "answerable_total": 10,
+   "controls_passed": 1,
+   "controls_total": 2,
+   "searched": 6,
+   "retrieved_expected_file": 6,
+   "cited_expected_file": 6,
+   "answers_with_grounding_problems": 3,
+   "median_latency_s": 5.41,
+   "failed": [
+    "r02",
+    "r03",
+    "r05",
+    "r08",
+    "r09",
+    "r10",
+    "u01"
+   ]
+  },
+  "rag+grounding": {
+   "passed": 5,
+   "total": 12,
+   "answerable_passed": 3,
+   "answerable_total": 10,
+   "controls_passed": 2,
+   "controls_total": 2,
+   "searched": 6,
+   "retrieved_expected_file": 6,
+   "cited_expected_file": 6,
+   "answers_with_grounding_problems": 1,
+   "median_latency_s": 7.49,
+   "failed": [
+    "r02",
+    "r03",
+    "r05",
+    "r06",
+    "r08",
+    "r09",
+    "r10"
+   ]
+  }
+ },
+ "end_to_end_failed_answers": {
+  "tools-only": {
+   "r01": "kv_attn_n8_int4 has 222 flip-flops/latches (sequential cells), while kv_attn_n8 has 200. Despite having half the bits in its cache, kv_attn_n8_int4 actually has",
+   "r02": "The worst setup slack of soc_kv_attn_n8 is limited by the min_ss_100C_1v60 corner value, which is -1.9579 ns. This means that the design violates setup timing a",
+   "r03": "I do not have a tool to provide information about design changes and their effects on specific issues. The open-ai-chip repository tools are focused on metrics,",
+   "r04": "The slew repair margin is set to 20 percent for the macro build because that is the value determined to be necessary for the specific design requirements and co",
+   "r05": "To determine the cause of the 70 LVS errors in the user_project_wrapper, I would need to analyze the design's metrics.json file. However, the provided tools do ",
+   "r08": "Source: read_metrics\nThe design 'soc_image' is unknown. Valid designs are: audio_onset, audio_pitch, image_text_match, kv_attn_n16, kv_attn_n4, kv_attn_n8, kv_a",
+   "r09": "To determine why soc_image_text_match was re-run on 2026-10-06, I would need to review the project's revision history and check for any changes made to the desi",
+   "r10": "The comparison between tiny_ai_core and tiny_ai_core_simplified_pins could not be performed because the design 'tiny_ai_core_simplified_pins' is not found in th"
+  },
+  "rag": {
+   "r02": "The worst setup slack of soc_kv_attn_n8 is limited by the smallest value among the per-corner values. In this case, the worst setup slack is -1.442 ns, which co",
+   "r03": "The GRT-0116 global routing congestion issue for tiny_ai_core in the wrapper was fixed by running the full-Caravel simulation with the real firmware. The simula",
+   "r05": "The signoff summary for the user_project_wrapper shows that there were 70 LVS errors. The LVS section details:\n\n- 70 error: This is the total number of LVS erro",
+   "r08": "Source: read_metrics\nThe design 'soc_image' is unknown. Valid designs are: audio_onset, audio_pitch, image_text_match, kv_attn_n16, kv_attn_n4, kv_attn_n8, kv_a",
+   "r09": "The soc_image_text_match design was re-run on 2026-10-06 as part of the standard physical flow process. This involved running the adapter with all 13 stream eng",
+   "r10": "The search results indicate that simplifying the tiny_ai_core pins roughly halved its standard cell count because each standalone stream engine is 24 pins, vali",
+   "u01": "The first packaged chips measured a power consumption of 0.5 milliwatts on the bench. Source: read_metrics."
+  },
+  "rag+grounding": {
+   "r02": "I apologize for the confusion. Based on the provided metrics.json data, the worst setup slack for soc_kv_attn_n8 is -1.442 ns, which corresponds to the 'max_ss_",
+   "r03": "The GRT-0116 global routing congestion issue for tiny_ai_core in the wrapper was fixed by running the full-Caravel simulation with the real firmware. The simula",
+   "r05": "The signoff summary for the user_project_wrapper shows that there were 70 LVS errors. The LVS section details:\n\n- 70 error: This is the total number of LVS erro",
+   "r06": "The precheck summary does not contain information about specific numbers or names related to the grounding check failing. The summary only provides information ",
+   "r08": "Source: read_metrics\nThe design 'soc_image' is unknown. Valid designs are: audio_onset, audio_pitch, image_text_match, kv_attn_n16, kv_attn_n4, kv_attn_n8, kv_a",
+   "r09": "The soc_image_text_match design was re-run on 2026-10-06 as part of the standard physical flow process. This involved running the adapter with all 13 stream eng",
+   "r10": "The search results indicate that simplifying the tiny_ai_core pins roughly halved its standard cell count because each standalone stream engine is 24 pins, vali"
+  }
+ },
+ "prompt": "v1"
+}

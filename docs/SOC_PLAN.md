@@ -1,7 +1,8 @@
 # How every example runs functionally on the Caravel SoC
 
-Status: plan (2026-10-06). Nothing in this file is implemented yet; every "exists" claim cites a file, every number that
-is not measured is labelled "estimate". Owner decisions respected: (1) simple and for learning; (2) every GDSII run
+Status: plan, largely executed (updated 2026-10-06). The "Status" section below says what is done; sections 1 to 6
+keep the original plan and reasoning, with "Outcome" notes where reality differs. Every "exists" claim cites a file,
+every number that is not measured is labelled "estimate". Owner decisions respected: (1) simple and for learning; (2) every GDSII run
 under 10 minutes; (3) the Caravel RISC-V management core is the CPU, no RISC-V core in the user area, a user-area core is
 a separate later study never mixed into the AI macro; (4) exactly one macro in `user_project_wrapper` (`SPEC.md`,
 "Project decision" and "Architecture").
@@ -19,14 +20,29 @@ Ladder of section 4, all measured on this Mac without Docker:
 | (v) full-Caravel GL | Done functionally: hybrid PASS 59 s (`make caravel-gl`); full-chip GL (caravel_core incl. management SoC + wrapper + macro) PASS 14 m 23 s (`make caravel-fullgl`); SDF PASS on wrapper + macro at 3 corners (`make caravel-sdf-wrapper`); full-chip GL+SDF with firmware not completed (emulated CVC too slow) | `docs/CARAVEL_SIM.md`, `build/gpio_fix_chain.log` |
 | (vi) `cf precheck` | Done locally: 14 of 14 PASS in 61 s, in our own container (not ChipFoundry's image) | `make precheck`, `precheck/results/summary.tsv`, `docs/PRECHECK.md` |
 
-Also done: the generic adapter `shared/rtl/wb_stream_adapter.v` is verified with all 14 stream engines (incl. kv_attn_n8) (`make adapter-test`,
-`tests/adapter/`), and `designs/soc_image_text_match` (adapter + `image_text_match`, 109 pins) is hardened clean
-(`designs/soc_image_text_match/output/`).
+Also done (adapter path):
 
-Not done: full-chip GL+SDF with firmware; confirming the precheck with ChipFoundry's tooling (human); a `user_project_wrapper` build that
-instantiates the adapter macro (the committed wrapper holds `tiny_ai_core`). GPIO startup modes are set (owner decision 2026-10-06:
-`GPIO_MODE_MGMT_STD_INPUT_NOPULL` for 5..37 in `user_defines.v`).
-Finding: bus transactions dominate; software beats the accelerator for the 4-input networks and only `vision_block` wins (1.8x).
+- The generic adapter `shared/rtl/wb_stream_adapter.v` is verified with 14 engines: 13 stream engines (`vision_all_lit`,
+  `vision_block`, `text_sentiment`, `image_text_match`, `audio_pitch`, `audio_onset`, the seven `prec_*`) plus `kv_attn_n8`
+  (`make adapter-test`, `tests/adapter/run.sh`, `tests/adapter/adapter_tb.v`).
+- Two adapter macros are hardened clean (109 pins, DRC / LVS / XOR / antenna 0, all five flow stages pass):
+  `designs/soc_image_text_match` (3,201 cells, 393 flip-flops, 250 x 250 um, setup +2.956 ns) and
+  `designs/soc_kv_attn_n8` (4,514 cells, 570 flip-flops, 300 x 300 um, setup +1.442 ns) (`output/metrics.json` of each).
+- Each macro sits in its own Caravel wrapper build, `designs/user_project_wrapper_soc_itm` (setup +2.965 ns) and
+  `designs/user_project_wrapper_soc_kv` (setup +1.448 ns), both signoff-clean, with the macro testbench passing on RTL and
+  on the synthesised and routed wrapper netlists (`output/metrics.json`, each `NOTES.md`).
+- Firmware: `firmware/` (tiny_ai_core, 784 cases) and `firmware/kv/` + `soc_sim/kv/` (KV-cache attention behind the adapter:
+  prefill cost per token 328 -> 90.6 CPU clocks for P = 1 -> 7, decode round trip 670 clocks, engine latency n + 3;
+  `make soc-kv`, `firmware/README.md`).
+- GPIO startup modes are set (owner decision 2026-10-06: `GPIO_MODE_MGMT_STD_INPUT_NOPULL` for 5..37 in `user_defines.v`).
+
+Not done: full-chip GL+SDF with firmware; confirming the precheck with ChipFoundry's tooling (human); full-Caravel simulations
+(`make caravel-rtl`, `caravel-gl`, `caravel-fullgl`, `caravel-sdf-wrapper`) and the local precheck for the adapter wrappers
+(`user_project_wrapper_soc_itm`, `user_project_wrapper_soc_kv`): those ran for `user_project_wrapper` (`tiny_ai_core`) only
+(`docs/CARAVEL_SIM.md`, `docs/PRECHECK.md`); `release/manifest.json`; the choice of the single tapeout macro (section 6).
+No multi-engine macro with an engine-select register (option (b)) and no `soc_audio_onset` / `soc_prec_int8` macro were built.
+Finding: bus transactions dominate; software beats the accelerator for the 4-input networks and only `vision_block` wins (1.8x); for
+KV attention one decode round trip is 670 CPU clocks against an engine latency of 3 to 10 clocks.
 
 ## 1. What "runs on the SoC" means
 
@@ -63,7 +79,10 @@ Inspected in `build/template/verilog/dv/` (template `chipfoundry/caravel_user_pr
 | Legacy iverilog DV | `dv/wb_port/{wb_port.c,wb_port_tb.v,Makefile}`, `io_ports`, `la_test1`, `la_test2`, `mprj_stimulus` | firmware plus a Verilog testbench; `wb_port.c` is the nearest example to ours: `#define reg_mprj_slave (*(volatile uint32_t*)0x30000000)`, enable `reg_wb_enable`, write then read the slave |
 | Run commands | `dv/cocotb/README.md`, `dv/local-install.md`, `Makefile` (`verify-*`, `cocotb-verify-*`) | `caravel_cocotb -t <test> -tag <tag>`; `SIM=RTL|GL make verify-<test>` |
 
-Tools this flow needs (from `dv/local-install.md`, `build/template/Makefile`, `LOCAL_RUN_PLAN.md`):
+Tools this flow needs (from `dv/local-install.md`, `build/template/Makefile`, `LOCAL_RUN_PLAN.md`). The last column is the state at
+planning time. Outcome: steps (iv) and (v) ran natively on this Mac with `riscv64-elf-gcc` 16.2.0 (Homebrew;
+`-march=rv32i_zicsr`), iverilog 13, the caravel-lite and management-core RTL cloned into `build/caravel`, and iverilog-driven
+simulations instead of cocotb; no amd64 Docker image was needed except for the SDF simulator (`docs/CARAVEL_SIM.md`).
 
 | Need | Why | This Apple-silicon machine today |
 |---|---|---|
@@ -86,12 +105,13 @@ matter and already works on this machine (all hardening runs so far).
 Facts (cited):
 - `tiny_ai_core` is on Wishbone with 109 macro pins (Wishbone + irq) and a 250 x 250 um die (`SPEC.md` Status update
   2026-10-06, `designs/tiny_ai_core/output/metrics.json`: die 62,500 um^2, reported instance area 53,897.9 um^2,
-  13,650 instances).
+  13,650 instances counting all classes incl. fill and tap; 1,809 standard cells, `design__instance__count__stdcell`).
 - Each standalone stream engine is 24 pins, valid/ready, and a die of 80 x 80 um = 6,400 um^2 with reported instance
   area 3,915 um^2 in `designs/{audio_pitch,audio_onset,prec_bin,vision_all_lit,vision_block,text_sentiment}/output/metrics.json`
   (identical 3,915 for all six: it looks like the reported core area rather than a per-design cell area, so use
   instance counts instead, 669 to 963 each in the same files; a precise per-engine area needs a re-read of the
-  synthesis reports). `image_text_match` and `prec_{tern,int4,int8,fp8,fp16,bf16}` have no metrics yet.
+  synthesis reports). `image_text_match` and `prec_{tern,int4,int8,fp8,fp16,bf16}` were hardened later and now have metrics too (for example
+  standard-cell area `design__instance__area__stdcell`: `audio_onset` 2,793.9, `image_text_match` 3,856.2, `prec_int8` 4,859.7 um^2).
 - The user area is 10,278,400 um^2 (`designs/user_project_wrapper/output/metrics.json`, die area); one
   `tiny_ai_core` is 0.6 percent of it. Area is not the constraint. The constraints are the one-macro rule, pins on
   the macro edge (`designs/user_project_wrapper/README.md`, item 2: 361 pins congested, 109 routed), and build time.
@@ -127,10 +147,14 @@ Do (a) first, delivered as option (c) (one build per experiment), then decide a 
    unchanged. Candidate subset (owner to confirm): the 3 current engines through the existing `tiny_ai_core` block
    plus `audio_onset`, `image_text_match` and `prec_int8` through the adapter; an estimate, not a measured size.
 
+Outcome: step 1 was done twice, as `soc_image_text_match` and `soc_kv_attn_n8` (adapter + one engine, same 109 pins as
+`tiny_ai_core`), each with its own wrapper build; step 2 (the owner's choice of the single tapeout macro, or a multi-engine
+macro) is still open (section 6).
+
 Why: simplest to learn (one register map for 10 engines), keeps every builds under 10 minutes (each experiment is
 about one engine of 24 pins plus glue), respects the one-macro rule, and does not risk the finished core.
 
-### Proposed adapter register map (design proposal, not existing)
+### Adapter register map: original proposal (superseded by the built map below)
 
 | Offset | Name | Access | Definition |
 |---|---|---|---|
@@ -147,10 +171,30 @@ FIFO has room, so the engine never stalls on a slow CPU unless the FIFO fills. `
 `m_last` is pushed into the RX FIFO. FIFOs of depth 4 (TX) and 8 (RX) are enough to run every engine (frames are 9
 or 10 beats, results at most 2 beats per frame); depths are an estimate to adjust.
 
+### Adapter register map as built (`shared/rtl/wb_stream_adapter.v` header; base 0x3000_0000)
+
+The built adapter differs from the proposal above: no engine-select byte and no LATENCY / DATA_IN / DATA_OUT registers; TX FIFO and
+RX FIFO are 16 entries of 9 bits each (CAPS reports the depths); the run timer is `CYCLES`.
+
+| Offset | Name | Access | Definition |
+|---|---|---|---|
+| 0x00 | ID | R | `0x5354_5201` |
+| 0x04 | CTRL | RW | [0] irq enable; W bit 8 CLEAR (self-clearing: resets both FIFOs, the engine, BUSY, DONE, errors, CYCLES) |
+| 0x08 | STATUS | R | [0] TX_FULL [1] TX_EMPTY [2] RX_EMPTY [3] BUSY [4] DONE [5] ERR_OVF [6] ERR_UF, [15:8] TX level, [23:16] RX level |
+| 0x0C | TXDATA | W | [7:0] pushed with `s_last` = 0 |
+| 0x10 | TXLAST | W | [7:0] pushed with `s_last` = 1 |
+| 0x14 | RXDATA | R | [7:0] `m_data`, [8] `m_last`, [9] valid; the read pops the RX FIFO (empty read: 0 and ERR_UF) |
+| 0x18 | RXSTATUS | R | [0] EMPTY [1] HEAD_LAST [2] DONE, [15:8] RX level (no side effect) |
+| 0x1C | CYCLES | R | cycles from the first accepted TX beat to the captured `m_last` result beat (16 bits, saturating) |
+| 0x20 | CAPS | R | [7:0] RTL version, [15:8] TX depth, [23:16] RX depth |
+
+`irq[0]` pulses when a beat with `m_last` is captured, if CTRL[0] is set; `irq[2:1]` = 0. `m_ready` = RX FIFO not full, so a slow CPU
+back-pressures the engine instead of losing beats.
+
 ### Mapping streaming and frame engines to registers
 
-- Frame engines (`prec_*`, `image_text_match`): firmware writes beats 0..8 (or 0..9) to DATA_IN, the last one with
-  bit 8 set; then waits for irq or RX_NONEMPTY; pops 2 beats from DATA_OUT. Same shape as `tiny_ai_core`'s
+- Frame engines (`prec_*`, `image_text_match`): firmware writes beats 0..8 (or 0..9) to TXDATA, the last one to TXLAST
+  (plan wording: DATA_IN with bit 8 set); then waits for irq or RXSTATUS.DONE; pops 2 beats from RXDATA. Same shape as `tiny_ai_core`'s
   "INPUT x N, START, RESULT", with START replaced by `s_last`.
 - Streaming engines (`audio_pitch`, `audio_onset`): firmware writes one sample per DATA_IN write. Do not assume one
   result per write: `audio_pitch` gives none for the first 7 samples and `audio_onset` none for the first 3
@@ -162,7 +206,7 @@ or 10 beats, results at most 2 beats per frame); depths are an estimate to adjus
 
 ## 3. Firmware design
 
-Layout (new files; none exist today):
+Plan (the `sw/` tree and `scripts/gen_sw_vectors.py` below were never created):
 
 ```
 sw/include/tai_regs.h        register offsets, bit masks for tiny_ai_core and the adapter
@@ -171,6 +215,11 @@ sw/model_c/models.c          C implementation of the tiny models (generated cons
 sw/tests/tai_all.c           loop over vectors, compare, report
 scripts/gen_sw_vectors.py    reads model/*/golden.py and weights.json, writes sw/include/vectors.h, weights.h
 ```
+
+Outcome: the firmware lives in `firmware/` (`main.c`, `start.S`, `link.ld`, `gen_expected.py`: constants generated from
+`model/tiny_ai/golden.py` and `weights.json`; the pure-C networks and the cycle table are in `main.c`) and `firmware/kv/` (`main.c`,
+`gen_expected.py` from `model/kv_attention/golden.py`), run by the PicoRV32 SoC simulations in `soc_sim/` (`make soc-sim`,
+`make soc-kv`); `docs/CARAVEL_SIM.md` and `caravel_sim/` hold the Caravel-management-core versions for `tiny_ai_core`.
 
 ### tiny_ai_core (register map from `designs/tiny_ai_core/rtl/tiny_ai_core.v` header)
 
@@ -206,6 +255,8 @@ read `defs.h` there before writing it. First version polls DONE.
 
 ### Adapter (frame and streaming forms)
 
+Sketch from the plan, with the register names of the original proposal (the built names are TXDATA / TXLAST / RXSTATUS / RXDATA):
+
 ```c
 /* frame engine, e.g. prec_int8: 9 beats, 2 result beats */
 for (int i = 0; i < 9; i++) A_REG(DATA_IN) = pix[i] | (i == 8 ? 0x100 : 0);
@@ -217,6 +268,16 @@ for (int i = 0; i < n; i++) {
     A_REG(DATA_IN) = e[i] | (i == n - 1 ? 0x100 : 0);
     while (A_REG(STATUS) & 2) { uint32_t o = A_REG(DATA_OUT); check(o, expect[k++]); }
 }
+```
+
+The code that actually runs (`firmware/kv/main.c`, `run_frame()`, against the built map):
+
+```c
+for (int i = 0; i < nb - 1; i++) wr(R_TXDATA, beats[i]);
+wr(R_TXLAST, beats[nb - 1]);
+while (!(rd(R_RXSTAT) & RXS_DONE)) { }
+do { v = rd(R_RXDATA); resp[n++] = (uint8_t)v; } while (!(v & 0x100) && n < 16);   /* bit 8 = m_last */
+f->reg = rd(R_CYCLES);
 ```
 
 ### CPU versus accelerator (the "neural network accelerator vs generic program" comparison, `docs/WHY_AI.md`)
@@ -232,7 +293,9 @@ The management core is already on the chip, so the software baseline costs zero 
    the Caravel `defs.h`, to confirm) read before and after. Report CPU cycles per inference, accelerator
    `CYCLES` register (hardware cycles from START to commit), and the bus cost (Wishbone writes of inputs). The
    honest expectation to test, not assume: for 4 to 10 inputs the bus transfers dominate, so the CPU may well win
-   on wall time; the accelerator's value is that the answer comes from learned stored numbers in fixed hardware
+   on wall time (measured, `firmware/README.md`: software 153.0 CPU clocks against a 490.0 clock accelerator round trip for
+   `vision_all_lit`, 351.0 against 490.0 for `text_sentiment`, 1318.6 against 728.0 for `vision_block`; the accelerator's own
+   CYCLES register reads 6 to 15); the accelerator's value is that the answer comes from learned stored numbers in fixed hardware
    (`docs/WHY_AI.md`). Record whatever the measurement says. Caution: the management core fetches code over QSPI
    flash by default, so CPU-cycle numbers depend on the cache and flash model in simulation; state which setup was
    used next to every number.
@@ -240,7 +303,10 @@ The management core is already on the chip, so the software baseline costs zero 
 
 ## 4. Verification ladder
 
-Times are budgets to hold, not measurements, except where cited.
+Times are budgets to hold, not measurements, except where cited. The table is the plan; the "Status" section at the top gives
+the outcome of each step (all six reached for `tiny_ai_core`: (iii) as a PicoRV32 SoC sim, (iv) to (v) natively with iverilog and
+no cocotb, (vi) 14 of 14 in 61 s; for the adapter macros the ladder stopped at the wrapper RTL / gate-level testbench plus the PicoRV32
+firmware sims).
 
 | Step | What | Budget | Pass criterion | Runs on this machine today? |
 |---|---|---|---|---|
@@ -252,6 +318,10 @@ Times are budgets to hold, not measurements, except where cited.
 | (vi) `cf precheck` | `make precheck` / `mpw_precheck` (`build/template/Makefile` lines 243-260) | tens of minutes (estimate) | all checks pass, `lvs_config.json` used (`designs/user_project_wrapper/README.md`) | No; human `cf` setup comes first (Phase 5 in `SPEC.md`) |
 
 ### What must be installed for (iv) to (vi), and the three ways round amd64-only images
+
+Outcome: option A was used and worked (`docs/CARAVEL_SIM.md`: `riscv64-elf-gcc` 16.2.0 with `-march=rv32i_zicsr`, iverilog 13,
+caravel-lite and the management core cloned into `build/caravel`, sky130A from volare); cocotb and the Docker images were not needed.
+Only the SDF simulator (Open Verilog CVC) needs an amd64 container. The text below is the original plan.
 
 Exact tools: `brew install riscv64-elf-gcc` (check `riscv64-elf-gcc -print-multi-lib` lists `rv32i/ilp32`; if not,
 build `riscv-gnu-toolchain` at commit `411d134` as in `build/template/verilog/dv/local-install.md`, a long compile),
@@ -288,6 +358,14 @@ not a longer timeout. Run one flow at a time.
 | 10 | Wrapper housekeeping: drive `io_oeb` high or set GPIO startup modes in `user_defines.v` | `designs/user_project_wrapper/rtl/user_defines.v` or macro | see Open decisions | seconds, then one wrapper rebuild |
 | 11 | Local precheck, then bundle | `release/manifest.json` | `make precheck` equivalent | tens of minutes (estimate) |
 
+Status of the task list (2026-10-06): step 1 replaced by `firmware/gen_expected.py` and `firmware/kv/gen_expected.py` (no
+`scripts/gen_sw_vectors.py`); step 2 replaced by the PicoRV32 SoC sim (`make soc-sim`); step 3 done (`make adapter-test`, 14 engines);
+step 4 done for `image_text_match` and `kv_attn_n8` (`soc_image_text_match`, `soc_kv_attn_n8`, with wrapper builds), not for
+`audio_onset`; step 5 partly (`image_text_match` yes, `prec_int8` only through the adapter test, no macro); step 6 done in
+`firmware/README.md`; steps 7 and 8 done natively (iverilog, not cocotb; `tiny_ai_core` firmware, one case per mode); step 9 done
+(hybrid and full-chip GL, SDF on wrapper + macro); step 10 done (GPIO 5..37 management-owned inputs); step 11 local precheck done,
+`release/manifest.json` not.
+
 Human-only checkpoints (`SPEC.md`, "What is next" items 1, Phases 5 and 11): `cf login`, `cf init`, `cf gpio-config`,
 `cf push` / `cf confirm`, and submission are never run by an agent; the agent stops before step 11's submission and
 before any cf command. Steps 1-6 need none of them. Steps 7 and 8 need no cf login but do need owner approval for
@@ -295,8 +373,9 @@ large downloads.
 
 ## 6. Open decisions for the owner
 
-1. Which engines go into the single macro: only `tiny_ai_core` (3 engines, done), or a multi-engine macro with an
-   engine-select register built on the adapter; and which subset (candidate in section 2). One macro only, so
+1. OPEN. Which engines go into the single macro: only `tiny_ai_core` (3 engines, done), a single-engine adapter macro that now
+   exists (`soc_image_text_match`, `soc_kv_attn_n8`, each with its wrapper build), or a multi-engine macro with an
+   engine-select register built on the adapter (not built); and which subset (candidate in section 2). One macro only, so
    every added engine competes for the same 109 pins and the same wrapper placement.
 2. GPIO startup modes and `io_oeb` before tapeout: `designs/user_project_wrapper/README.md` item 5 and `SPEC.md`
    Status update say the wrapper's unconnected `io_oeb` must be driven high or all user GPIO set to inputs in
@@ -304,10 +383,11 @@ large downloads.
 3. Slew budget interpretation (`SPEC.md` Status update, open decision 1): count only internal nets, or accept
    Caravel's 0.84-0.92 ns input transitions on `wbs_adr_i` / `wbs_dat_i` (limit 0.75 ns) as environment-limited.
    Affects whether every new macro build reports "slew 0".
-4. Verification host for steps (iv) to (vi): native toolchain (option A), x86-64 Colima profile (B) or a Linux x86
-   machine or CI (C), and permission for the large caravel and PDK downloads.
-5. Adapter details: FIFO depths (4 and 8 proposed), whether `ID` for the adapter should be separate from
-   `0x54414901`, and whether `LATENCY` is wanted (it exists to compare with the CPU baseline).
-6. Whether the CPU-versus-accelerator numbers are measured with the management core's flash-fetch setup or a RAM-
-   resident build (different CPU cycle counts; record which).
+4. Mostly resolved: steps (iv) to (vi) ran on the native toolchain (option A) with the caravel and PDK downloads done. Still open:
+   the host for full-chip SDF with firmware (emulated CVC too slow) and the full-Caravel sims / precheck for the adapter wrappers.
+5. RESOLVED in the built adapter: FIFO depths 16 and 16 (4 and 8 were proposed), a separate `ID` `0x5354_5201`, and a `CYCLES`
+   register instead of `LATENCY` (`shared/rtl/wb_stream_adapter.v` header).
+6. RESOLVED for the numbers in `firmware/README.md`: they are measured on the PicoRV32 simulation with code in RAM and the
+   testbench cycle counter, not the Caravel flash-fetch setup; the Caravel firmware (`caravel_sim/`) checks results, not CPU-versus-
+   accelerator cycles.
 7. Later and separate: a user-area RISC-V core is a different study with its own macro; it does not enter this plan.

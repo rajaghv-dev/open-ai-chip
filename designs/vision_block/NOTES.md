@@ -160,13 +160,13 @@ routed post-PnR netlist (`make gl-final DESIGN=vision_block`:
 `designs/vision_block/runs/RUN_2026-10-05_18-15-29/final/nl/vision_block.nl.v`, 771 cells), compiled by
 `scripts/flow/gl_sim.sh` against the sky130_fd_sc_hd functional models with a unit gate delay of `#0.01`
 (`GL_UNIT_DELAY`, default in gl_sim.sh; it must be above 0 to avoid flip-flop races and below the 1 ns sample
-point). Results on disk: `build/flow/vision_block/stage_gl_synth.log` and `stage_gl_final.log` both end
-`gl_sim: vision_block PASS`; `build/gl/vision_block/result.txt` reads `vision_block | final:vision_block.nl.v
+point). Results on disk: `build/flow/vision_block/stages.txt` lists `gl_synth PASS` and `gl_final PASS` (the `stage_*.log`
+files there hold only the recipe command lines, not simulator output); `build/gl/vision_block/result.txt` reads `vision_block | final:vision_block.nl.v
 | every case of tb/vectors.hex | PASS | 1 s`. `build/gl/vision_block/synth_checks.txt` reads
 `synthesis__check_error__count = 0`.
 
-Signoff checks that are verification (`scripts/flow/check_signoff.py vision_block`,
-`build/flow/vision_block/stage_check.log`): no logic lost, RTL 24 registers, 24 surviving sequential cells,
+Signoff checks that are verification (`python3 scripts/flow/check_signoff.py vision_block`,
+the `check` stage in `build/flow/vision_block/stages.txt`): no logic lost, RTL 24 registers, 24 surviving sequential cells,
 allowance 0 (the 22 RTL bits become 24 because the 4-state FSM was recoded to one-hot: 22 - 2 + 4); Yosys
 driver warnings (multiple drivers / no driver) 0, synthesis check errors 0 (`synth_checks.txt`).
 
@@ -203,7 +203,7 @@ Report: [floorplan.txt](output/reports/floorplan.txt).
 ### Placement
 
 Global placement finished at iteration 368 with routability-mode iteration count 66, final weighted congestion 1.0105, minimum feasible density 0.5400 (`placement_global.txt`). The routing-overflow estimate was 0.0073 with 1 overflowed tile (0.83 %).
-Detailed placement legalised with total displacement 0.0 u in its own analysis; HPWL 3548.9 u (`placement_detailed.txt`). Across the flow `design__instance__displacement__total` = 39.86, mean 0.117, max 7.32 um (`metrics.json`). Timing repair before this added buffers (42 timing repair buffers at this point).
+Detailed placement legalised with total displacement 0.0 u in its own analysis; HPWL 3548.9 u (`placement_detailed.txt`). Across the flow `design__instance__displacement__total` = 39.86, mean 0.117, max 7.32 um (`metrics.json`). Timing repair before this added buffers (42 timing repair buffers at this point, `placement_detailed.txt` cell type report; 54 in the final design).
 Reports: [placement_global.txt](output/reports/placement_global.txt), [placement_detailed.txt](output/reports/placement_detailed.txt).
 
 ### Clock tree
@@ -299,7 +299,7 @@ that is 24 flip-flops instead of 10 and 297 standard cells instead of 169 (`metr
 **Where the area goes.** Of 297 standard cells (2359.76 um^2, `metrics.json`) the 168 synthesised cells are 1726.656 um^2
 (`synth_stat.rpt`), and by class: 137 multi-input gates 1198.65 um^2 (50.8 %), 24 flip-flops 510.49 um^2 (21.6 %), 54
 timing-repair buffers 395.38 um^2 (16.8 %), 5 clock buffers 125.12 um^2 (5.3 %), 57 tap cells 71.32 um^2 (3.0 %), 13 diode
-cells 32.53 um^2 (1.4 %). The 24-pin interface is the same size as in `vision_all_lit`, but the logic is 2.8 times larger,
+cells 32.53 um^2 (1.4 %), 7 inverters 26.28 um^2 (1.1 %) (the classes sum to the 2359.76 total). The 24-pin interface is the same size as in `vision_all_lit`, but the logic is 2.8 times larger,
 so here logic dominates: utilisation is 0.603 against 0.277 on the same 80 x 80 um die, and the repair buffers rose only from 36
 to 54 while synthesised cells rose from 60 to 168. Repair buffers are therefore not simply proportional to logic.
 
@@ -325,7 +325,7 @@ the compute hardware for four times the compute time.
 
 **Verification lessons.** The 512 possible images are all tested, plus 28 protocol cases (8 short frames, 2 long, 18
 out-of-range items; `model/tiny_ai/gen_rom.py` `cases()`): 540 cases, 2713 checks, passing on the RTL, the synthesised
-netlist and the routed netlist (`build/flow/vision_block/stage_gl_synth.log`, `stage_gl_final.log`). `tests/run_tests.sh`
+netlist and the routed netlist (`build/sim/vision_block/sim.log`; `gl_synth` / `gl_final` PASS in `build/flow/vision_block/stages.txt`). `tests/run_tests.sh`
 also proves the testbench can fail: a corrupted vector, a broken RTL copy and a mutated threshold are each rejected, and
 each mutation asserts that it applied. The ROM bug that bit the first version, an `always @(*)` block that simulation never
 evaluated because its inputs never changed, is why `gen_rom.py` now emits continuous assignments only (comment at line 27).

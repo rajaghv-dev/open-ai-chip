@@ -13,8 +13,8 @@ and returns its value vector (hard attention), then appends the new token.
 | bits per K/V component | 8 |
 | ring | 1 |
 | cache bits N x 2 x 4 x bits | 512 |
-| estimated flip-flops (by inspection) | about 670 |
-| die (estimate) | 260 x 260 um, 25 ns clock |
+| flip-flops: estimated by inspection / built | about 670 / 198 (`output/metrics.json`, `design__instance__count__class:sequential_cell`) |
+| die (config estimate, flow clean) | 260 x 260 um, 25 ns clock, utilisation 0.283 (`design__instance__utilization`) |
 
 **Ports (24 pins):** `clk`, `rst` (synchronous, active high), input stream `s_valid`, `s_data[7:0]`, `s_last`, `s_ready`, output stream `m_valid`, `m_data[7:0]`, `m_last`, `m_ready`.
 Commands (first beat): `01` RESET_CACHE, `02` PREFILL + tokens, `03` DECODE + token. Responses: 2 beats `[status, count]`, or 8 beats

@@ -13,3 +13,5 @@ Run:
 
 The 204 undriven wrapper outputs (io_out, io_oeb, la_data_out) are accepted in scripts/flow/signoff_allowances.json,
 as for user_project_wrapper (same tapeout caveat). Results: output/metrics.json, NOTES.md.
+
+See also: `designs/user_project_wrapper_soc_kv` (same shell, `soc_kv_attn_n8` macro, 300 x 300 um). The run record was refreshed on 2026-10-06 with identical metrics (NOTES.md, Run time and memory). Not verified: full Caravel simulation and precheck for this wrapper (they ran for the tiny_ai_core wrapper only).

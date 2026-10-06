@@ -9,6 +9,7 @@ What is neural network and what is not (from the RTL header): the networks are o
 Simplified for learning (owner decision 2026-10-06, `SPEC.md` Status update): only the Wishbone bus and the interrupt leave the core, so it has 109 signal pins (11 ports; `rtl/tiny_ai_core.v`) on a 250 x 250 um die. The GPIO and logic-analyser mirrors of `SPEC.md` are not implemented.
 Simulation: `make simulate DESIGN=tiny_ai_core` printed `PASS tiny_ai_core_tb: 784 cases, 39956 checks (24060 wishbone transactions; ...)`.
 Hardened result (`output/metrics.json`): DRC, LVS, XOR, antenna all 0; worst setup +1.456 ns, worst hold +0.105 ns over all corners; 195 max-slew violations reported (see Intuitions).
+System-level status (2026-10-06): this macro sits in `designs/user_project_wrapper` and is the only design run through the full-Caravel simulations (`make caravel-rtl`, `caravel-gl`, `caravel-fullgl`, `caravel-sdf-wrapper`: all PASS, `docs/CARAVEL_SIM.md`) and the local ChipFoundry precheck (14 of 14 PASS after the wrapper's `user_defines.v` set GPIO 5..37 to `GPIO_MODE_MGMT_STD_INPUT_NOPULL`; `docs/PRECHECK.md`, `precheck/results/summary.tsv`). The latest flow run is `designs/tiny_ai_core/runs/RUN_2026-10-05_20-33-28` (`output/resources.json` `run_dir`).
 
 ## Architecture
 
@@ -176,16 +177,16 @@ vision_block (512) and text_sentiment (256); `make check-generated` prints `chec
 Gate-level: the same testbench file runs on the synthesised netlist (`make gl DESIGN=tiny_ai_core`:
 synthesis-only run, netlist `build/gl/tiny_ai_core/runs/gl/final/nl/tiny_ai_core.nl.v`, 716 cells) and on the
 routed post-PnR netlist (`make gl-final DESIGN=tiny_ai_core`:
-`designs/tiny_ai_core/runs/RUN_2026-10-05_19-50-40/final/nl/tiny_ai_core.nl.v`, 13650 cells), compiled by
+`designs/tiny_ai_core/runs/RUN_2026-10-05_20-33-28/final/nl/tiny_ai_core.nl.v`, 13650 cells), compiled by
 `scripts/flow/gl_sim.sh` against the sky130_fd_sc_hd functional models with a unit gate delay of `#0.01`
 (`GL_UNIT_DELAY`, default in gl_sim.sh; it must be above 0 to avoid flip-flop races and below the 1 ns sample
-point). Results on disk: `build/flow/tiny_ai_core/stage_gl_synth.log` and `stage_gl_final.log` both end
-`gl_sim: tiny_ai_core PASS`; `build/gl/tiny_ai_core/result.txt` reads `tiny_ai_core | final:tiny_ai_core.nl.v
-| every case of tb/vectors.hex | PASS | 2 s`. `build/gl/tiny_ai_core/synth_checks.txt` reads
+point). Results on disk: `build/flow/tiny_ai_core/stages.txt` lists `gl_synth PASS` and `gl_final PASS` (the `stage_*.log`
+files there hold only the recipe command lines, not simulator output); `build/gl/tiny_ai_core/result.txt` reads `tiny_ai_core | final:tiny_ai_core.nl.v
+| every case of tb/vectors.hex | PASS | 1 s`. `build/gl/tiny_ai_core/synth_checks.txt` reads
 `synthesis__check_error__count = 0`.
 
-Signoff checks that are verification (`scripts/flow/check_signoff.py tiny_ai_core`,
-`build/flow/tiny_ai_core/stage_check.log`): no logic lost, RTL 109 registers, 109 surviving sequential cells,
+Signoff checks that are verification (`python3 scripts/flow/check_signoff.py tiny_ai_core`,
+the `check` stage in `build/flow/tiny_ai_core/stages.txt`): no logic lost, RTL 109 registers, 109 surviving sequential cells,
 allowance 0. Hand count: 63 glue bits + 46 engine flip-flops (10 + 24 + 12, the engine FSMs recoded to
 one-hot) = 109; the RTL-bit count of the engines is 9 + 22 + 11 = 42, and the core's own 3-bit `state` stays
 binary; Yosys driver warnings (multiple drivers / no driver) 0, synthesis check errors 0 (`synth_checks.txt`).
@@ -198,7 +199,7 @@ line. The mutation is asserted to have applied. No other core-specific negative 
 
 ![layout](output/layout.png)
 
-The picture (`output/layout.png`, KLayout render) shows the 250 x 250 um die (`design__die__bbox` = `0.0 0.0 250.0 250.0`, die area 62500 um^2) as the light-grey square. The core is `design__core__bbox` = `5.52 10.88 244.26 236.64`, core area 53897.9 um^2, 83 rows of 43077 sites in total (`design__rows`, `design__sites`; `floorplan.txt` says 83 rows of 519 sites). The dense magenta mesh is the power grid and local metal; the two wider vertical bands near the left and right thirds are vertical power straps. Logic is a diffuse cloud in the middle and lower half; the corners of the core are mostly fill and taps, which matches the low utilization.
+The picture (`output/layout.png`, KLayout render) shows the 250 x 250 um die (`design__die__bbox` = `0.0 0.0 250.0 250.0`, die area 62500 um^2) as the light-grey square. The core is `design__core__bbox` = `5.52 10.88 244.26 236.64`, core area 53897.9 um^2, 83 rows of 43077 sites in total (`design__rows`, `design__sites`; `floorplan.txt` says 83 rows of 519 sites). The dense magenta mesh is the power grid and local metal; the two wider vertical bands (one near the left edge, one about two thirds of the way across) are vertical power straps. Logic is a diffuse cloud in the centre of the core, densest along the bottom edge where the pins are; the right-hand and upper corners of the core are mostly fill and taps, which matches the low utilization.
 The thin vertical wires below the core are the signal pins' routes: all 109 pins are on the bottom (S) edge, ordered left to right like the wrapper's Wishbone pads (`config.json` key `//IO_PIN_ORDER_CFG`, `pin_order.cfg`; `irq` at the right end). `design__io` = 111 is those 109 plus `vccd1` and `vssd1`.
 Cells: 13650 instances in total, of which 11841 are fill (10780 `decap_3`, 639 `fill_1`, 422 `fill_2`, `cell_usage.rpt`), 765 are tap cells, and 1044 are logic: 573 multi-input combinational, 109 sequential, 245 timing-repair buffers, 34 clock buffers, 31 inverters, 3 buffers, 49 antenna diodes (`design__instance__count__class:*`). `design__instance__count__stdcell` = 1809 (everything except fill), stdcell area 11578.6 um^2, utilization 0.214825.
 
@@ -247,7 +248,7 @@ Report: [lvs_netgen.rpt](output/reports/lvs_netgen.rpt).
 
 ### Power and IR drop
 
-Total power 4.698e-04 W (`power__total`: internal 3.508e-04, switching 1.189e-04, leakage 5.54e-08). IR drop (`irdrop.rpt`, nom_tt): vccd1 worst 1.17e-04 V (0.01 %), average 1.65e-05 V; vssd1 worst 1.40e-04 V (0.01 %). Power grid violations 0.
+Total power 4.698e-04 W (`power__total`: internal 3.508e-04, switching 1.189e-04, leakage 5.54e-08). `irdrop.rpt` states its own total power as 3.98e-04 W (it differs from `power__total` in `metrics.json`; the cause is not stated in either file). IR drop (`irdrop.rpt`, nom_tt): vccd1 worst 1.17e-04 V (0.01 %), average 1.65e-05 V; vssd1 worst 1.40e-04 V (0.01 %). Power grid violations 0.
 Report: [irdrop.rpt](output/reports/irdrop.rpt).
 
 ### Antenna, slew, capacitance
@@ -257,16 +258,16 @@ Reports: [manufacturability.rpt](output/reports/manufacturability.rpt), [cell_us
 
 ## Run time and memory
 
-From `output/resources.json` (profile "tight": 2 CPUs, 8 GB limit, exit code 0): total wall time 98 s; container peak memory 690,204,672 bytes (0.643 GB); peak per-step RSS 617,611,264 bytes (step 71, netgen LVS). Steps 01 to 77 are listed.
+From `output/resources.json` (profile "tight": 2 CPUs, 8 GB limit, exit code 0): total wall time 99 s; container peak memory 688,918,528 bytes (0.642 GB); peak per-step RSS 617,611,264 bytes (step 71, netgen LVS). Steps 01 to 77 are listed.
 Slowest steps:
 
 | Step | Wall time (s) |
 |---|---|
-| 45-openroad-detailedrouting | 19.224 |
-| 69-magic-spiceextraction | 13.149 |
-| 66-klayout-drc | 9.748 |
+| 45-openroad-detailedrouting | 19.232 |
+| 69-magic-spiceextraction | 13.554 |
+| 66-klayout-drc | 10.072 |
 
-(`65-magic-drc` 5.187 s, `56-openroad-stapostpnr` 4.63 s and `37-openroad-resizertimingpostcts` 4.89 s follow.) The earlier 400 x 400 um build took 168 s and 1.016 GB (`git show daeff2b:designs/tiny_ai_core/output/resources.json`).
+(`65-magic-drc` 5.799 s, `37-openroad-resizertimingpostcts` 4.996 s, `56-openroad-stapostpnr` 4.646 s and `35-openroad-cts` 4.603 s follow.) The earlier 400 x 400 um build took 168 s and 1.016 GB (`git show daeff2b:designs/tiny_ai_core/output/resources.json`).
 
 ## Reproduce
 
@@ -282,13 +283,13 @@ The testbench `tb/tiny_ai_core_tb.v` includes `shared/tb/tiny_ai_wb_tb.vh` and r
 
 **Neural network versus glue, by flip-flops.** Of the 109 flip-flops, 46 sit inside the engines (10 + 24 + 12) and 63 are Wishbone glue: the 18-bit input buffer, 16 bits of cycle counters, an 8-bit score copy and so on (`rtl/tiny_ai_core.v`, `synth_stat.rpt`). Even the storage is more than half glue. The learned weights cost no flip-flops at all, because they are ROM constants.
 
-**Where the area goes.** The final design has 1809 standard cells (`metrics.json`), but 765 are tap cells and fill (11841 cells, 42319 um^2) is not counted in that number. Logic is 1044 cells: 573 combinational, 109 sequential, 245 timing-repair buffers, 34 clock buffers, 31 inverters, 3 buffers, 49 antenna diodes. Synthesis alone produced 716 cells (7463 um^2); the later steps took logic from 716 to 1044 cells (+328: repair buffers, clock buffers, diodes), so back-end overhead is about a third of the final logic cell count.
+**Where the area goes.** The final design has 1809 standard cells (`metrics.json`), of which 765 are tap cells; the fill (11841 cells, 42319 um^2) is not counted in that number. Logic is 1044 cells: 573 combinational, 109 sequential, 245 timing-repair buffers, 34 clock buffers, 31 inverters, 3 buffers, 49 antenna diodes. Synthesis alone produced 716 cells (7463 um^2); the later steps took logic from 716 to 1044 cells (+328: repair buffers, clock buffers, diodes), so back-end overhead is about a third of the final logic cell count.
 
 **Why simplifying the pins halved the cell count.** The earlier 400 x 400 um build with 609 I/O had 3521 standard cells, 2115 of them tap cells and 468 timing-repair buffers (`git show daeff2b:designs/tiny_ai_core/output/metrics.json`). The 250 x 250 um, 109-pin version has 1809, with 765 taps and 245 repair buffers. Taps scale with die area, not with logic: 2115 to 765 is the die shrinking from 160000 to 62500 um^2. The 176 tie cells that held constant outputs for unused Caravel pins are gone too (12 `conb_1` remain). Synthesised sequential cells did not change (109 both times), so the AI part was never the cost.
 
 **Why the Caravel macro SDC matters.** `base_tiny_ai_core.sdc` carries the template's clock source latency (min 4.65, max 5.57 ns), clock transition 0.61 ns, Wishbone input delays (3.17 to 4.74 ns max, 0.79 to 1.86 ns min) and output delays (up to 8.41 ns on `wbs_ack_o`). With the default constraints the macro looked fine, but inside the wrapper hold failed by -0.894 ns (`designs/user_project_wrapper/README.md` step 3). Hardening with the same context the wrapper checks removes that surprise: hold is now +0.105 ns in the macro and in the wrapper. A 0.92 ns latency spread (5.57 - 4.65) is of the same order as many gate delays, which is why a hold margin of 0.105 ns is thin but real.
 
-**The slew story, classified honestly.** There are 195 max-slew violations in the worst corner (144 at tt and ff). The SDC sets input transitions of 0.84 ns on `wbs_dat_i[*]` and 0.92 ns on `wbs_adr_i[*]`, above the 0.75 ns limit; (the 0.97 ns of the full template applied to `la_oenb`, which this core no longer has). A net that is already over the limit at the pin cannot be fixed by resizing cells behind it, so those violations are environment-limited. Classified by tracing each violating pin's net to its driver in the routed netlist (the post-route `checks.rpt` lists 131 of the 195 at max_ss_100C_1v60): 80 are on nets driven directly by the `wbs_adr_i` / `wbs_dat_i` input ports (environment-limited) and 51 on nets driven by internal cells (45 `buf_1`, 6 `clkdlybuf4s25_1` input buffers), which repair could in principle fix. The fast and typical corners still report 144 each, and internal buffers are not slow there, so the bulk is the corner-independent Caravel input transition. So: mostly environment-limited, not all; the 51 internal ones are a known, fixable remainder. Repair margins tried: 70 % ran out of memory chasing the unfixable nets, 40 % gave 247 violations, 20 % gave 195 (`config.json` key `//SLEW`). Note the monotonic surprise: more margin made it worse, a hypothesis (not tested here) is that extra repair buffering adds loaded nets. The wrapper's own count is 0, but its limit is 1.5 ns and it contains no cells (see the wrapper notes), so 0 there is not a better result for this macro.
+**The slew story, classified honestly.** There are 195 max-slew violations in the worst corner (144 at tt and ff). The SDC sets input transitions of 0.84 ns on `wbs_dat_i[*]` and 0.92 ns on `wbs_adr_i[*]`, above the 0.75 ns limit; (the 0.97 ns of the full template applied to `la_oenb`, which this core no longer has). A net that is already over the limit at the pin cannot be fixed by resizing cells behind it, so those violations are environment-limited. Classified by tracing each violating pin to the driver of its net in the routed netlist (`runs/RUN_2026-10-05_20-33-28/final/nl/tiny_ai_core.nl.v`) against the 195 pins listed under "max slew" in `runs/RUN_2026-10-05_20-33-28/56-openroad-stapostpnr/max_ss_100C_1v60/checks.rpt` (re-done in this verification pass with a throw-away script): 144 are environment-limited (64 are the input-port pins themselves, 32 `wbs_adr_i` and 32 `wbs_dat_i`; 80 are cell input pins on nets driven directly by those ports, 60 `wbs_adr_i` and 20 `wbs_dat_i`) and 51 are internal (45 on nets of `buf_1` cells, 6 on nets of `clkdlybuf4s25_1` input buffers), which repair could in principle fix. The 144 equals the count at every tt and ff corner, so the bulk is the corner-independent Caravel input transition; the extra 51 appear only at the ss corners (195 at nom_ss/max_ss, 180 at min_ss). So: mostly environment-limited (144 of 195, 74 %), not all; the 51 internal ones are a known, fixable remainder. Repair margins tried: 70 % ran out of memory chasing the unfixable nets, 40 % gave 247 violations, 20 % gave 195 (`config.json` key `//SLEW`). Note the monotonic surprise: more margin made it worse, a hypothesis (not tested here) is that extra repair buffering adds loaded nets. The wrapper's own count is 0, but its limit is 1.5 ns and it contains no cells (see the wrapper notes), so 0 there is not a better result for this macro.
 
 **Why hold buffers and delay cells show up.** 83 hold buffers and 103 `clkdlybuf4s25_1` cells appear in `cell_usage.rpt`, and the worst setup path runs through `clkdlybuf4s25_1` stages (0.85 and 1.20 ns) from `wb_rst_i`, which the flow buffers through a fanout tree (net names `fanout162`, `fanout156`). A reset with 12.5 ns of input delay and a slow fanout tree still leaves +1.456 ns of setup slack on a 25 ns clock: the clock period is generous, so the setup side is never the problem here; hold and slew are.
 

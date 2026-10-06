@@ -6,6 +6,7 @@
 It is a wiring and integration exercise, not logic: the flow is "elaborate-only, macro-first" (`SYNTH_ELABORATE_ONLY` true), so `design__instance__count__stdcell` = 0 and the only instance is the macro (`design__instance__count__macros` = 1, 62500 um^2).
 Simulation: `make simulate DESIGN=user_project_wrapper` printed `PASS user_project_wrapper_tb: 784 cases, 39956 checks (24060 wishbone transactions; ...)`, the same body as the core's testbench driven through the wrapper's ports.
 Hardened result (`output/metrics.json`): Magic and KLayout DRC 0, LVS 0, XOR 0, antenna 0, route DRC 0, max-slew, max-cap and max-fanout 0, worst setup +1.461 ns, worst hold +0.105 ns over all corners.
+System-level status (2026-10-06): `rtl/user_defines.v` sets GPIO 5..37 to `GPIO_MODE_MGMT_STD_INPUT_NOPULL` (owner decision, header comment in that file), the local ChipFoundry precheck passes 14 of 14 (`docs/PRECHECK.md`, `precheck/results/summary.tsv`; 12 of 14 before the change), and the full-Caravel RTL, hybrid gate-level, full-chip gate-level and wrapper SDF simulations pass (`docs/CARAVEL_SIM.md`). The final wrapper run is `designs/user_project_wrapper/runs/RUN_2026-10-06_03-29-55` (`output/resources.json` `run_dir`).
 
 ## Architecture
 
@@ -111,7 +112,7 @@ Gate-level: `scripts/flow/gl_sim.sh` runs the same testbench with the macro's ro
 (`--netlist-extra build/macros/tiny_ai_core/nl/tiny_ai_core.nl.v`, from `make views`), because the wrapper's
 own netlist only instantiates the macro: the gl_sim line reports 0 cells for the wrapper netlist, both
 synthesised (`build/gl/user_project_wrapper/runs/gl/final/nl/`) and routed
-(`designs/user_project_wrapper/runs/RUN_2026-10-05_19-52-33/final/nl/`). Unit gate delay `#0.01`
+(`designs/user_project_wrapper/runs/RUN_2026-10-06_03-29-55/final/nl/`). Unit gate delay `#0.01`
 (`GL_UNIT_DELAY`). `build/flow/user_project_wrapper/stage_gl_synth.log` and `stage_gl_final.log` both end
 `gl_sim: user_project_wrapper PASS`; `build/gl/user_project_wrapper/result.txt`: `user_project_wrapper |
 final:user_project_wrapper.nl.v | every case of tb/vectors.hex | PASS | 2 s`; `synth_checks.txt`:
@@ -130,9 +131,9 @@ Negative tests: `tests/run_tests.sh` has none for the wrapper itself (its testbe
 whose corrupted-class test is described in tiny_ai_core's NOTES); the script only checks that the wrapper
 files exist. The README/NOTES record none either.
 
-Not verified yet: a full Caravel simulation with the management firmware (`docs/SOC_PLAN.md`). This testbench
-drives the wrapper ports directly, so it does not prove address decode by the real Caravel management core,
-the pad configuration, or the behaviour of the unconnected `io_oeb`/`io_out`/`la_data_out`.
+Full-Caravel simulation (not part of `make simulate`; `docs/CARAVEL_SIM.md`, `caravel_sim/`): a VexRiscv management-core program booted from a SPI flash model inside the complete Caravel RTL reads the core's ID through this wrapper and runs one case per mode, checking RESULT and CYCLES against the golden model: `make caravel-rtl` PASS (53 s), `make caravel-gl` hybrid (our routed wrapper and macro netlists, Caravel and core in RTL) PASS (59 s), a negative check (`-DNEG_TEST`) FAILs as intended (code 0xe032), and `make caravel-fullgl` (everything gate level, wrapper run `RUN_2026-10-06_03-29-55`) PASS in 14 m 23 s. `make caravel-sdf-wrapper` (gate-level wrapper plus macro with SDF, Wishbone testbench) PASSes at nom_tt, nom_ss and max_ss; the SDF is shown to be live (the test fails at too-fast clock periods). The full-chip run with SDF and firmware did not complete (simulation speed in the emulated amd64 container). These runs use a few cases (ID plus one per mode), not the 784-case set. The unconnected `io_out`/`io_oeb`/`la_data_out` electrical question is covered in the precheck (below), where `oeb` passes with the management-owned GPIO mode.
+
+Precheck: `precheck/run_precheck.sh` (cf-precheck 1.3.7 in our own container, not ChipFoundry's `mpw_precheck` image) passes 14 of 14 (`precheck/results/summary.tsv`, `docs/PRECHECK.md`); LVS passes but CVC reports 28 "Unexpected voltage" ERC warnings on `io_out[0..6]` and `io_oeb[0..6]` (`docs/PRECHECK.md`).
 
 ## Layout (GDSII)
 
@@ -140,7 +141,7 @@ the pad configuration, or the behaviour of the unconnected `io_oeb`/`io_out`/`la
 
 The picture (`output/layout.png`, KLayout render) shows the whole die: `design__die__bbox` = `0.0 0.0 2920.0 3520.0` (10,278,400 um^2), core `5.52 10.88 2914.1 3508.8` (10,174,000 um^2). Almost all of it is the Caravel power grid: purple vertical straps and yellow horizontal straps, thick bands along every edge (the ring) and a thin orange rectangle inside (what that rectangle is, is not stated in any report). The one other object is the bright magenta square at the lower left: the 250 x 250 um `tiny_ai_core` macro at (189.06, 87.04) um (`config.json`; `README.md` repeats the same coordinates). Instance utilization is 0.00614312 (`design__instance__utilization`): the macro is 0.6 % of the die. The cyan wires at the bottom edge connect the macro's bottom pins to the Wishbone pads.
 `UPSTREAM.txt` still contains an older placement note (`mprj` at [59.8, 16.32], macro 400 x 400 um) written before the macro was simplified; `config.json` and `README.md` are current.
-Rows: `design__rows` = 1386 in `metrics.json` while `floorplan.txt` says "Added 1286 rows of 6323 site unithd"; I did not reconcile the two.
+Rows: `design__rows` = 1386 in `metrics.json` while `floorplan.txt` says "Added 1286 rows of 6323 site unithd": both are right at different steps. The cut-rows step (`runs/RUN_2026-10-06_03-29-55/18-openroad-cutrows/openroad-cutrows.log`, ODB-0303) reports "The initial 1286 rows (8131378 sites) were cut with 1 shapes for a total of 1386 rows (8072578 sites)", i.e. the macro splits the rows it sits on; `design__sites` = 8072578 matches the after-cut value.
 
 ## From RTL to GDSII: what each step did
 
@@ -193,16 +194,16 @@ Reports: [manufacturability.rpt](output/reports/manufacturability.rpt), [cell_us
 
 ## Run time and memory
 
-From `output/resources.json` (profile "tight": 2 CPUs, 8 GB limit, exit code 0): total wall time 53 s; container peak memory 670,240,768 bytes (0.624 GB); peak per-step RSS 557,842,432 bytes (step 58, KLayout DRC). 69 steps.
+From `output/resources.json` (profile "tight": 2 CPUs, 8 GB limit, exit code 0): total wall time 59 s (`wall_s_total`); container peak memory 664,596,480 bytes (0.619 GB); peak per-step RSS 563,085,312 bytes (step 58, KLayout DRC). 69 steps.
 Slowest steps:
 
 | Step | Wall time (s) |
 |---|---|
-| 58-klayout-drc | 9.57 |
-| 61-magic-spiceextraction | 5.339 |
-| 49-openroad-stapostpnr | 4.628 |
+| 58-klayout-drc | 10.564 |
+| 61-magic-spiceextraction | 6.137 |
+| 57-magic-drc | 5.528 |
 
-(`57-magic-drc` 4.474 s and `55-klayout-xor` 2.942 s follow.)
+(`49-openroad-stapostpnr` 5.142 s and `55-klayout-xor` 3.176 s follow.)
 
 ## Reproduce
 
@@ -212,7 +213,7 @@ make views DESIGN=tiny_ai_core               # export the hardened macro views i
 make flow-all DESIGN=user_project_wrapper    # LibreLane 3.0.2 wrapper flow (elaborate-only, macro-first)
 ```
 
-`lvs_config.json` is only for the later ChipFoundry precheck; LibreLane does not read it. The Docker flow was not run for this document; physical numbers come from the checked-in `output/` files. Not done (`README.md`): GPIO startup modes for pads 5 to 37 (`rtl/user_defines.v` is the template's), full-Caravel simulation with management firmware, the ChipFoundry precheck.
+`lvs_config.json` is only for the later ChipFoundry precheck; LibreLane does not read it. The Docker flow was not run for this document; physical numbers come from the checked-in `output/` files. System checks around it: `make precheck` (14 of 14), `make caravel-rtl`, `caravel-gl`, `caravel-fullgl`, `caravel-sdf-wrapper` (`docs/PRECHECK.md`, `docs/CARAVEL_SIM.md`). Not done: full-chip GL with SDF and firmware, ChipFoundry's own `mpw_precheck`, the `cf` account steps.
 
 ## Intuitions and insights
 
@@ -230,8 +231,8 @@ make flow-all DESIGN=user_project_wrapper    # LibreLane 3.0.2 wrapper flow (ela
 
 **What "MAX_TRANSITION 1.5" means, and why wrapper slew 0 is not the same win as it looks.** `MAX_TRANSITION_CONSTRAINT` 1.5 ns is the template's wrapper-level limit; the macro was hardened against 0.75 ns (core `floorplan.txt`: "Setting maximum transition to: 0.75"). The Caravel input transitions in the macro SDC are 0.84 ns (`wbs_dat_i`) and 0.92 ns (`wbs_adr_i`): above 0.75 (195 violations in the core), below 1.5 (0 in the wrapper). The wrapper has no standard cells of its own, so the 0 is partly the looser limit and partly absence of cells to violate. The core's count is the one that records the tight constraint, and the open owner decision in `SPEC.md` is exactly about counting it.
 
-**The 204 undriven outputs, electrically.** Outputs `la_data_out` (128), `io_out` (38) and `io_oeb` (38) are left unconnected, 204 in all (`scripts/flow/signoff_allowances.json` lists the three names; Yosys driver warnings are accepted only on exactly those ports). In RTL simulation they are high-impedance z (the testbench checks that under `RTL_Z_CHECK`). In silicon an undriven `io_oeb` leaves each user pad's output enable undefined: a pad could drive against its pin. Before tapeout either drive `io_oeb` high (inputs) from the macro and `io_out`/`la_data_out` low, or configure every user GPIO as an input in `user_defines.v` (which is still the template's, so pads 5 to 37 are not set). That is a decision for the owner, recorded as open in `SPEC.md`.
+**The 204 undriven outputs, electrically.** Outputs `la_data_out` (128), `io_out` (38) and `io_oeb` (38) are left unconnected, 204 in all (`scripts/flow/signoff_allowances.json` lists the three names; Yosys driver warnings are accepted only on exactly those ports). In RTL simulation they are high-impedance z (the testbench checks that under `RTL_Z_CHECK`). In silicon an undriven `io_oeb` leaves each user pad's output enable undefined: a pad could drive against its pin. Before tapeout either drive `io_oeb` high (inputs) from the macro and `io_out`/`la_data_out` low, or configure every user GPIO as an input in `user_defines.v`. The owner chose the second way on 2026-10-06: pads 5 to 37 are `GPIO_MODE_MGMT_STD_INPUT_NOPULL` (`rtl/user_defines.v`), management-owned inputs that ignore the floating wrapper outputs, and precheck `gpio_defines` and `oeb` pass (`docs/PRECHECK.md`: a user-owned input or output mode fails `oeb`). The CVC ERC still warns about 28 floating `io_out[0..6]` / `io_oeb[0..6]` entries (LVS PASS); clearing that would need glue in the macro, which the no-glue decision excludes.
 
-**Five fixes in order, one cause each.** The path to clean (`README.md`): lint needed `pnl`; congestion needed a simpler macro and better placement (361 to 109 pins); hold -0.894 and the diode problem needed the Caravel macro SDC; the macro build ran out of memory with a 70 % slew margin, so 20 % was used; signoff flagged the 204 undriven outputs, accepted explicitly. Each fix moved work from the wrapper into the macro or its constraints, never into relaxing a limit. `README.md` at the repository root still says 40 % margins reached 0 slew in one place and 20 % giving 195 in another; the config comment (20 %) and metrics (195) are the current state.
+**Five fixes in order, one cause each.** The path to clean (`README.md`): lint needed `pnl`; congestion needed a simpler macro and better placement (361 to 109 pins); hold -0.894 and the diode problem needed the Caravel macro SDC; the macro build ran out of memory with a 70 % slew margin, so 20 % was used; signoff flagged the 204 undriven outputs, accepted explicitly. Each fix moved work from the wrapper into the macro or its constraints, never into relaxing a limit. A sixth step came later: the precheck failed `gpio_defines` and `oeb` on the template's `GPIO_MODE_INVALID` pads, fixed by `user_defines.v` (`docs/PRECHECK.md`); again no limit was relaxed.
 
-**What full-Caravel simulation would add.** The testbench here drives the wrapper ports directly with a clean Wishbone master. A full-Caravel run would bring the RISC-V management core and its firmware as the Wishbone master, the real bus timing and arbitration with other peripherals, reset and clock sequencing, the GPIO startup configuration in `user_defines.v`, and the padring behaviour including the floating `io_oeb`. It would show whether firmware can run the CLEAR, mode, INPUT, START, poll sequence and see the interrupt. It is not done (`README.md`); the exhaustive 784-case check stays at wrapper level because a full-chip run is too slow for that (`SPEC.md` risks table).
+**What full-Caravel simulation added.** The wrapper-level testbench drives the ports with a clean Wishbone master. The Caravel runs (`docs/CARAVEL_SIM.md`) put the RISC-V management core, its firmware, the real bus and the padring in front of it: the firmware reads ID 0x54414901 and runs one case per mode, RTL (53 s), hybrid gate level (59 s) and full-chip gate level (14 m 23 s, `RUN_2026-10-06_03-29-55`) all pass, and the deliberately wrong expected value fails (code 0xe032). Separately, the precheck (not any simulation) found that the template's `user_defines.v` left pads 5..37 invalid (`docs/PRECHECK.md`); `caravel_sim/run_rtl.sh` and `run_gl.sh` now use the project's `user_defines.v`. The exhaustive 784-case check stays at wrapper level because a full-chip run is too slow for it (`SPEC.md` risks table); the full-chip run with SDF and firmware was not completed.

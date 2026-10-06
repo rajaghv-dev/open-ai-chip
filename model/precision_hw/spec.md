@@ -370,10 +370,15 @@ every rising edge (not in reset):
 - **Measured finding (this is itself a result of the study).** The single-cycle fp8 MAC (E4M3 x pixel -> fp16 product,
   then fp16 add with RNE) hardened at 25 ns fails setup at the slow corners: `timing__setup__ws` = -2.144 ns at
   max_ss_100C_1v60 (-1.916 ns nom_ss, -1.695 ns min_ss), 16 violating endpoints per ss corner
-  (`designs/prec_fp8/runs/RUN_2026-10-05_20-07-06/final/metrics.json`). fp16 and bf16 have longer MAC paths and are
-  expected to fail the same way. Hence the product register: **a floating-point MAC needs two pipeline stages at 40 MHz in
+  (`designs/prec_fp8/runs/RUN_2026-10-05_20-07-06/final/metrics.json`: -2.14366 ns, 48 violating endpoints in total).
+  fp16 also failed in its pre-repair attempt (-1.318 ns, `designs/prec_fp16/NOTES.md`). Hence the product register: **a floating-point MAC needs two pipeline stages at 40 MHz in
   sky130 (latency 3), while the integer, ternary and binary MACs fit in one stage (latency 2).** This costs one extra
   cycle of latency and the product register area, and no change in bits or throughput.
+- **Measured closure of the final designs** (`designs/prec_<fmt>/output/metrics.json`, `timing__setup__ws` = worst over
+  corners, which is the max_ss corner, `timing__setup_vio__count` 0 for all seven): bin +16.396, tern +16.346, int4 +13.457,
+  int8 +11.387 ns; fp8 +0.259, fp16 +0.111, bf16 +0.044 ns. The three float formats close only with the two-stage MAC plus
+  tool timing repair (`PL/GRT_RESIZER_SETUP_SLACK_MARGIN` 0.5 in their `config.json`), and the margins are thin (0.2 to 1 % of the
+  25 ns period); the clock was not relaxed.
 
 ## 7. Generated ROM interface (`designs/prec_<fmt>/rtl/prec_<fmt>_rom.v`)
 
@@ -442,7 +447,28 @@ Every format sees 51 error cases and 10 (bin) to 249 (bf16) distinct beat-1 valu
 - **Only bin loses real accuracy.** A sign-only weight cannot express "this pixel hardly matters", so the pixels
   with near-zero weight (corners, centre) vote with full strength.
 
-## 10. Expected hardware (EXPECTATION, not measurement)
+## 10. Hardware: expectations written before the flow, with the measured result
+
+The bullets below were written as expectations before hardening. All seven designs are now hardened (clean DRC/LVS, flow-all
+PASS); the measured values are in the table here (from `designs/prec_<fmt>/output/metrics.json` and `resources.json`, also
+printed by `python3 model/precision_hw/report.py`, tables A and B) and the notes after each group say whether it held.
+
+| fmt | std cells | flip-flops | cell area um2 | die um | setup ws ns | hold ws ns | flow s |
+|---|---|---|---|---|---|---|---|
+| bin | 199 | 19 | 1474 | 80x80 | +16.396 | +0.114 | 45 |
+| tern | 293 | 28 | 2485 | 80x80 | +16.346 | +0.112 | 47 |
+| int4 | 377 | 30 | 3263 | 80x80 | +13.457 | +0.115 | 65 |
+| int8 | 642 | 35 | 4860 | 120x120 | +11.387 | +0.111 | 59 |
+| fp8 | 1404 | 49 | 9225 | 170x170 | +0.259 | +0.107 | 101 |
+| fp16 | 1932 | 52 | 11913 | 220x220 | +0.111 | +0.111 | 104 |
+| bf16 | 1754 | 51 | 10170 | 220x220 | +0.044 | +0.110 | 93 |
+
+Held: the size order bin < tern < int4 < int8 < fp8 < bf16 < fp16 (in cells and cell area); fp8 is clearly larger than int8
+(1404 vs 642 cells); bf16 is smaller than fp16 (1754 vs 1932 cells). int8 is about 1.7x int4 in cells and 1.5x in cell area
+(the "maybe 2x" guess was a little high). bin has 199 cells against 297 for `vision_block`. The flip-flop counts (19 to 52) are in the
+predicted range of accumulator plus input stage plus control, but the float designs also carry the product-stage register.
+Not held: "all formats should meet 25 ns at the typical corner" is true, but fp8, fp16 and bf16 needed the extra pipeline stage and
+repair margins at the slow corner (section 6). The original text follows.
 
 **Datapath.**
 - `bin` should be the smallest: an XNOR, a 4-bit counter and a 4-bit compare, comparable to `vision_block`.

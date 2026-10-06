@@ -2,9 +2,9 @@
 
 Every number below comes from `output/` (metrics.json, resources.json, flow.log, reports/*), `config.json`, `rtl/`, `tb/`,
 `../../shared/rtl/wb_stream_adapter.v`, `build/flow/soc_image_text_match/stage_*.log` (`stages.txt`), `build/flow_soc_itm.log`
-or from a command re-run while writing this file (named where used). Run: `runs/RUN_2026-10-05_21-07-22`
+or from a command re-run while writing this file (named where used). Run: `runs/RUN_2026-10-06_08-18-20`
 (`output/resources.json` `run_dir`). `make flow-all` passed all 5 stages (`build/flow/soc_image_text_match/stages.txt`: simulate 1 s,
-gds 165 s, check 1 s, gate-level synthesised 8 s and routed 7 s, collect 4 s, total 186 s).
+gds 165 s, check 0 s, gate-level synthesised 8 s and routed 7 s, collect 4 s; my sum 185 s). The first run of 2026-10-05 (`runs/RUN_2026-10-05_21-07-22`) gave identical `metrics.json`; see Run time and memory.
 
 ## What it is
 
@@ -56,7 +56,7 @@ Register map (base `0x3000_0000`, 256-byte window, byte offsets; header of `wb_s
 
 Flip-flop accounting. Declared RTL bits in the adapter: FIFO storage 2 x 16 x 9 = 288, FIFO pointers and counters 2 x (wp 4 + rp 4 + cnt 5) = 26,
 `rdata_q` 32, `cycles` 16, nine one-bit flags (`ack`, `rd_ack`, `irq_en`, `clear_q`, `running`, `done`, `err_ovf`, `err_uf`, `irq_pulse`) = 9; sum 371.
-The engine's surviving flip-flops are 39 (`designs/image_text_match/output/metrics.json`; `stage_check.log` of that design: RTL 39, surviving 39).
+The engine's surviving flip-flops are 39 (`designs/image_text_match/output/metrics.json`; `python3 scripts/flow/check_signoff.py image_text_match`: RTL 39, surviving 39).
 `design__instance__count__class:sequential_cell` = 393 and 393 `dfxtp_2` in `output/reports/synth_stat.rpt`; `stage_check.log` of this design reads
 "registers: RTL 393 (allowance 0), surviving sequential cells 393". Grouping the 393 `dfxtp_2` instances of the synthesised netlist
 (`build/gl/soc_image_text_match/runs/gl/final/nl/soc_image_text_match.nl.v`) by the register name on their Q pin gives:
@@ -138,7 +138,7 @@ in the middle of a frame, each followed by a full case. The ack must be one cloc
 = 2,079 (`designs/image_text_match/NOTES.md`).
 
 - RTL (`make simulate DESIGN=soc_image_text_match`, re-run): `PASS soc_image_text_match_tb: 2079 cases (all of tb/vectors.hex: results, m_last, CYCLES, irq, DONE polling), registers, CLEAR/reset mid-frame, 50947 checks`.
-- Adapter regression with all 13 stream engines (`bash tests/adapter/run.sh`, re-run), each line is a separate PASS and the script ends `adapter tests: 13 engines PASS`:
+- Adapter regression with all 13 stream engines (`bash tests/adapter/run.sh`, re-run), each line is a separate PASS. The script now covers 14 engines (`kv_attn_n8` was added to `tests/adapter/run.sh` and ends `adapter tests: 14 engines PASS`, `build/state_snapshot.md`); the lines below are the 13 stream-engine results from the earlier run:
   - `PASS vision_all_lit: 113 input beats, 60 result beats checked (...), 369 bus transactions, 558 checks`
   - `PASS vision_block: 4827 input beats, 1082 result beats checked (...), 10835 bus transactions, 16726 checks`
   - `PASS text_sentiment: 1073 input beats, 540 result beats checked (...), 2769 bus transactions, 4398 checks`
@@ -148,12 +148,12 @@ in the middle of a frame, each followed by a full case. The ack must be one cloc
   - `PASS prec_bin`, `prec_tern`, `prec_int4`, `prec_int8`, `prec_fp8`, `prec_fp16`, `prec_bf16`: each 8338 input beats, 1864 result beats checked, 18636 bus transactions, 28817 checks.
   The parenthesis in every line reads "registers, burst/overflow, back-pressure, irq, CLEAR, replay".
 - Gate level synthesised (`build/flow/soc_image_text_match/stage_gl_synth.log`): netlist `build/gl/soc_image_text_match/runs/gl/final/nl/soc_image_text_match.nl.v`, 1426 cells,
-  `PASS soc_image_text_match_tb: 2079 cases ..., 50947 checks`, `gl_sim: soc_image_text_match PASS (4 s)`; `synthesis__check_error__count = 0`.
-- Gate level routed (`stage_gl_final.log`): `designs/soc_image_text_match/runs/RUN_2026-10-05_21-07-22/final/nl/soc_image_text_match.nl.v`, 10342 cells (fill, tap, decap included), the same PASS line with 50947 checks,
+  `PASS soc_image_text_match_tb: 2079 cases ..., 50947 checks`, `gl_sim: soc_image_text_match PASS (3 s)`; `synthesis__check_error__count = 0`.
+- Gate level routed (`stage_gl_final.log`): `designs/soc_image_text_match/runs/RUN_2026-10-06_08-18-20/final/nl/soc_image_text_match.nl.v`, 10342 cells (fill, tap, decap included), the same PASS line with 50947 checks,
   `gl_sim: soc_image_text_match PASS (6 s)`. `build/gl/soc_image_text_match/result.txt` reads `soc_image_text_match | final:soc_image_text_match.nl.v | every case of tb/vectors.hex | PASS | 6 s`.
   Both runs print the benign warning `$readmemh ... Not enough words in the file for the requested range [0:65535]` (the vector array is larger than the file).
 - Signoff check (`scripts/flow/check_signoff.py`, `stage_check.log`): `registers: RTL 393 (allowance 0), surviving sequential cells 393`, `note: max-slew violations: 421`, `note: max-cap violations: 0`, `=> PASS`: no logic was lost.
-- Not verified here: this macro has not been instantiated in `user_project_wrapper` and no firmware has been run against it; the register map is exercised only by the testbenches above.
+- Not verified here: no firmware has been run against this macro and it was not part of the full-Caravel simulations or the local precheck (those ran for the `tiny_ai_core` wrapper only, `build/state_snapshot.md`). It is instantiated in the Caravel wrapper [../user_project_wrapper_soc_itm/NOTES.md](../user_project_wrapper_soc_itm/NOTES.md), which passed its own flow; the register map is exercised only by the testbenches above.
 
 ## Layout (GDSII)
 
@@ -164,9 +164,9 @@ The picture (`output/layout.png`, KLayout render) shows the 250 x 250 um die (`d
 quarter of the picture) is mostly tap and fill cells with few signal wires. Two vertical power straps are visible as darker bands near the left (about 11 % of the width) and right-centre (about 68 %) of the core.
 The thin vertical wires below the core are the routes to the 109 signal pins on the bottom (S) edge, ordered like the wrapper's Wishbone pads (`config.json` `//IO_PIN_ORDER_CFG`, `pin_order.cfg`; `irq` at the right end).
 `design__io` = 111 is the 109 plus `vccd1` and `vssd1`.
-Cells (`metrics.json`): 10342 instances in total; 7141 fill (`design__instance__count__class:fill_cell`; `cell_usage.rpt`: 5807 `decap_3`, 738 `fill_1`, 596 `fill_2`), 765 tap cells, and 3201 standard cells
-(`design__instance__count__stdcell`, area 29686 um^2, utilization 0.550781): 1001 multi-input combinational, 393 sequential, 684 timing-repair buffers (of which 421 are hold buffers), 269 clock buffers and 5 clock inverters,
-28 inverters, 4 buffers, 52 antenna diodes. Routed wire length 61165 um over 2369 nets (`route__wirelength`, `route__net`).
+Cells (`metrics.json`): 10342 instances in total; 7141 fill (`design__instance__count__class:fill_cell`; `cell_usage.rpt`: 5807 `decap_3`, 738 `fill_1`, 596 `fill_2`) and 3201 standard cells
+(`design__instance__count__stdcell`, area 29686 um^2, utilization 0.550781; 7141 + 3201 = 10342, my sum): 1001 multi-input combinational, 393 sequential, 684 timing-repair buffers (of which 421 are hold buffers), 269 clock buffers and 5 clock inverters,
+28 inverters, 4 buffers, 52 antenna diodes and the 765 tap cells (my sum of these classes: 3201). Routed wire length 61165 um over 2369 nets (`route__wirelength`, `route__net`).
 
 ## From RTL to GDSII: what each step did
 
@@ -211,7 +211,7 @@ Reports: [routing_global.txt](output/reports/routing_global.txt), [routing_detai
 
 `timing_summary.rpt`: setup violation counts 0 and hold violation counts 0 in all 9 corners; overall worst setup +2.9562 ns (max_ss_100C_1v60) and worst hold +0.1101 ns (min_ff_n40C_1v95). Register-to-register setup slack is not reported (N/A).
 Worst setup path (`timing_paths_max_ss.rpt`, max_ss, slack 2.956203 ns): starts at input port `wbs_adr_i[18]` (clock network delay 5.57 ns, input external delay 3.89 ns, input slew 0.92 ns), passes `hold333`
-(`dlygate4sd3_1`, 1.512 ns), an input buffer (`clkdlybuf4s25_1`), `hold334` (`dlygate4sd3_1`, 1.175 ns) and an `or4_2` (address-window decode) and ends at flip-flop `_2229_`. Worst hold path (`timing_paths_min_ff.rpt`, min_ff, slack 0.110096 ns):
+(`dlygate4sd3_1`, 1.512 ns), an input buffer (`clkdlybuf4s25_1`), `hold334` (`dlygate4sd3_1`, 1.175 ns), an `or4_2` (1.373 ns), `hold335`, an `or4bb_2`, `hold336` and further decode cells (six `hold*` delay cells in total, 7.80 ns, my sum of their listed delays) and ends at flip-flop `_2229_`. Worst hold path (`timing_paths_min_ff.rpt`, min_ff, slack 0.110096 ns):
 flip-flop `_2374_` to `_2324_`. The 25 ns clock is generous; setup is never the limit, hold and slew are.
 Reports: [timing_summary.rpt](output/reports/timing_summary.rpt), [timing_paths_max_ss.rpt](output/reports/timing_paths_max_ss.rpt), [timing_paths_min_ff.rpt](output/reports/timing_paths_min_ff.rpt).
 
@@ -238,7 +238,7 @@ Antenna: 0 violating nets and pins (`antenna__violating__nets` = 0; `routing_det
 heuristic insertion off in `config.json`; `antenna_diodes_count` = 3). Max capacitance 0, max fanout 0 (`MAX_FANOUT_CONSTRAINT` 8). `manufacturability.rpt`: Antenna, LVS and DRC Passed. Flow warnings 1, errors 0.
 
 Max slew: `design__max_slew_violation__count` = 421, the number at `max_ss_100C_1v60` (`timing_summary.rpt`: 142 at each tt and ff corner (nom, min, max), 347 nom_ss, 320 min_ss, 421 max_ss). The limit is 0.75 ns.
-Classification (the pin-level list is in `runs/RUN_2026-10-05_21-07-22/56-openroad-stapostpnr/<corner>/checks.rpt`, not in `output/reports/`; I traced each violating pin to its driver in the routed netlist
+Classification (the pin-level list is in `runs/RUN_2026-10-06_08-18-20/56-openroad-stapostpnr/<corner>/checks.rpt`, not in `output/reports/`; I traced each violating pin to its driver in the routed netlist
 `final/nl/soc_image_text_match.nl.v` with a throwaway script, so the split below is my analysis, not a flow output):
 
 | Group | Count | Where |
@@ -255,34 +255,33 @@ Reports: [manufacturability.rpt](output/reports/manufacturability.rpt), [cell_us
 ## Run time and memory
 
 Re-run 2026-10-06: `shared/rtl/kv_attn_core.v` was added next to the adapter, and `scripts/flow/find_reusable_run.py` watches
-the whole directory of every input file, so the run was redone. `metrics.json` came out identical; only the run record changed:
-`output/resources.json` now says `wall_s_total` 163 s and `container_peak_mem_gb` 0.98. The per-step numbers below are
-from the first run (165 s, 0.802 GB); they show where the time goes, and run-to-run variation is a few seconds.
+the whole directory of every input file, so the run was redone. `metrics.json` came out identical; only the run record changed.
+The first run (`RUN_2026-10-05_21-07-22`) took 165 s and 0.802 GB; the current run (`output/resources.json` `run_dir`
+`RUN_2026-10-06_08-18-20`) is below, and run-to-run variation is a few seconds.
 
-From `output/resources.json` (profile "tight": 2 CPUs, 8 GB limit, exit code 0): `wall_s_total` 165 s for the physical flow (the 186 s of `stages.txt` includes simulation, check, the two gate-level runs and collect);
-container peak memory 861,179,904 bytes (0.802 GB); peak per-step RSS 689,963,008 bytes (step 45, detailed routing). 77 steps are listed. Slowest steps:
+From `output/resources.json` (profile "tight": 2 CPUs, 8 GB limit, exit code 0): `wall_s_total` 163 s for the physical flow (the 185 s sum of `build/flow/soc_image_text_match/stages.txt` includes simulation, check, the two gate-level runs and collect);
+container peak memory 1,052,114,944 bytes (0.98 GB); peak per-step RSS 691,011,584 bytes (step 45, detailed routing). 77 steps are listed. Slowest steps:
 
 | Step | Wall time (s) |
 |---|---|
-| 45-openroad-detailedrouting | 60.302 |
-| 37-openroad-resizertimingpostcts | 19.026 |
-| 69-magic-spiceextraction | 10.381 |
-| 66-klayout-drc | 10.37 |
-| 56-openroad-stapostpnr | 8.368 |
+| 45-openroad-detailedrouting | 60.188 |
+| 37-openroad-resizertimingpostcts | 18.23 |
+| 69-magic-spiceextraction | 10.653 |
+| 66-klayout-drc | 9.871 |
+| 56-openroad-stapostpnr | 8.075 |
 
-For comparison `resources.json` of the other macros: `image_text_match` 56 s and 0.708 GB, `tiny_ai_core` 99 s and 0.642 GB. Detailed routing alone is 36.5 % of this flow's 165 s.
+For comparison `resources.json` of the other macros: `image_text_match` 56 s and 0.708 GB, `tiny_ai_core` 99 s and 0.642 GB, and the KV-attention macro `soc_kv_attn_n8` (same adapter, bigger engine, 300 x 300 um die) 181 s and 1.099 GB ([../soc_kv_attn_n8/NOTES.md](../soc_kv_attn_n8/NOTES.md)). Detailed routing alone is 36.9 % of this flow's 163 s (my division, 60.188 / 163).
 
 ## Reproduce
 
 ```bash
 make simulate DESIGN=soc_image_text_match   # RTL simulation, 2,079 cases, 50947 checks
 bash tests/adapter/run.sh                   # the adapter with all 13 stream engines
-make flow-all DESIGN=soc_image_text_match   # Docker flow: simulate, gds, check, gate-level x2, collect (186 s on this machine)
+make flow-all DESIGN=soc_image_text_match   # Docker flow: simulate, gds, check, gate-level x2, collect (185 s on this machine, my sum of `stages.txt`)
 make collect DESIGN=soc_image_text_match    # refresh output/ (metrics, reports, layout, LEF)
 ```
 
-The testbench `tb/soc_image_text_match_tb.v` reads `tb/vectors.hex` (a copy of `designs/image_text_match/tb/vectors.hex`; the Makefile looks for it in this directory). The physical flow (Docker) was not re-run for this
-document; all physical numbers come from the checked-in `output/` files and the run directory, the simulation and adapter numbers from commands re-run on 2026-10-06.
+The testbench `tb/soc_image_text_match_tb.v` reads `tb/vectors.hex` (a copy of `designs/image_text_match/tb/vectors.hex`; the Makefile looks for it in this directory). The physical flow (Docker) was re-run on 2026-10-06 with identical metrics (see Run time and memory); all physical numbers come from the checked-in `output/` files and the run directory, the simulation and adapter numbers from commands re-run on 2026-10-06.
 
 ## Intuitions and insights
 
@@ -292,7 +291,7 @@ By the netlist grouping above, 354 of the 393 flip-flops (90 %) are bus interfac
 
 **Against `tiny_ai_core`.** `tiny_ai_core` (three engines plus a one-item-at-a-time register interface) has 109 flip-flops, 1809 standard cells and 11578.6 um^2 (`designs/tiny_ai_core/output/metrics.json`). This macro has 3.6 times its flip-flops,
 1.8 times its cells and 2.6 times its standard-cell area, while computing with a smaller engine. The difference is the FIFOs: 272 storage flip-flops, versus the 18-bit input buffer in `tiny_ai_core`. A generic streaming interface with 16-deep FIFOs on both sides costs
-more than three whole engines plus a custom interface. Flip-flop storage is the expensive primitive here: a `dfxtp_2` is 21.0 um^2 (8359.27 um^2 for 393, `metrics.json`) and the synthesised design is 45.55 % sequential by area.
+more than three whole engines plus a custom interface. Flip-flop storage is the expensive primitive here: a `dfxtp_2` is 21.27 um^2 (8359.27 um^2 for 393, my division of `design__instance__area__class:sequential_cell`) and the synthesised design is 45.55 % sequential by area.
 
 **Why bus transactions dominate time.** The engine finishes in 10 clocks after its last beat (`golden.py` `latency=10`), but the trace above spends 19 clocks just pushing the 10 beats with an ideal two-clock bus, and the
 CYCLES register reads 30. On a real CPU it is worse: `firmware/README.md` measured, for `tiny_ai_core` on the simulated PicoRV32 system, about 55 CPU clocks per bus write and an accelerator round trip of 490 to 728 clocks against computation of 6 to 15 clocks
@@ -304,11 +303,11 @@ fill the TX FIFO without CPU involvement, keep weights and intermediate data in 
 (the adapter regression checks burst/overflow and back-pressure), but with `TXDATA` one beat per write the CPU still pays for every beat. Compute per bus transaction is the number to improve.
 
 **A generic adapter means one build per experiment.** The repository's one-macro rule means the Caravel user area holds one hardened macro at a time. The adapter keeps the register map fixed (ID `0x5354_5201`, same offsets for all 13 engines) and
-`tests/adapter/run.sh` shows it works with all 13 unchanged engines (PASS lines above), but each engine still needs its own build: this macro is the adapter with `image_text_match` fixed in. A different engine means a new `soc_<engine>` top and a
-new 186-second flow, not a firmware change. The price of the generality is the 354 adapter flip-flops that every such build carries regardless of how small the engine is.
+`tests/adapter/run.sh` shows it works with all 13 unchanged stream engines (PASS lines above) and with `kv_attn_n8`, but each engine still needs its own build: this macro is the adapter with `image_text_match` fixed in. A different engine means a new `soc_<engine>` top and a
+new flow of about 3 minutes (163 s, `resources.json`), not a firmware change. The price of the generality is the 354 adapter flip-flops that every such build carries regardless of how small the engine is.
 
 **FIFO depth is a trade-off, not a free parameter.** Depth 16 is chosen because `image_text_match` needs 10 beats per frame and `vision_block` 9, so one frame fits in the TX FIFO. `TX_DEPTH` and `RX_DEPTH` are parameters (powers of two, 2 to 64).
-Each extra entry costs 9 flip-flops in TX (and 8 in RX) plus read-mux width, about 189 um^2 of flip-flops for a TX entry at 21.0 um^2 each (my arithmetic from the area per `dfxtp_2`). Halving both to depth 8 would remove about 136 flip-flops
+Each extra entry costs 9 flip-flops in TX (and 8 in RX) plus read-mux width, about 191 um^2 of flip-flops for a TX entry (9 x 21.27) (my arithmetic from the area per `dfxtp_2`). Halving both to depth 8 would remove about 136 flip-flops
 (arithmetic: 8 x 9 + 8 x 8, not synthesised) but would no longer hold a 10-beat frame without engine draining; the 2,079-case testbench writes a frame without waiting. The RX FIFO needs only 2 entries for this engine's 2 result beats; its depth 16 matters for streaming engines such as `audio_onset`
 (68,829 input beats, 67,740 results in the regression), where results arrive continuously.
 
@@ -318,8 +317,7 @@ design's partial trace), consistent with more high-fanout read-mux nets from 16-
 a lower fanout limit for the pointer nets or a different repair margin; I did not run either.
 
 **Timing slack is huge, hold is thin, and the clock tree is the surprise.** Setup slack +2.956 ns at a 25 ns clock after the Caravel input delays; hold +0.110 ns at min_ff, the same order as `tiny_ai_core`'s 0.105 ns. 421 hold buffers (`dlygate4sd3_1`) were inserted to reach that and the worst setup
-path runs through two of them (about 2.7 ns of delay). So hold repair costs area (421 cells, 13 % of the 3201 standard cells) while setup would allow a much slower design; the SDC's 0.92 ns latency spread is what forces the hold buffers.
+path runs through six of them (7.80 ns of delay, my sum). So hold repair costs area (421 cells, 13 % of the 3201 standard cells) while setup would allow a much slower design; the SDC's 0.92 ns latency spread is what forces the hold buffers.
 
-**What a wrapper build with this macro needs (next step).** The port list is identical to `tiny_ai_core`, so `user_project_wrapper` needs only the macro name and the macro's views (`make views DESIGN=soc_image_text_match`; GDS, LEF, netlist, SPEF) in place of the `tiny_ai_core` ones. A wrapper variant (a new design or config) is the next step: its placement,
-the power-strap crossing, hold with the wrapper's own context and the wrapper-level slew limit (1.5 ns per `designs/tiny_ai_core/NOTES.md`) have not been tried with this macro. This macro's 250 x 250 um die is pin-limited (109 pins at about 2.3 um pitch), and at 0.55 utilization it is far fuller than `tiny_ai_core`'s 0.2148, so
-the die has room for a second engine (the generic adapter would need a mux) but not for much more. Firmware has to be compiled for Caravel's management SoC and run against the macro through the wrapper before any claim about CYCLES in a real system.
+**The wrapper build with this macro is done; what it did not cover.** The port list is identical to `tiny_ai_core`, so `user_project_wrapper_soc_itm` needed only the macro name and the macro's views (`make views DESIGN=soc_image_text_match`). Its flow is clean (setup +2.965 ns, hold +0.110 ns, 0 slew violations, `designs/user_project_wrapper_soc_itm/output/metrics.json`; see [../user_project_wrapper_soc_itm/NOTES.md](../user_project_wrapper_soc_itm/NOTES.md)). Not tried with this macro: full-Caravel simulation with management firmware, and the local precheck (not verified). This macro's 250 x 250 um die is pin-limited (109 pins at about 2.3 um pitch), and at 0.55 utilization it is far fuller than `tiny_ai_core`'s 0.2148, so
+the die has room for a second engine (the generic adapter would need a mux) but not for much more. The sibling `soc_kv_attn_n8` (same adapter, KV-cache attention engine) needed a 300 x 300 um die at 0.529 utilisation ([../soc_kv_attn_n8/NOTES.md](../soc_kv_attn_n8/NOTES.md)): its engine is 4.3 times the standard-cell area of `image_text_match` (16412 versus 3856.2 um^2, `kv_attn_n8/output/metrics.json` and this design's metrics, my division), and its worst setup slack is +1.442 ns versus +2.956 ns here.

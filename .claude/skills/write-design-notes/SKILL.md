@@ -7,8 +7,8 @@ description: Write or refresh designs/<d>/NOTES.md the way this repo does (requi
 
 Reference examples to copy the shape from (read one before writing):
 [designs/prec_int8/NOTES.md](../../../designs/prec_int8/NOTES.md) (stream engine, 250 lines) and
-[designs/tiny_ai_core/NOTES.md](../../../designs/tiny_ai_core/NOTES.md) (Wishbone core, 303 lines).
-Longer tables and checklists: [reference.md](reference.md).
+[designs/tiny_ai_core/NOTES.md](../../../designs/tiny_ai_core/NOTES.md) (Wishbone core, 304 lines).
+Also useful: [designs/user_project_wrapper_soc_kv/NOTES.md](../../../designs/user_project_wrapper_soc_kv/NOTES.md) (wrapper, with an explicit "Run time and memory" comparison across the three wrappers) and [designs/kv_attn_n8/NOTES.md](../../../designs/kv_attn_n8/NOTES.md) (non-classifier engine). All 25 designs have a NOTES.md. Longer tables and checklists: [reference.md](reference.md).
 
 ## Rules that never bend
 1. Every number names its source file in the same sentence (`synth_stat.rpt`, `metrics.json` key, `config.json`, `spec.md` section). A number you computed yourself says "my sum" / "my division".
@@ -29,7 +29,7 @@ Check with: `python3 .claude/skills/write-design-notes/check_notes.py designs/<d
 |---|---|
 | What it is | `designs/<d>/README.md`, `model/*/spec.*`, `make simulate DESIGN=<d>` PASS line, `make flow-all` log (`build/flow_<d>.log`), `output/resources.json` wall time |
 | Architecture | `rtl/*.v` (ports, registers, widths); one mermaid flowchart + a register table (name, bits, role) |
-| Data flow | the model's golden run on one concrete input, e.g. `python3 model/precision_hw/golden.py --trace <fmt> <9 pixels>` (only precision_hw has `--trace`; other models: `python3 model/<m>/golden.py <args>`, see image_text_match NOTES); per-edge table; say which columns are your replay |
+| Data flow | the model's golden run on one concrete input, e.g. `python3 model/precision_hw/golden.py --trace <fmt> <9 pixels>` (precision_hw has `--trace <fmt> p0..p8` and kv_attention has `--trace [variant]`; other models: `python3 model/<m>/golden.py <args>`, see image_text_match NOTES); per-edge table; say which columns are your replay |
 | Verification | `tb/*_tb.v`, `tb/vectors.hex` provenance, PASS line (cases, checks), `golden.py --check`, gate-level stage logs `build/flow/<d>/stage_gl_*.log`, `stage_check.log`; list negative tests or say none |
 | Layout | `output/layout.png`, `design__die__bbox`, `design__core__bbox`, `design__instance__utilization`, `design__instance__area__stdcell`, fill/tap/diode counts (`design__instance__count__class:*`) |
 | Synthesis | `reports/synth_stat.rpt`, `synth_checks.rpt`, `synthesis__check_error__count`, `design__lint_warning__count` |

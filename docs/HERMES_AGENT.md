@@ -24,8 +24,9 @@ Limits per question: 6 tool calls, 300 s HTTP timeout, tool results truncated to
   context 131072 (we use 8192), capabilities completion + tools.
 - Loaded size per `ollama ps`: 5.8 GB, 100% GPU (Apple M4 Pro, 24 GB). It unloads itself 5 minutes after last use.
   Docker/Colima was not running during the eval; with a 16 GB VM running, 5.8 GB plus 16 GB still fits in 24 GB but leaves little headroom.
-- Generation about 49 tokens/s. Median 2.4 s per question (range 0.6 s for no-tool "unknown" answers to 5.4 s for
-  the pin-count question), i.e. 1 to 3 tool calls per question.
+- Generation about 47.6 tokens/s in the latest scored run (`build/agent/eval_20261006_143402.json`: median 2.9 s per question, range 0.85 s
+  to 10.62 s, the slowest being q01; 0 or 1 tool calls per question). The previous run (`eval_20261006_121338.json`, stale q03) measured 47.0
+  tokens/s, median 2.9 s; the earlier 12/15 run (`eval_20261006_105552.json`) 49.2 tokens/s and 2.4 s; latency varies from run to run.
 - Settings: temperature 0, seed 42, num_ctx 8192, num_predict 700.
 
 ## Which tool-calling method worked
@@ -40,7 +41,7 @@ Both were tried on the same 15 questions.
 ## Eval (15 questions, ground truth computed from repo files by `tools/eval/ground_truth.py`)
 
 Scores, honestly: native mode 6/15; prompt mode 13/15 (fails q02 and q04), re-scored after a scorer fix, in
-`build/agent/eval_20261006_121338.json`. Before the fix the same behaviour was recorded as 12/15 (first system prompt V2, rules plus tool recipes;
+`build/agent/eval_20261006_121338.json`, and again 13/15 after the q03 ground-truth refresh (`build/agent/eval_20261006_143402.json`). Before the fix the same behaviour was recorded as 12/15 (first system prompt V2, rules plus tool recipes;
 and still 12/15 after V3, the common-mistake list and worked examples plus a shim that retries
 `read_metrics(keys=[partial name])` as a substring `pattern`). The model is not perfectly stable between prompt changes.
 A larger Hermes (70B) does not fit in 24 GB.
@@ -50,13 +51,15 @@ Two scorer defects were found and fixed: an early one wrongly passed q05 because
 q05 "fail" in the old 12/15 was therefore a scorer artefact, not a model change. Caveat: the baseline's q05 answer names `prec_fp16`
 (so the keyword check passes) but its cited counts (12345, 54321) are invented after a tool error; the pass is by the keyword, not
 by grounded numbers. One run per configuration on 15 questions is an anecdote; see `examples/hermes_harness/README.md` for the
-harness variants (15/15 with the deterministic `pick_extreme` tool).
+harness variants. Harness results (`examples/hermes_harness/results_summary.json`): baseline 13/15, + guardrails 13, + grounding 13,
++ `pick_extreme` 15, all features 15, all + plan 14; `eval_harness.py --gate 15` exits 0 and `--gate 16` exits 1 (the gate compares the
+"all" score).
 
 | Question | Expected | Answer (first line) | Tools | Result |
 |---|---|---|---|---|
 | std cells of vision_block | 297 | 297 standard cells | read_metrics | PASS |
 | worst setup slack of prec_fp16 and corner | 0.1106 ns at max_ss_100C_1v60 | -16.93 ns at max_ff_n40C_1v95 (picked the wrong value and invented the sign) | read_metrics | FAIL |
-| design with most flip-flops | soc_image_text_match (393) | soc_image_text_match, 393 | compare_designs | PASS |
+| design with most flip-flops | soc_kv_attn_n8 (570) | soc_kv_attn_n8, 570 | compare_designs | PASS |
 | smallest std-cell area (designs with cells) | vision_all_lit (1084.79 um2) | user_project_wrapper, 0 um2 (ignored the "has cells" condition) | compare_designs | FAIL |
 | prec format with most std cells | prec_fp16 (1932) | prec_fp16 named, but the listed counts are invented after a tool error (keyword check passes) | compare_designs | PASS (by keyword) |
 | die size of tiny_ai_core | 250 x 250 um | 250.0 x 250.0 um | layout_summary | PASS |
@@ -69,6 +72,12 @@ harness variants (15/15 with the deterministic `pick_extreme` tool).
 | ratio prec_fp16 / prec_int8 | 3.009 | 1932 / 642 = 3.01 | compare_designs | PASS |
 | selling price per chip (unanswerable) | unknown | unknown | none | PASS |
 | measured silicon yield (unanswerable) | unknown | unknown | none | PASS |
+
+Ground truth refreshed (q03): `tools/eval/questions.json` was written before `soc_kv_attn_n8` (570 flip-flops,
+`designs/soc_kv_attn_n8/output/metrics.json`) was hardened. It was regenerated with `tools/eval/ground_truth.py` (only q03 changed:
+`soc_image_text_match (393)` -> `soc_kv_attn_n8 (570)`) and the eval re-run: still 13/15, q03 passes with the new answer, q02 and q04
+fail as before (`build/agent/eval_20261006_143402.json`). The previous 13/15 (`eval_20261006_121338.json`) had been scored against the
+stale q03.
 
 ## Good at / bad at
 
@@ -97,3 +106,5 @@ Tool errors are returned to the model as data. Tool output is untrusted text but
 - Only data that exists in committed outputs/reports (and `build/precheck`) can be answered; nothing about price, yield or schedule.
 - "Latest precheck run" means the newest `build/precheck/results_*` directory; `classify_slew` needs a local flow run.
 - Questions are about repo data as of the eval; rerun `ground_truth.py` after re-hardening designs.
+
+RAG (documentation search with citations, `search_docs`, BM25, measured recall and end-to-end scores): `examples/hermes_rag/README.md`.

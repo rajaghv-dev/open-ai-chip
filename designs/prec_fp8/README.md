@@ -23,7 +23,7 @@ between the multiplier and the adder (spec section 6, float schedule). Results a
 
 ```bash
 make simulate DESIGN=prec_fp8     # 931 cases
-make flow-all DESIGN=prec_fp8     # full flow (not run yet)
+make flow-all DESIGN=prec_fp8     # full flow: passed all 5 stages, see NOTES.md
 ```
 
 ## Files
@@ -40,8 +40,7 @@ make flow-all DESIGN=prec_fp8     # full flow (not run yet)
 
 - All 931 vectors pass. An additional throw-away check compared the adder and product against a Python Fraction model
   on 400,000 random and cancellation-biased (acc, weight, pixel) triples with zero mismatches.
-- 47 flip-flops (was 32): acc 16, state 3, count 4, error 1, x_vld 1, x_pix 4, x_idx 4, p_vld 1, product register 13
+- 47 RTL flip-flop bits (was 32; 49 in silicon after the one-hot FSM recoding, `output/metrics.json`): acc 16, state 3, count 4, error 1, x_vld 1, x_pix 4, x_idx 4, p_vld 1, product register 13
   (sign 1, exponent 5, mantissa 7; the low 3 mantissa bits are always 0).
 - Timing: stage 1 is ROM, multiplier, leading-one detect and normalise shift; stage 2 is compare/swap, align shifter,
-  add/subtract, leading-zero count, normalise shifter, rounding incrementer. The adder stage is now the longer one and
-  is to be confirmed at the slow corner after re-hardening.
+  add/subtract, leading-zero count, normalise shifter, rounding incrementer. The adder stage is the longer one: worst setup slack after hardening is +0.259 ns at max_ss_100C_1v60 (`output/metrics.json`).

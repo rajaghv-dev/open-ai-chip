@@ -15,6 +15,11 @@
 >
 > Evidence and commands: `README.md`, `designs/user_proj_example/NOTES.md`. The tiny-AI work that followed is tracked
 > in `SPEC.md` (Status section).
+>
+> **Update 2026-10-06:** the "not run" items above were later covered by the project's own flow, not by this plan:
+> `user_project_wrapper` is hardened clean, and the Caravel RTL, hybrid gate-level and full-chip gate-level simulations and the
+> local precheck (14 of 14 PASS) ran for it (`docs/CARAVEL_SIM.md`, `docs/PRECHECK.md`). The repository now holds 25 hardened
+> designs (`README.md`). This plan stays a legacy reference.
 
 ## 1. Goal and definition of done
 

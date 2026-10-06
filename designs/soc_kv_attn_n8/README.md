@@ -10,6 +10,7 @@ without touching the wrapper except for the macro name. Same adapter and registe
 (31,647 checks), and `make flow-all` passed all 5 stages: 4514 std cells, 570 flip-flops, 300 x 300 um die, DRC/LVS/XOR/antenna 0,
 no setup or hold violations; worst setup +1.44 ns (`max_ss_100C_1v60`), worst hold +0.105 ns; 836 max-slew violations are reported, not
 failing (142 of them are the Caravel input ports' own transitions). Details and evidence: [NOTES.md](NOTES.md), `output/`.
+Caravel wrapper: `designs/user_project_wrapper_soc_kv` (flow clean, setup +1.448 ns, [NOTES.md](../user_project_wrapper_soc_kv/NOTES.md)); full-Caravel simulation and precheck were not run for it. Compared with its sibling `soc_image_text_match` (3201 cells, 393 flip-flops, 250 x 250 um, setup +2.956 ns; [NOTES.md](../soc_image_text_match/NOTES.md)) this macro has 1.4 times the cells and 1.45 times the flip-flops (my divisions of the two `metrics.json`) and needs the larger die. Engine: [../kv_attn_n8/NOTES.md](../kv_attn_n8/NOTES.md).
 
 ## Register map (base `0x3000_0000`, 256-byte window)
 

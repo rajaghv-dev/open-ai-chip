@@ -1,6 +1,6 @@
 ---
 name: soc-run
-description: Run, debug and extend firmware on the open-ai-chip SoC. Use when running or debugging RISC-V firmware against tiny_ai_core on the local PicoRV32 SoC (make soc-sim), adding a firmware test case, putting a stream engine behind shared/rtl/wb_stream_adapter.v (make adapter-test), measuring CPU-vs-accelerator cycles, running the full-Caravel RTL / hybrid / full-chip gate-level sims (make caravel-rtl, caravel-gl, caravel-fullgl), SDF runs (caravel-sdf-wrapper), or the local ChipFoundry precheck (make precheck).
+description: Run, debug and extend firmware on the open-ai-chip SoC. Use when running or debugging RISC-V firmware against tiny_ai_core on the local PicoRV32 SoC (make soc-sim), the KV-cache attention firmware behind the adapter (make soc-kv), adding a firmware test case, putting a stream engine behind shared/rtl/wb_stream_adapter.v (make adapter-test), measuring CPU-vs-accelerator cycles, running the full-Caravel RTL / hybrid / full-chip gate-level sims (make caravel-rtl, caravel-gl, caravel-fullgl), SDF runs (caravel-sdf-wrapper), or the local ChipFoundry precheck (make precheck).
 ---
 
 # soc-run: firmware and SoC simulation ladder
@@ -14,14 +14,15 @@ Never run several heavy sims at once; check `ps` for running iverilog/vvp first.
 |---|---|---|---|
 | (i) engine RTL | `make simulate DESIGN=<d>` | s to 1 min | engine alone vs vectors (docs/SOC_PLAN.md section 4) |
 | (ii) PicoRV32 SoC | `make soc-sim` (= `make -C firmware sim`) | ~25 s, ~1.9 M clocks | real C firmware drives the REAL `user_project_wrapper` -> `tiny_ai_core` over Wishbone: register map, protocol errors, exhaustive vs golden, cycle table (firmware/README.md, soc_sim/run.sh) |
+| (ii) PicoRV32 KV SoC | `make soc-kv` (= `make -C firmware/kv sim`) | ~14 s, 1,020,782 clocks | PicoRV32 -> Wishbone -> `wb_stream_adapter` -> `kv_attn_n8` (soc_sim/kv/): 8 sessions of RESET_CACHE, PREFILL, DECODE until full, CACHE_FULL; every response beat vs golden; prefill/decode cycle tables (firmware/README.md "KV-cache attention") |
 | (ii) adapter | `make adapter-test` (`ONLY="a b"` to subset) | ~9 s | `wb_stream_adapter` + each of 14 stream engines (incl. kv_attn_n8), Wishbone only, vs each `designs/<d>/tb/vectors.hex` (tests/adapter/run.sh) |
 | (iv) Caravel RTL | `make caravel-rtl` | ~53 s | real VexRiscv mgmt core, SPI-flash boot, full Caravel RTL, 4 cases, pass flag on mprj_io (docs/CARAVEL_SIM.md) |
 | (v) hybrid GL | `make caravel-gl` | ~59 s | wrapper + macro as routed power-aware netlists, rest RTL, unit delay, no SDF (caravel_sim/README.md) |
-| (v+) full-chip GL / SDF | see section 8 | | being added |
-| (vi) precheck | see section 8 | | being added |
+| (v+) full-chip GL / SDF | `make caravel-fullgl`, `make caravel-sdf-wrapper` (section 8) | 14 m 23 s / ~5 s | PASS |
+| (vi) precheck | `make precheck` (section 8) | ~1 min | 14 of 14 PASS |
 
 Local PicoRV32 is NOT Caravel: no VexRiscv, flash boot, housekeeping or padframe (firmware/README.md). Passing (ii) says the
-register sequences are right, not that Caravel integration works; that is (iv).
+register sequences are right, not that Caravel integration works; that is (iv). Rungs (iv) to (vi) exist for `user_project_wrapper` (tiny_ai_core) only: no Caravel sim and no precheck were run for the soc_itm or soc_kv wrappers, and the exhaustive and KV firmware were never compiled for Caravel's management SoC (firmware/README.md).
 
 ## 2. Toolchain facts (all verified in the repo)
 
@@ -92,9 +93,10 @@ Re-read the header before relying on bit fields; do not copy from memory.
    Soft test: add `name:FORMAT` to `ENGINES` in tests/adapter/run.sh (FORMAT = FRAME, PITCH or ONSET, per
    tests/adapter/adapter_tb.v header: record layouts of its `tb/vectors.hex`), then `ONLY=<name> make adapter-test`.
    The tb checks registers, burst/ERR_OVF, back-pressure, irq count, ERR_UF, CLEAR + replay with `!==` (X never passes).
-2. Hardening: copy the pattern of `designs/soc_image_text_match/` (adapter + ONE unchanged engine, port list identical to
-   `tiny_ai_core` so it drops into `user_project_wrapper` as `mprj`); its README has the register map and the C driver
+2. Hardening: copy the pattern of `designs/soc_image_text_match/` or `designs/soc_kv_attn_n8/` (adapter + ONE unchanged engine, port list identical to
+   `tiny_ai_core` so it drops into `user_project_wrapper` as `mprj`; soc_kv_attn_n8 is 300 x 300 um and has `user_project_wrapper_soc_kv` around it); its README has the register map and the C driver
    (CLEAR; check ID; N-1 TXDATA writes; TXLAST; poll STATUS DONE or RXSTATUS; pop RXDATA until m_last).
+   For a command/response engine such as `kv_attn_n8` (format `KV` in the adapter test) the firmware sends one whole command frame (N-1 TXDATA, last via TXLAST) and pops the 2 or 8 response beats; copy `firmware/kv/main.c` (register offsets R_ID 0x00 .. R_CAPS 0x20, expected beats from `firmware/kv/gen_expected.py` -> `golden.py`) and `soc_sim/kv/run.sh`.
 3. Frame engines: N input beats, last one via TXLAST, then 2 result beats. Streaming engines: one result per sample after warm-up.
 
 ## 7. Measured insight and how to measure a new engine
@@ -104,6 +106,7 @@ vision_all_lit sw 153.0 vs accel round trip 490.0 (327 write + 79 wait + 84 read
 vision_block 1318.6 vs 728.0, CYCLES 15, 1.8x; text_sentiment 351.0 vs 490.0, CYCLES 6, 0.7x.
 Insight: the engine computes in 6-15 clocks but each PicoRV32 bus transaction costs ~55 clocks, so the round trip is
 bus-bound; accelerator wins only on the most work per input (9-pixel convolution). Says nothing about large networks.
+KV firmware (`make soc-kv`, firmware/README.md "KV-cache attention", CPU clocks): PREFILL as one frame costs 328 per token at P = 1 and 90.6 per token at P = 7 (total grows 51 per added token); a DECODE round trip is 670 clocks (write 127, wait 41, read 502) for every cache fill n = 0..7, while the engine itself needs n + 3 cycles (adapter CYCLES register 63..70). The bus, not the engine, sets the cost.
 To measure a new engine the same way: (a) read `CYCLE` before/after with `tick()`, subtracting one timer read (11 cycles,
 measured at start); (b) time the software version on an already-unpacked input (no bus); (c) time the accelerator as
 write phase + wait (poll STATUS) + read phase; (d) separately report the engine's own CYCLES register; (e) average over ALL

@@ -44,7 +44,7 @@ Both console outputs are saved: `transcript_live.txt`, `transcript_dry_run.txt`.
 
 - **Hermes** is an open model family from Nous Research trained to call
   functions. The 8B Q4_0 build (`hermes3:8b`) is 4.7 GB on disk and generates
-  about 49 tokens/s on this Apple M4 Pro (source: `docs/HERMES_AGENT.md`,
+  about 47 to 49 tokens/s on this Apple M4 Pro (source: `docs/HERMES_AGENT.md`,
   "Model, memory, speed").
 - **Ollama** downloads the model and serves it on `localhost:11434`. `demo.py`
   talks to its `/api/chat` endpoint with plain `urllib`; nothing leaves the machine.
@@ -69,14 +69,17 @@ Both console outputs are saved: `transcript_live.txt`, `transcript_dry_run.txt`.
    and `range(3)` guarantees the loop ends even if the model keeps calling tools.
 4. **The prompt format matters.** In the full system's eval, Ollama's native
    `tools` field scored 6/15 while the Hermes prompt format (tools as JSON in
-   `<tools>`, replies in `<tool_call>` tags) scored 12/15, because the hermes3
+   `<tools>`, replies in `<tool_call>` tags) scored 13/15 (re-scored run
+   `build/agent/eval_20261006_143402.json`; 12/15 before a scorer fix), because the hermes3
    template drops the system prompt when `tools` is set (source:
    `docs/HERMES_AGENT.md`, evaluation table). `demo.py` therefore uses the
    prompt format.
 5. **Small models: good at lookups, shaky at comparisons.** The same eval had
-   3 failures out of 15, all of them comparisons or condition-filtering (worst
-   slack picked the wrong corner, smallest area ignored a filter, most
-   std cells compared only two designs; source: `docs/HERMES_AGENT.md`).
+   2 failures out of 15 (q02, q04), both comparisons or condition-filtering (worst
+   slack picked the wrong corner, smallest area ignored a filter); a third
+   comparison (most std cells) passes only by keyword with invented counts
+   (source: `docs/HERMES_AGENT.md`). A deterministic `pick_extreme` tool lifts
+   the score to 15/15 (`examples/hermes_harness/README.md`).
    Single-fact lookups like this demo's passed. Measure before trusting.
 
 ## Productivity
@@ -84,7 +87,7 @@ Both console outputs are saved: `transcript_live.txt`, `transcript_dry_run.txt`.
 By hand: launch the KLayout GUI, open the GDS, find the top cell, use the ruler
 or bbox to read the size, open the layer list, select met4, and count shapes
 (or write a script). With the agent: one sentence, answer in seconds (the full
-system's median is 2.4 s per question, `docs/HERMES_AGENT.md`). It runs offline
+system's median is 2.9 s per question in the latest scored run, `docs/HERMES_AGENT.md`). It runs offline
 and private, since the model, the GDS and the loop are all local.
 
 Where it stops: it does not change designs, debug failing flows, or reason
@@ -130,4 +133,6 @@ one call per step, so it takes three steps.
 - `tools/hermes_agent.py`: the full agent with both modes and the rules prompt.
 - `tools/mcp_server.py`: the same tools over MCP, usable from any MCP client.
 - `tools/eval/`: questions with ground truth and a runner. Measure before trusting.
+- `examples/hermes_harness/`: the loop-and-harness example (baseline 13/15 to 15/15 with a deterministic tool).
 - `docs/HERMES_AGENT.md`: setup, scores and honest failures.
+- `examples/hermes_rag/`: retrieval-augmented generation (BM25 search_docs over the repo docs) on top of the same tools, with measured recall and end-to-end scores.

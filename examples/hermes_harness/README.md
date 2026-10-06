@@ -10,7 +10,7 @@ Files in this folder:
 |---|---|
 | `harness.py` | The harness: loop, guardrails, grounding check, deterministic helper tool, tracing (about 270 lines, sectioned). |
 | `eval_harness.py` | Runs the 15 questions under 6 configurations, scores with `tools/eval/run_eval.py:score`, prints a table, optional CI gate. |
-| `results_summary.json` | The measured results quoted below (copy of `<repo>/build/agent/harness_eval_20261006_121338.json` minus per-question answers). |
+| `results_summary.json` | The measured results quoted below (copy of `<repo>/build/agent/harness_eval_20261006_143403.json` minus per-question answers). |
 
 It reuses, unchanged: `tools/eda_tools.py` (10 read-only KLayout/metrics tools), `tools/hermes_agent.py` (Hermes prompt format,
 HTTP, the system prompt), and `tools/eval/` (questions and scorer). Background: `docs/HERMES_AGENT.md`.
@@ -73,19 +73,22 @@ build/agent/venv/bin/python examples/hermes_harness/eval_harness.py --gate 15   
 ## Measured results
 
 Source: `results_summary.json` (full run, 6 configurations x 15 questions, temperature 0, seed 42, 333 s total on an Apple M-series Mac;
-the saved copy of `<repo>/build/agent/harness_eval_20261006_121338.json`, without the per-question answers).
+the saved copy of `<repo>/build/agent/harness_eval_20261006_143403.json`, without the per-question answers).
 Scoring is the repo's own scorer, `tools/eval/run_eval.py:score`. Latency is the median per question.
 
 | Configuration | Score | Median latency (s) | Tool calls / question | Retries (total) | Failed |
 |---|---|---|---|---|---|
-| baseline (same as `hermes_agent.py` prompt mode) | 13/15 | 2.83 | 0.87 | 0 | q02, q04 |
-| + guardrails | 13/15 | 3.03 | 0.87 | 0 | q02, q04 |
-| + grounding | 13/15 | 3.29 | 0.87 | 2 | q02, q04 |
-| + pick_extreme | 15/15 | 4.07 | 0.87 | 0 | none |
-| all features | 15/15 | 4.40 | 0.87 | 0 | none |
-| all features + `--plan` | 14/15 | 4.36 | 1.13 | 0 | q04 |
+| baseline (same as `hermes_agent.py` prompt mode) | 13/15 | 2.67 | 0.87 | 0 | q02, q04 |
+| + guardrails | 13/15 | 2.62 | 0.87 | 0 | q02, q04 |
+| + grounding | 13/15 | 3.10 | 0.87 | 1 | q02, q04 |
+| + pick_extreme | 15/15 | 3.69 | 0.87 | 0 | none |
+| all features | 15/15 | 3.72 | 0.87 | 0 | none |
+| all features + `--plan` | 13/15 | 4.19 | 1.13 | 1 | q03, q04 |
 
-The baseline reproduces the 13/15 and the two failures of prompt mode in `docs/HERMES_AGENT.md` (`build/agent/eval_20261006_121338.json`).
+Run `build/agent/harness_eval_20261006_143403.json` (2026-10-06), after `tools/eval/ground_truth.py` regenerated q03: the design with
+the most flip-flops is now `soc_kv_attn_n8` (570), not `soc_image_text_match` (393). The previous run, scored against the stale q03
+(`harness_eval_20261006_121338.json`), gave the same scores except all + `--plan` 14/15. The baseline reproduces the 13/15 and the two
+failures of prompt mode in `docs/HERMES_AGENT.md` (`build/agent/eval_20261006_143402.json`).
 
 **History: the scorer under-counted.** An earlier run of this harness (`harness_eval_20261006_120657.json`) reported baseline 12/15
 and 14/15 with `pick_extreme`. `strip_source` in `tools/eval/run_eval.py` cut the whole answer whenever the answer itself began with a
@@ -98,18 +101,18 @@ failures. The scorer was fixed (not the model, not the harness) and every run wa
   `max_ss_100C_1v60`) and q04 (smallest std-cell area among designs with cells: `vision_all_lit`). These are exactly the comparison
   failures: the model no longer compares, code does. In the baseline q05 passes only by keyword: the answer names `prec_fp16` but
   its counts (12345, 54321) are invented after a tool error; with `pick_extreme` the answer is grounded (1932, then 1754, 1404, 642).
-  Cost: the median latency goes up from 2.83 s to 4.07 s (longer prompt; latencies also vary from run to run on this machine).
+  Cost: the median latency goes up from 2.67 s to 3.69 s (longer prompt; latencies also vary from run to run on this machine).
 - **Prompt-side features gave nothing.** Guardrails and grounding left the score at 13/15. With these 15 questions the model never
   produced schema-invalid arguments (0 validation errors in the traces), so guardrails had nothing to catch: cheap insurance, not a
-  measured gain. Grounding did fire (2 retries): in q02 the model answered "-16.93 ns, max_ff_n40C_1v95"; that value is not in the
+  measured gain. Grounding did fire (1 retry in this run, 2 in the previous one): in q02 the model answered "-16.93 ns, max_ff_n40C_1v95"; that value is not in the
   tool result, the check flagged it, and the model then said it did not have enough information. Still a failure, but a refusal
   instead of a confident wrong number. In q04 the wrong answer stayed wrong, because it names a design that does appear in the tool
   output (grounded in text, just the wrong row). Grounding catches invented numbers, not misreading of real ones.
 - **A new tool can be misused.** In the two `pick_extreme` configurations the model also used it for q12 and q13 (a two-design
   difference and a ratio); both passed, but it is a "max" picker, not an arithmetic tool.
-- **Plan-then-execute did not help and cost a tool call**: 14/15 with tool calls per question up from 0.87 to 1.13, failing q04
-  where ReAct passed: the model derailed ("My apologies for the confusion ...") instead of answering. Median latency 4.36 s against
-  4.40 s for ReAct in this run: no latency benefit either.
+- **Plan-then-execute did not help and cost a tool call**: 13/15 with tool calls per question up from 0.87 to 1.13, failing q03 and q04
+  where ReAct passed: the model derailed (q04: "My apologies for the confusion ..."; q03 after a grounding retry: "I understand. I will
+  only provide information from the tool outputs ...") instead of answering. Median latency 4.19 s against 3.72 s for ReAct: slower too.
 - **Iterations that did not work (kept for honesty, not in the table):** (1) Adding `pick_extreme` *alongside* `compare_designs`: the model
   kept calling `compare_designs` because the prompt recipes told it to; 13/15 (that run: `build/agent/harness_eval_v1_pick_extreme_added_only.json`,
   not copied to the repo, and scored by the old scorer). The fix was to replace the old tool and rewrite its name in the recipes. (2) A prompt example with `scope='prec_'`
@@ -131,8 +134,11 @@ failures. The scorer was fixed (not the model, not the harness) and every run wa
 
 ## Limits
 
+- q03's expected answer was regenerated (`tools/eval/ground_truth.py`: now `soc_kv_attn_n8 (570)`, it predated that design) and the table above is the re-run against it; regenerate again whenever results change.
 - 15 questions, one model, one run each; the questions were also what we tuned the prompt against, so the 15/15 is optimistic.
 - The harness only answers; it cannot act. Everything is read-only by design (no flows, no file writes except traces).
 - `pick_extreme` ignores zero counts and areas by a regex on the metric name; that is a heuristic that suits these questions.
 - Grounding is lexical: it cannot tell a misread real number from a right one.
 - Latencies are for one local machine with the model already loaded.
+
+See also `examples/hermes_rag/README.md`: the same loop plus a `search_docs` RAG tool and a citation/number grounding check for why/how questions.

@@ -23,7 +23,7 @@ flowchart TB
     OTH -.-> NC["unused / undriven"]
 ```
 
-Same connection table as the tiny_ai_core wrapper: wb_clk_i, wb_rst_i, wbs_* to/from `mprj`; `irq` to `user_irq` (here all three bits are meaningful to the adapter's interrupt map, bits 2:1 read 0 in the testbench); la_data_in, la_oenb, io_in unused; la_data_out, io_out, io_oeb (204 bits) undriven (accepted in `scripts/flow/signoff_allowances.json`); analog_io, user_clock2 unused. No registers in the wrapper.
+Same connection table as the tiny_ai_core wrapper: wb_clk_i, wb_rst_i, wbs_* to/from `mprj`; `irq` to `user_irq` (the adapter drives `irq[0]`; `irq[2:1]` are 0, `designs/soc_image_text_match/README.md`); la_data_in, la_oenb, io_in unused; la_data_out, io_out, io_oeb (204 bits) undriven (accepted in `scripts/flow/signoff_allowances.json`); analog_io, user_clock2 unused. No registers in the wrapper.
 
 ## Data flow
 
@@ -31,7 +31,7 @@ Identical to the tiny_ai_core wrapper at the pins: a Wishbone write at 0x3000_xx
 
 ## Verification
 
-`tb/user_project_wrapper_soc_itm_tb.v` instantiates `user_project_wrapper` by ports only (analog_io unconnected, user_clock2 low, la/io inputs tied, user_irq -> irq) and contains the body of `designs/soc_image_text_match/tb/soc_image_text_match_tb.v`, run with `+VEC=tb/vectors.hex` (a copy of the macro's vectors, 2,079 cases): results, m_last, CYCLES range, irq pulse per case, DONE polling, ID/CAPS/CTRL, unmapped reads, ack one clock wide, CLEAR and reset mid-frame; `!==` so X never passes. Results: RTL `simulate` PASS in 1 s (2079 cases, 50947 checks); gl_synth PASS 10 s; gl_final PASS 8 s (`gl_sim: ... PASS`), with the macro's routed netlist from `build/macros/soc_image_text_match/nl/` added by the Makefile through MACROS (the wrapper netlists themselves contain 0 std cells). `defines.v` is compiled first at gate level (`--pre`).
+`tb/user_project_wrapper_soc_itm_tb.v` instantiates `user_project_wrapper` by ports only (analog_io unconnected, user_clock2 low, la/io inputs tied, user_irq -> irq) and contains the body of `designs/soc_image_text_match/tb/soc_image_text_match_tb.v`, run with `+VEC=tb/vectors.hex` (a copy of the macro's vectors, 2,079 cases): results, m_last, CYCLES range, irq pulse per case, DONE polling, ID/CAPS/CTRL, unmapped reads, ack one clock wide, CLEAR and reset mid-frame; `!==` so X never passes. Results: RTL `simulate` PASS in 1 s (2079 cases, 50947 checks); gl_synth PASS 10 s; gl_final PASS 7 s (`build/flow/user_project_wrapper_soc_itm/stages.txt`; the `gl_sim` lines in `stage_gl_*.log` read PASS (6 s) for the last runs), with the macro's routed netlist from `build/macros/soc_image_text_match/nl/` added by the Makefile through MACROS (the wrapper netlists themselves contain 0 std cells). `defines.v` is compiled first at gate level (`--pre`).
 `check_signoff.py`: PASS (RTL 0 registers, 0 surviving cells; 204 undriven outputs accepted by the allowance; slew/cap 0). Not verified: full Caravel simulation with management firmware, real pad configuration, behaviour of the floating io_oeb (tapeout caveat as for the tiny_ai_core wrapper). The tiny_ai_core wrapper's extra analog_io-is-z check was not carried over (analog_io is left unconnected in this testbench).
 
 ## Layout (GDSII)
@@ -67,7 +67,7 @@ Magic 0 and KLayout 0 (`magic__drc_error__count`, `klayout__drc_error__count`). 
 0 differences, 0 unmatched devices/nets/pins. [lvs_netgen.rpt](output/reports/lvs_netgen.rpt)
 
 ### Power
-Total power reported 2.46 mW, almost all "internal" of the macro in the reported corner; leakage 6e-8 W. The wrapper has no cells of its own; real power is the macro's.
+Total power reported 2.4600e-03 W (`power__total`), of which internal 1.8533e-03 W (75 %, my division), the rest switching; leakage 6.29e-08 W (`metrics.json`); almost the same as the macro's own 2.4597e-03 W in `designs/soc_image_text_match/output/metrics.json`. The wrapper has no cells of its own.
 
 ### Antenna
 0 violating nets/pins, 0 route antenna violations (`RUN_ANTENNA_REPAIR` false, nothing inserted, so no unpowered diodes as in the tiny_ai_core wrapper's attempt 3).
@@ -75,10 +75,9 @@ Total power reported 2.46 mW, almost all "internal" of the macro in the reported
 ## Run time and memory
 
 Re-run 2026-10-06 after the macro was re-hardened (a new file in `shared/rtl/` made its run stale): identical
-`metrics.json`; `output/resources.json` now says `wall_s_total` 60 s and `container_peak_mem_gb` 0.875. Numbers below
-that differ are from the first run (66 s, 0.79 GB).
+`metrics.json`; `output/resources.json` now says `wall_s_total` 60 s and `container_peak_mem_gb` 0.875 (first run: 66 s, 0.79 GB).
 
-`make flow-all DESIGN=user_project_wrapper_soc_itm`: simulate 1 s, gds 59 s (peak 0.8 GB, profile tight: 2 CPUs, 8 GB), check 1 s, gl_synth 10 s, gl_final 8 s, collect 4 s; total 83 s. (tiny_ai_core wrapper: 53 s, 0.62 GB.) A first attempt had gl_final fail only because `UPSTREAM.txt` was edited after the run started (it counts as a flow input), so the run was repeated; no design problem.
+`make flow-all DESIGN=user_project_wrapper_soc_itm` (`build/flow/user_project_wrapper_soc_itm/stages.txt`, current run `RUN_2026-10-06_08-21-27`): simulate 1 s, gds 61 s (physical flow 60 s, peak 0.875 GB, profile tight: 2 CPUs, 8 GB, `resources.json`), check 1 s, gl_synth 10 s, gl_final 7 s, collect 4 s; total 84 s (my sum). (tiny_ai_core wrapper: 59 s flow, 0.619 GB; `user_project_wrapper_soc_kv`: 76 s, 0.954 GB, `resources.json` of each.) A first attempt had gl_final fail only because `UPSTREAM.txt` was edited after the run started (it counts as a flow input), so the run was repeated; no design problem.
 
 ## Reproduce
 
@@ -93,3 +92,6 @@ Needs the allowance entry for `user_project_wrapper_soc_itm` in `scripts/flow/si
 - The macro views are the interface: everything that differs in the result (timing margin) comes from the macro's liberty/SPEF, not from the wrapper.
 - Editing any non-.md file in the design directory (e.g. UPSTREAM.txt) after a run makes the run "not current" for the gl-final step; documentation .md files are exempt.
 - The 204 undriven outputs are a learning-build shortcut shared with the tiny_ai_core wrapper; drive io_oeb before tapeout.
+- Third wrapper in the series: [../user_project_wrapper_soc_kv/NOTES.md](../user_project_wrapper_soc_kv/NOTES.md) puts the larger `soc_kv_attn_n8` macro (300 x 300 um) in the same shell; its worst setup is +1.448 ns against +2.965 ns here (`output/metrics.json` of each), and its detailed-route DRC errors per iteration are 63, 6, 3, 0 against 50, 5, 0 here (`route__drc_errors__iter:*`).
+- Slew: this wrapper reports 0 max-slew violations (`check_signoff.py` note), but that is not a better result than the macro's 421 (`designs/soc_image_text_match/NOTES.md`, classified there): the wrapper's `config.json` carries `MAX_TRANSITION_CONSTRAINT` 1.5 in the fixed Caravel section (the macro is checked at the 0.75 default; `check_signoff.py` prints the note), and I did not re-check the wrapper at 0.75. Flip-flop reconciliation: the wrapper has 0 RTL registers and 0 surviving cells; the macro's 393 flip-flops are inside the macro (`check_signoff.py`).
+- The macro itself: [../soc_image_text_match/NOTES.md](../soc_image_text_match/NOTES.md) (adapter plus engine, 3201 cells, 393 flip-flops).

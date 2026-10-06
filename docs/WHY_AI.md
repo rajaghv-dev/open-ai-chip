@@ -1,16 +1,17 @@
 # Why these designs are AI, and not just a program or a logic circuit
 
-This repository has three tiny chips: `vision_all_lit`, `vision_block` and `text_sentiment`. Each one does a job
-you could also do with one line of code or a few logic gates. So what makes them "AI"?
+This repository started with three tiny chips: `vision_all_lit`, `vision_block` and `text_sentiment` (sections 1 to 5). It now
+holds 25 hardened designs; section 12 lists every family and links its design notes. Each engine does a job you could also do
+with one line of code or a few logic gates. So what makes them "AI"?
 
 The short answer: **nobody wrote the rule. The rule was learned from labelled examples, and it is stored as numbers
 (weights) inside a fixed, general-purpose structure (a neuron).** Change the examples and the numbers change. The
 hardware stays the same.
 
-This document explains that idea with the three designs, then extends it with computed examples that are not built
-as chips yet: audio (section 6), a tiny transformer (section 7) and number precision from fp32 down to 1 bit
-(section 8). Every number here comes from the repository: the
-fitter `model/tiny_ai/train.py`, the result `model/tiny_ai/weights.json`, and the RTL in `designs/<name>/rtl/`.
+This document explains that idea with the three designs, then extends it with examples: audio (section 6, built later
+as `audio_pitch` and `audio_onset`), a tiny transformer (section 7, computed in Python; its attention idea reappears in the built KV-cache family) and number
+precision from fp32 down to 1 bit (section 8, computed in software and then built in silicon as the `prec_*` designs). Every number here comes from the repository: the
+fitter `model/tiny_ai/train.py`, the result `model/tiny_ai/weights.json`, the example scripts in `model/examples/`, and the RTL in `designs/<name>/rtl/`.
 
 ---
 
@@ -202,9 +203,14 @@ It never stops arriving, one sample after another, and the answer depends on **r
 that idea with two small examples from the architecture plan (`../open-ai-silicon/docs/ARCH_STUDY_PLAN.md`, items
 4.3 `audio_pitch` and 4.4 `audio_onset`).
 
-**Important:** these two are **computed by a script, not built as chips yet.** They are the next examples of the
-plan. Every number below is printed by `model/examples/audio.py` (Python standard library only, fixed seed, no
-downloads, about 1 second). Nothing here was measured on hardware.
+**Status:** the numbers in this section are printed by the script `model/examples/audio.py` (Python standard library
+only, fixed seed, no downloads, about 1 second); nothing in the tables was measured on hardware. Both detectors were
+built afterwards as `designs/audio_pitch` and `designs/audio_onset` (windows, weights and thresholds from
+`model/audio_pitch/` and `model/audio_onset/`), hardened clean: `audio_pitch` 234 standard cells and 21 flip-flops,
+`audio_onset` 316 cells and 25 flip-flops, both on an 80 x 80 um die (`designs/<d>/output/metrics.json`; notes in
+`designs/audio_pitch/NOTES.md`, `designs/audio_onset/NOTES.md`). The built `audio_pitch` uses W = 8, threshold 4 (85.50 %
+on its 200 training examples, `model/audio_pitch/weights.json`); its 21 flip-flops are the 11 state bits of the table below plus
+control and output registers.
 
 Run it: `python3 model/examples/audio.py`
 
@@ -325,8 +331,9 @@ Numbers instead of bits make the memory wider and the adder larger and signed. T
 
 ### Honest limits
 
-- **Computed, not built.** There is no RTL, no synthesis and no chip for either example. The state-bit counts are
-  counted from the model's description, not from a netlist.
+- **The tables in this section are computed, not measured.** The state-bit counts here are counted from the model's
+  description, not from a netlist; the built designs (`audio_pitch`, `audio_onset`) report their own measured
+  flip-flops and cells (see the status paragraph at the top of this section).
 - **Synthetic data.** The "audio" is square waves and random numbers made by the script, not recorded sound. High and
   low tones were chosen to be clearly different.
 - **The onset result is partly built in.** The labels came from a rule of the same shape as the neuron, so
@@ -344,8 +351,10 @@ Numbers instead of bits make the memory wider and the adder larger and signed. T
 cannot learn "positive only if `GOOD` comes right before `BAD`". This section builds, step by step, the pieces that
 fix that, and ends with the core of a GPT-style language model.
 
-**Honest status.** None of this is built as a chip yet. Every number below is computed by one script, with no
-libraries and no downloads (it runs in under a second):
+**Honest status.** The bigram predictor and the order-sensitive attention model below are computed in Python only: no
+`text_bigram` or `text_attention` design exists in `designs/`. The attention idea was built in a different, smaller
+form: the KV-cache family `kv_attn_*` (one head, hard attention over a cache, prefill and decode; see section 12 and
+`docs/LLM_INFERENCE.md`). Every number below is computed by one script, with no libraries and no downloads (it runs in under a second):
 
 ```bash
 python3 model/examples/transformer.py
@@ -503,8 +512,9 @@ What this costs on a chip:
 
 ### Honest limits
 
-- **Computed in Python, not built as chips.** `text_bigram` and `text_attention` are planned designs; nothing here
-  is synthesised and no area or timing is measured.
+- **Computed in Python, not built as chips.** `text_bigram` and `text_attention` were planned designs that were not built;
+  nothing in this section is synthesised and no area or timing is measured here. (The `kv_attn_*` designs are measured,
+  but they implement a hand-picked hard-attention recall task, not this model.)
 - **The attention weights were constructed by hand.** Only S and the threshold were searched. This shows the
   structure can express the rule; it does not show that training would find it.
 - **The order label is one tiny rule** on four tokens with a four-word vocabulary. Passing all 256 sentences is not
@@ -667,7 +677,9 @@ The trade has three sides: **accuracy** (more bits, closer to fp32), **memory** 
   numbers, which adds error not shown here.
 - int4, int8 and 1-bit use one scale for the whole tensor. Per-channel or per-group scales usually do better.
 - 2000 test images means differences under about 0.5 points are noise.
-- Multiplier cost is a counting proxy, not synthesized area; the cell counts come from different networks.
+- Multiplier cost is a counting proxy, not synthesized area; the cell counts come from different networks. Measured
+  silicon for the same question is in `docs/PRECISION_STUDY.md`: seven formats of one 9-input neuron, built and hardened as
+  `designs/prec_{bin,tern,int4,int8,fp8,fp16,bf16}` (199 to 1,932 standard cells, `metrics.json`).
 - The bias is kept in fp32 and is not counted in the memory column.
 
 ---
@@ -701,6 +713,11 @@ The trade has three sides: **accuracy** (more bits, closer to fp32), **memory** 
 | weights in a ROM | weights in on-chip SRAM or off-chip DRAM, the largest cost of real AI chips |
 | one neuron used four times in four cycles | the core hardware trade-off: compute units vs. time vs. memory |
 | fitted by exhaustive search | trained by gradient descent on large datasets |
+| streaming engines with a delay line (`audio_pitch`, `audio_onset`) | audio and sensor front ends; keyword spotting over a sliding window |
+| image and caption in one 6-number space (`image_text_match`) | multimodal models that embed images and text in a shared space |
+| the same neuron in 7 number formats (`prec_*`) | quantised inference: int8, fp8, bf16 on real accelerators |
+| KV cache, PREFILL and DECODE (`kv_attn_*`) | LLM inference: the KV cache and the prefill / decode split |
+| Wishbone adapter, FIFOs, firmware (`soc_*`) | the host interface, drivers and data movement around an accelerator |
 | "no solution" for "exactly two lit" or word order | why networks have many layers and attention |
 
 ## 11. Try it
@@ -713,7 +730,34 @@ make simulate DESIGN=vision_block       # the RTL, checked against the model on 
 python3 model/examples/audio.py         # section 6: pitch and onset detectors, trained thresholds and weights
 python3 model/examples/transformer.py   # section 7: bigram generation, attention, the word-order task
 python3 model/examples/precision.py     # section 8: fp32, bf16, fp16, fp8, int8, int4, 1-bit on one model
+python3 model/precision_hw/report.py    # the seven formats built in silicon (docs/PRECISION_STUDY.md)
+python3 model/kv_attention/golden.py --check   # KV-cache attention task metrics and cycle table
+make simulate DESIGN=audio_onset        # a built audio engine; any design in section 12 works the same way
+make test                               # the fast gate for the whole repository (no Docker)
 ```
 
 To retrain on different labels, change the label rule in `model/tiny_ai/common.py` (`truth_table`) and run
 `make generate`. The ROMs and test vectors are regenerated; the engine RTL is untouched.
+
+## 12. The other designs, by idea
+
+The three engines of sections 3 to 5 are the start. Every family below is hardened clean on sky130A (DRC, LVS, XOR, antenna 0; numbers from
+each `designs/<d>/output/metrics.json`); `docs/ARCHITECTURE.md` section 7 gives the structure.
+
+| Idea | Designs (notes) | What it shows |
+|---|---|---|
+| Not AI, the control | [user_proj_example](../designs/user_proj_example/NOTES.md) | The template's 16-bit counter proves the flow works, so a failure on an AI engine is the engine's |
+| Stream state sized by the window (section 6) | [audio_pitch](../designs/audio_pitch/NOTES.md), [audio_onset](../designs/audio_onset/NOTES.md) | One result per input beat after a warm-up; 21 and 25 flip-flops however long the stream is |
+| Two modalities in one space | [image_text_match](../designs/image_text_match/NOTES.md) | A 3 x 3 image and a caption word are encoded into one 6-number space; a dot product decides if they match; 551 cells, 39 flip-flops |
+| Number formats (section 8) | [prec_bin](../designs/prec_bin/NOTES.md), [tern](../designs/prec_tern/NOTES.md), [int4](../designs/prec_int4/NOTES.md), [int8](../designs/prec_int8/NOTES.md), [fp8](../designs/prec_fp8/NOTES.md), [fp16](../designs/prec_fp16/NOTES.md), [bf16](../designs/prec_bf16/NOTES.md) | Same neuron, same pins, only the arithmetic differs; accuracy is flat from ternary up while area grows 4.8x from ternary to fp16 (`docs/PRECISION_STUDY.md`) |
+| Attention and the KV cache (section 7) | [kv_attn_n4](../designs/kv_attn_n4/NOTES.md), [n8](../designs/kv_attn_n8/NOTES.md), [n16](../designs/kv_attn_n16/NOTES.md), [n8_int4](../designs/kv_attn_n8_int4/NOTES.md), [n8_ring](../designs/kv_attn_n8_ring/NOTES.md) | Prefill streams tokens into the cache at 1 cycle each; decode scans it, n + 3 cycles; quantising (int4 recall 81.65 %) or windowing (ring) trades quality for memory (`docs/LLM_INFERENCE.md`) |
+| A model on a chip, with a CPU | [tiny_ai_core](../designs/tiny_ai_core/NOTES.md), [user_project_wrapper](../designs/user_project_wrapper/NOTES.md) | Three engines behind Wishbone inside Caravel's fixed wrapper; firmware runs all 784 cases |
+| A generic bus adapter | [soc_image_text_match](../designs/soc_image_text_match/NOTES.md), [user_project_wrapper_soc_itm](../designs/user_project_wrapper_soc_itm/NOTES.md), [soc_kv_attn_n8](../designs/soc_kv_attn_n8/NOTES.md), [user_project_wrapper_soc_kv](../designs/user_project_wrapper_soc_kv/NOTES.md) | The bus glue, not the network, dominates: the adapter is 354 of 393 flip-flops in `soc_image_text_match` and 370 of 570 in `soc_kv_attn_n8` |
+
+Two lessons from the system level, with their sources:
+
+- **The bus costs more than the compute.** In the PicoRV32 firmware simulation the accelerators compute in 6 to 15 clocks while a round trip is
+  490 to 728 CPU clocks, and software beats the accelerator for the two 4-input networks (`firmware/README.md`, cycle table). For KV attention one
+  DECODE round trip is 670 clocks against an engine latency of 3 to 10 (`firmware/README.md`, KV section).
+- **A learned or hand-picked rule is cheap; the plumbing is not.** The weights fold into a few hundred gates, while FIFOs, reset fan-out and pin
+  placement set area and timing margin (`designs/soc_kv_attn_n8/NOTES.md`: setup +10.74 ns for the engine alone, +1.44 ns as a macro).

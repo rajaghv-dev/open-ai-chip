@@ -35,7 +35,7 @@ output stream `m_valid`, `m_data[7:0]`, `m_last`, `m_ready`. Output: beat 0 = `{
 beat 1 = `acc[15:8] ^ acc[7:0]` (the whole accumulator is checked through the pins). `error`: `s_data[7:4] != 0` (item
 skipped) or a frame that is not exactly 9 beats.
 
-**Flip-flops:** 50 (was 32 with the single-cycle MAC): state 3 (was 2), count 4, error 1, x_vld 1, x_pix 4, x_idx 4, p_vld 1, p_bits 16, acc 16.
+**Flip-flops:** 50 RTL bits (52 in silicon after the one-hot FSM recoding, `output/metrics.json`; was 32 with the single-cycle MAC): state 3 (was 2), count 4, error 1, x_vld 1, x_pix 4, x_idx 4, p_vld 1, p_bits 16, acc 16.
 
 ## Run
 

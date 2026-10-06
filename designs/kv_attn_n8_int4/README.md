@@ -2,7 +2,7 @@
 
 Status: **hardened clean** (`make flow-all DESIGN=kv_attn_n8_int4`: all 5 stages PASS; 2394 std cells, 222 flip-flops, die 220 x 220 um, 25 ns clock; details in NOTES.md)
 
-**What it shows:** an int4 KV cache: half the cache flip-flops, but position resolution drops to buckets of 4 (ties go to the older token). One attention head (model dimension 4) with a KV cache in registers and the two phases of LLM inference:
+**What it shows:** an int4 KV cache: half the nominal cache bits (256 against 512), but not fewer flip-flops (222 in total against 200 for `kv_attn_n8`; 96 cache flip-flops built against 72, `NOTES.md`), and position resolution drops to buckets of 4 (ties go to the older token). One attention head (model dimension 4) with a KV cache in registers and the two phases of LLM inference:
 **prefill** streams prompt tokens into the cache (1 cycle per token, independent of the cache length) and **decode** scans the cache serially
 with ONE dot-product unit (n + 3 cycles for n cached entries), picks the best-scoring entry (strictly greater replaces: the lowest slot wins a tie)
 and returns its value vector (hard attention), then appends the new token.
@@ -13,8 +13,8 @@ and returns its value vector (hard attention), then appends the new token.
 | bits per K/V component | 4 |
 | ring | 0 |
 | cache bits N x 2 x 4 x bits | 256 |
-| estimated flip-flops (by inspection) | about 420 |
-| die (estimate) | 220 x 220 um, 25 ns clock |
+| flip-flops: estimated by inspection / built | about 420 / 222 (`output/metrics.json`, `design__instance__count__class:sequential_cell`) |
+| die (config estimate, flow clean) | 220 x 220 um, 25 ns clock, utilisation 0.408 (`design__instance__utilization`) |
 
 **Ports (24 pins):** `clk`, `rst` (synchronous, active high), input stream `s_valid`, `s_data[7:0]`, `s_last`, `s_ready`, output stream `m_valid`, `m_data[7:0]`, `m_last`, `m_ready`.
 Commands (first beat): `01` RESET_CACHE, `02` PREFILL + tokens, `03` DECODE + token. Responses: 2 beats `[status, count]`, or 8 beats

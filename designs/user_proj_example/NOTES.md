@@ -144,7 +144,7 @@ reset state, the free-running count, Wishbone read, full write, byte writes and 
 LA load of the count (full and partial mask), LA clock and reset override, and the
 `io_out`/`io_oeb`/`la_data_out`/`irq` outputs (`la_data_out[127:16]` must be zero). Every Wishbone access must
 be acknowledged within 8 cycles. Comparisons use `===`/`!==` so X never passes; hard timeout of 100,000 ns
-(the test needs about 120 clock cycles); `$fatal(1, "FAIL ...")` on the first wrong value.
+(the testbench comment says about 120 clock cycles; `build/sim/user_proj_example/sim.log` shows `$finish` at 480000 ps = 480 ns, i.e. 48 cycles of the testbench's 10 ns clock); `$fatal(1, "FAIL ...")` on the first wrong value.
 Fresh `make simulate DESIGN=user_proj_example`: `PASS user_proj_example_tb: 28 checks (reset, count, Wishbone
 read/write, LA load/clock/reset)`
 
@@ -161,15 +161,16 @@ and on the routed post-PnR netlist (`make gl-final DESIGN=user_proj_example`:
 `designs/user_proj_example/runs/RUN_2026-10-05_18-17-43/final/nl/user_proj_example.nl.v`, 8727 cells),
 compiled by `scripts/flow/gl_sim.sh` against the sky130_fd_sc_hd functional models with a unit gate delay of
 `#0.01` (`GL_UNIT_DELAY`, default in gl_sim.sh; it must be above 0 to avoid flip-flop races and below the 1 ns
-sample point). Results on disk: `build/flow/user_proj_example/stage_gl_synth.log` and `stage_gl_final.log`
-both end `gl_sim: user_proj_example PASS`; `build/gl/user_proj_example/result.txt` reads `user_proj_example |
+sample point). Results on disk: `build/flow/user_proj_example/stages.txt` lists `gl_synth PASS` and `gl_final PASS` (the
+`stage_gl_*.log` files hold only the recipe command lines, not the simulator output);
+`build/gl/user_proj_example/sim/gl.log` ends with the testbench `PASS ... 28 checks` line; `build/gl/user_proj_example/result.txt` reads `user_proj_example |
 final:user_proj_example.nl.v | committed tb | PASS | 0 s`. `build/gl/user_proj_example/synth_checks.txt` reads
 `synthesis__check_error__count = 0`.
 
-Signoff checks that are verification (`scripts/flow/check_signoff.py user_proj_example`,
-`build/flow/user_proj_example/stage_check.log`): no logic lost, RTL 33 registers (16 + 16 + 1), 33 surviving
+Signoff checks that are verification (`python3 scripts/flow/check_signoff.py user_proj_example`, whose output is
+the `check` stage in `build/flow/user_proj_example/stages.txt`): no logic lost, RTL 33 registers (16 + 16 + 1), 33 surviving
 sequential cells, allowance 0; there is no FSM to recode, so the hand count matches; Yosys driver warnings
-(multiple drivers / no driver) 0, synthesis check errors 0 (`synth_checks.txt`).
+(multiple drivers / no driver) 0, synthesis check errors 0 (`synth_checks.txt`; the Yosys log `06-yosys-synthesis/yosys-synthesis.log` contains no "multiple drivers" / "no driver" line).
 
 Negative tests (`tests/run_tests.sh`, "negative"): the counter RTL is copied with `count <= count + 1'b1;`
 mutated to `count <= count + 2'd2;`; the testbench exits non-zero with a `FAIL co...` message and no PASS line
@@ -192,7 +193,7 @@ What is visible (`output/layout.png`, rendered from the final GDS):
   denser region concentrated on the left side of the core near where the pins are. The large uniform area to the
   right is mostly filler and tap cells: `design__instance__count__class:fill_cell` 7306 (25298 um^2) and
   `tap_cell` 469 (586.8 um^2), against 1421 standard cells in total (8046.5 um^2).
-- **Power straps**: the two broad vertical bands in the core (about a fifth of the way in from the left and near
+- **Power straps**: the two broad vertical bands in the core (about an eighth of the way in from the left and near
   the right edge) are power-grid straps for `vccd1` / `vssd1`; the regular horizontal lines are the standard-cell
   power rails. `design__power_grid_violation__count` is 0.
 - **Utilisation**: `design__instance__utilization` = 0.241313 (24.1 %, standard cells 8046.47 um^2 over core
@@ -279,11 +280,11 @@ Antenna effect: long wires can collect charge during manufacturing and damage a 
 0 pins (`antenna__violating__nets`, `route__antenna_violation__count`), with 254 antenna/diode cells present
 (`design__instance__count__class:antenna_cell`; `antenna_diodes_count` 2). Max-slew violations 482, max-cap
 1, max-fanout 3 at the worst corner (`metrics.json`, `timing_summary.rpt`; zero max-cap at the tt and ff
-corners). These are **reported, not failed**: the root README ("Not covered") attributes them to the template's
-input-transition constraints, not to real logic problems, and `make check` reports them without failing
+corners). These are **reported, not failed**: the root README ("Not covered") says part of the counts is environment-limited (input
+transitions set by the SDC above the 0.75 ns limit, naming this design's 541 port bits) and part is internal nets, and `make check` reports them without failing
 (`scripts/flow/check_signoff.py`). `flow.log` lists the corners with max-slew violations (all nine) and with
-max-cap violations (the three ss corners), each list followed by the checker line "No max slew / max cap
-violations found" (the check does not fail the flow), and ends "Flow complete". The "Intuitions and insights"
+max-cap violations (the three ss corners), each list followed by a checker line reading "No max slew violations found" /
+"No max cap violations found" (the check does not fail the flow), and ends "Flow complete". The "Intuitions and insights"
 section below refines the cause of the 482. Also: 286 disconnected pins, 0 critical (`design__disconnected_pin__count`), and 2 floating nets.
 
 ## Run time and memory
@@ -317,7 +318,7 @@ Plain-language lessons, each tied to a file. See also `docs/WHY_AI.md` (why the 
 logic-analyser override (`rtl/UPSTREAM.txt`), 33 flip-flops that all survive synthesis (`metrics.json`
 `design__instance__count__class:sequential_cell` 33; RTL 16 + 16 + 1) and no FSM to recode. Everything signoff checks is
 0 (`metrics.json`: Magic and KLayout DRC, LVS, XOR, antenna, setup and hold violations) and the whole flow takes 77 s
-(`output/resources.json`). That makes it the control experiment: a known-good, boring design that proves the toolchain,
+(`output/resources.json`; for scale, `soc_kv_attn_n8`, now the largest build, takes 181 s with 4514 cells in its `metrics.json` and `resources.json`). That makes it the control experiment: a known-good, boring design that proves the toolchain,
 so a later failure on an AI engine points at the engine, not the flow. The check that the testbench can fail also
 started here: `tests/run_tests.sh` swaps `count + 1` for `count + 2` in a copy of the RTL and requires the testbench to
 reject it.
@@ -350,26 +351,30 @@ note "//SLEW": environment-limited; a 70 % repair margin ran out of memory chasi
 design's `config.json` sets no slew margin (only `MAX_FANOUT_CONSTRAINT` 16), so how many of the 482 repair could remove
 was never tried. Max-fanout 3 and max-cap 1 (ss corners only) are likewise reported, not failed.
 
-**Why the AI engines show 0 where this shows 482.** The AI engines have no SDC override in `config.json`; their floorplan
-log shows the flow default ("Setting input delay to: 5", `vision_all_lit/output/reports/floorplan.txt`), with no 0.84 to
-0.97 ns input transitions, and they report 0 max-slew in every corner. This design carries the template's Caravel-style
-SDC. So the difference is mostly the constraints each design was given, not the quality of the logic. That is an inference
-from the two config and SDC sets; no run swapped the SDC to confirm it.
+**Why the small AI engines show far fewer slew violations than this design.** The stream engines have no SDC override in
+`config.json`; their floorplan log shows the flow default ("Setting input delay to: 5",
+`vision_all_lit/output/reports/floorplan.txt`), with no 0.84 to 0.97 ns input transitions. Their `design__max_slew_violation__count`
+(each design's `output/metrics.json`) is 0 for `vision_all_lit`, `vision_block`, `text_sentiment` and `prec_bin`, but not
+0 everywhere: 9 for `prec_tern` and `prec_int4`, 14 for `audio_onset`, 18 for `audio_pitch`, 61 for `image_text_match`, 195 for `tiny_ai_core`, and
+415 to 1190 for the `kv_attn_*` family. So 482 is within the range of the larger designs, and the count grows with
+design size, not only with this design's SDC. Which part of each count is environment-limited was classified only for
+`tiny_ai_core` (see its NOTES); for the others it is not verified. The difference between 482 here and 0 on the smallest engines
+is therefore partly the constraints each design was given and partly design size; no run swapped the SDC to separate the two.
 
 **Timing headroom is I/O-limited.** Worst setup slack is 5.9947 ns of a 25 ns clock (`timing_summary.rpt`, corner
 `max_ss_100C_1v60`), and the path is `wb_rst_i` to a flop with a 12.5 ns input delay (half the period, in the SDC) and 5.57
 ns clock latency in front of it (`timing_paths_max_ss.rpt`). Register-to-register setup is reported as infinity
 (`timing__setup_r2r__ws`), so a 16-bit increment is not the limit at 25 ns. The thin side is hold: 0.404 ns worst
-(`min_ff_n40C_1v95`), where the AI engines have 0.108 to 0.110 ns (their `timing_summary.rpt`).
+(`min_ff_n40C_1v95`), where the other designs have 0.096 (`kv_attn_n16`) to 0.115 ns (`prec_int4`) (`timing__hold__ws` in each `output/metrics.json`).
 
 **Verification.** `make simulate` prints "PASS user_proj_example_tb: 28 checks" and the same testbench passes on the
-synthesised and the routed netlist (`build/flow/user_proj_example/stage_gl_synth.log`, `stage_gl_final.log`). A write
+synthesised and the routed netlist (`build/flow/user_proj_example/stages.txt`: `gl_synth PASS`, `gl_final PASS`). A write
 returns the old count, which the testbench checks explicitly ("write returns old count", `tb/user_proj_example_tb.v` line
 115); that is easy to get wrong because the read data is captured before the new value lands.
 
 **What it contributed to the flow.** The local changes recorded in `rtl/UPSTREAM.txt` became the shared recipe: absolute
 die sizing, `@bit_major` pin ordering, LibreLane 3 key names, `ERROR_ON_SYNTH_CHECKS` true, no
-`MAX_TRANSITION_CONSTRAINT` override. The three AI engines reuse the same keys (`FP_SIZING` absolute, `RT_MAX_LAYER` met4,
+`MAX_TRANSITION_CONSTRAINT` override. The AI engines reuse the same keys (`FP_SIZING` absolute, `RT_MAX_LAYER` met4,
 `PDN_MULTILAYER` false, `MAGIC_DRC_USE_GDS` true, `ERROR_ON_SYNTH_CHECKS` true in their `config.json`). It also set the
 reporting rule that max-slew and max-cap are printed, not failed, until the cause is understood
 (`scripts/flow/check_signoff.py`).

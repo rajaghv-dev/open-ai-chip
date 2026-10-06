@@ -5,7 +5,7 @@ description: Take a design in this repo from RTL to clean sky130 GDSII with `mak
 
 # Harden a design (RTL to clean GDSII)
 
-Facts come from `Makefile` (`make help`), `scripts/flow/*`, and the notes of the 18 designs. Long tables are in
+Facts come from `Makefile` (`make help`), `scripts/flow/*`, and the notes of the 25 designs (`make help` lists them; `make all-designs` runs all 25). Long tables are in
 `reference.md` (same folder). Read the design's `NOTES.md` and `config.json` `"//..."` comment keys first: they
 record the fixes that already worked for sibling designs.
 
@@ -14,7 +14,8 @@ record the fixes that already worked for sibling designs.
 2. One physical flow at a time on this machine. Check `docker ps` for a LibreLane container before starting.
    Each flow is capped by `FLOW_TIMEOUT` (default 600 s, `scripts/flow/run_capped.sh`); use `FLOW_TIMEOUT=600`.
 3. Start from the nearest sibling: copy its `config.json` (tiny engines: `vision_block`; floats: `prec_fp8`;
-   macros with the Wishbone port list: `tiny_ai_core`) and size `DIE_AREA` for about 40 % utilisation
+   KV-cache engines: `kv_attn_n8`; macros with the Wishbone port list: `tiny_ai_core`, or `soc_image_text_match` /
+   `soc_kv_attn_n8` for adapter + engine) and size `DIE_AREA` for about 40 % utilisation
    (`FP_SIZING: absolute`; 80 x 80 um at 82 % failed, see failure table).
 
 ## 1. The one command
@@ -35,7 +36,12 @@ Macros: `make views DESIGN=<macro>` exports `final/{gds,lef,nl,pnl,spef,lib}` in
 - A run is reusable when complete (`final/metrics.json`, `final/gds/*.gds`, `flow.log` ends `Flow complete.`) and
   no input file changed after the run STARTED (timestamp in `runs/RUN_<date>_<time>`).
 - Inputs: everything under paths in the run's `resolved.json`, the current `config.json` `dir::` paths, and
-  `designs/<d>/` except `runs/ gds/ output/ model/ tb/`. `*.md` is excluded, so NOTES.md/README.md edits never
+  `designs/<d>/` except `runs/ gds/ output/ model/ tb/`. For every input FILE the script watches the whole DIRECTORY
+  that holds it (`walk(dirname)` in `scripts/flow/find_reusable_run.py`), so a file ADDED next to an input makes the run
+  stale. Real case: adding `shared/rtl/kv_attn_core.v` made `soc_image_text_match` and `user_project_wrapper_soc_itm`
+  stale (they take `shared/rtl/wb_stream_adapter.v`); both were re-run on 2026-10-06 with identical metrics
+  (163 s / 0.98 GB and 60 s / 0.875 GB, `output/resources.json`). Before adding a file to `shared/rtl/` or any dir
+  that a design's `config.json` points into, expect those designs to need a re-run. `*.md` is excluded, so NOTES.md/README.md edits never
   make a run stale; any other edit in the design dir does (including `config.json` and `pin_order.cfg`).
 - Wrappers also depend on the macro views in `build/macros/<macro>/`: a rebuilt macro makes the wrapper stale.
 - `python3 scripts/flow/find_reusable_run.py <d>` prints the run or the reason on stderr (`build/flow/reuse.err`).
@@ -65,7 +71,8 @@ Macros: `make views DESIGN=<macro>` exports `final/{gds,lef,nl,pnl,spef,lib}` in
   `runs/RUN_*/{flow.log,error.log,warning.log}`.
 - Slew triage: `python3 .claude/skills/harden-design/classify_slew.py <d> [corner] [run_dir]` splits violating
   pins into port-driven (environment-limited) and internal (cell-driven). On `tiny_ai_core`'s run at
-  `max_ss_100C_1v60`: 80 port-driven, 51 internal of 131 listed (195 counted).
+  `max_ss_100C_1v60`: 80 port-driven, 51 internal of 131 listed cell pins; with the 64 input-port pins themselves
+  (32 `wbs_adr_i`, 32 `wbs_dat_i`) that is 144 environment-limited + 51 internal = 195 (`designs/tiny_ai_core/NOTES.md`).
 
 ## 4. When a stage fails
 Stop at the first decisive failure, keep the run dir and logs, find the signature in the table below
@@ -85,6 +92,7 @@ same time: the repo's notes record which change did what.
 | float MAC setup misses at `max_ss_100C_1v60` | pipeline the product register, `RUN_POST_GRT_RESIZER_TIMING` true, `PL/GRT_RESIZER_SETUP_SLACK_MARGIN` 0.5 |
 | check: "logic lost" (surviving flops < RTL registers) | `check_signoff.py <d> --breakdown`; prove the bit dead and add an allowance with a reason, or fix the RTL |
 | undriven outputs in a wrapper ("is used but has no driver") | explicit `undriven_outputs` + reason in `scripts/flow/signoff_allowances.json` |
+| `make gds` runs the flow again though you did not touch the design | a file was added or changed in a directory of one of its inputs (e.g. `shared/rtl/`) or a macro view changed | check with `find_reusable_run.py <d>` (reason on stderr); re-run only if you accept it, metrics should be identical |
 | flow killed at 600 s | `FLOW_TIMEOUT`; first shrink the problem (die, margins), raise only if justified and recorded |
 
 ## 5. What never to do

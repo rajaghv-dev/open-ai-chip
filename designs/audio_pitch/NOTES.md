@@ -153,22 +153,14 @@ routed post-PnR netlist (`make gl-final DESIGN=audio_pitch`:
 `designs/audio_pitch/runs/RUN_2026-10-05_19-59-29/final/nl/audio_pitch.nl.v`, 868 cells), compiled by
 `scripts/flow/gl_sim.sh` against the sky130_fd_sc_hd functional models with a unit gate delay of `#0.01`
 (`GL_UNIT_DELAY`, default in gl_sim.sh; it must be above 0 to avoid flip-flop races and below the 1 ns sample
-point). Results on disk: `build/flow/audio_pitch/stage_gl_synth.log` and `stage_gl_final.log` both end
-`gl_sim: audio_pitch PASS`; `build/gl/audio_pitch/result.txt` reads `audio_pitch | final:audio_pitch.nl.v |
+point). Results on disk: `build/flow/audio_pitch/stages.txt` lists `gl_synth PASS` and `gl_final PASS` (the `stage_gl_*.log` files hold only the command line); `build/gl/audio_pitch/sim/gl.log` ends with the testbench `PASS audio_pitch_tb: ...` line; `build/gl/audio_pitch/result.txt` reads `audio_pitch | final:audio_pitch.nl.v |
 every case of tb/vectors.hex | PASS | 0 s`. `build/gl/audio_pitch/synth_checks.txt` reads
 `synthesis__check_error__count = 0`.
 
 Signoff checks that are verification (`scripts/flow/check_signoff.py audio_pitch`,
-`build/flow/audio_pitch/stage_check.log`): no logic lost, `tests/run_tests.sh` has no negative entries for
-audio_pitch (its negative section covers the counter, the three tiny engines, the core and the model only),
-and `designs/audio_pitch/NOTES.md` states that no mutation tests of the checker exist, so "the testbench
-catches a wrong threshold" is not demonstrated for this design. What does exist are the checks inside the
-testbench that can fail: X, an unexpected result beat, a result changing while stalled, garbage on `s_data`
-while idle, wrong behaviour after reset.; Yosys driver warnings (multiple drivers / no driver) 0, synthesis
-check errors 0 (`synth_checks.txt`).
+`build/flow/audio_pitch/stage_check.log`): no logic lost, RTL 21 registers, 21 surviving sequential cells, allowance 0 (this NOTES does not report a one-hot recoding for this design); Yosys driver warnings (multiple drivers / no driver) 0, synthesis check errors 0 (`synth_checks.txt`).
 
-Negative tests: RTL 21 registers, 21 surviving sequential cells, allowance 0; the NOTES do not report a
-one-hot recoding for this design
+Negative tests: `tests/run_tests.sh`, section "negative" (PASS in `make test`): one expected value in a copy of `tb/vectors.hex` (the expected `m_data` bit 0 of the first result beat; the mutation is asserted to have applied) is flipped and the testbench must exit non-zero with no PASS line; it stops with `FATAL: designs/audio_pitch/tb/audio_pitch_tb.v:58: FAIL ...`. This shows the checker can fail on a wrong result value. No RTL mutation (for example a changed threshold) is tested for this design, so "the testbench catches a wrong threshold" is not demonstrated; the other checks that can fail inside the testbench are X, an unexpected result beat, a result changing while stalled, garbage on `s_data` while idle and wrong behaviour after reset.
 
 ## Layout (GDSII)
 
@@ -203,7 +195,7 @@ Report: [cts.rpt](output/reports/cts.rpt).
 
 ### Routing
 
-Global routing: 164 routed nets, `global_route__wirelength` = 4540, `global_route__vias` = 982 (`routing_global.txt`, `metrics.json`). Detailed routing: DRC violations per iteration 51, 17, 8, 0 (`route__drc_errors__iter:0..3`), final `route__drc_errors` = 0; wire length 2737 um in `routing_detailed.txt` (`route__wirelength` = 2700), 983 vias (`route__vias`), longest net 116.76 um (`route__wirelength__max`).
+Global routing: 164 routed nets (`routing_global.txt`); `global_route__wirelength` = 4540 and `global_route__vias` = 982 in `metrics.json` (the `routing_global.txt` log itself prints 4450 um and 946 vias, taken before the later repair steps; the two differ and the reason was not checked). Detailed routing: DRC violations per iteration 51, 17, 8, 0 (`route__drc_errors__iter:0..3`), final `route__drc_errors` = 0; wire length 2737 um after iteration 0 and 2700 um at the end (`routing_detailed.txt`, `route__wirelength` = 2700), 983 vias (`route__vias`), longest net 116.76 um (`route__wirelength__max`).
 Reports: [routing_global.txt](output/reports/routing_global.txt), [routing_detailed.txt](output/reports/routing_detailed.txt).
 
 ### Timing
@@ -238,7 +230,8 @@ Report: [irdrop.rpt](output/reports/irdrop.rpt).
 
 ### Antenna, slew, capacitance
 
-22 antenna diodes inserted (`design__instance__count__class:antenna_cell`); `antenna__violating__nets` = 0; `manufacturability.rpt`: Antenna Passed.
+22 antenna diodes inserted (`design__instance__count__class:antenna_cell`); `antenna__violating__nets` = 0; `manufacturability.rpt`: Antenna Passed. Capacitance violations: 0 (`design__max_cap_violation__count`).
+Slew: `design__max_slew_violation__count` = 18, all in the three ss corners (nom/min/max_ss_100C_1v60), 0 in tt and ff; fanout violations: 1 in every corner. Classification (run dir `57-openroad-stapostpnr/nom_ss_100C_1v60/checks.rpt`, `final/nl/audio_pitch.nl.v`): the 18 pins are 9 cell input pins plus the 9 antenna-diode pins attached to them, all at 0.889 ns against the 0.75 ns limit, and the driver `fanout22` (a `buf_1`, fanout 17 against a limit of 8, which is the one fanout violation) is a flow-inserted internal buffer, so none of the 18 is an input-port-limited case; all belong to the internal-driver (fixable in principle) class. Repair margin used: 40 % (`config.json` keys `PL_RESIZER_MAX_SLEW_MARGIN`, `GRT_DESIGN_REPAIR_MAX_SLEW_PCT`); no other margin was tried for this design (not verified). `check_signoff.py` prints these as notes and does not fail on them.
 Report: [cell_usage.rpt](output/reports/cell_usage.rpt).
 
 ## Run time and memory
@@ -284,7 +277,7 @@ python3 model/audio_pitch/gen_rom.py   # regenerate ROM and tb/vectors.hex
 
 3. **Why W = 8 gives only 85.5 %.** `weights.json` lists high-tone counts seen [2, 3, 4, 5] and low-tone counts [0, 1, 2, 3]: the ranges overlap at 2 and 3, so no threshold can be perfect and 29 high-tone windows fall below 4 (`wrong_high_below_threshold`), with 0 low-tone errors. The trainer picked the threshold that sacrifices only the high side. It is a finding about the window, not a bug.
 
-4. **A longer window costs flip-flops, not logic.** `model/examples/audio.py` gets 100 % at W = 16 (threshold 5) and W = 32 (threshold 7), with state bits 20 and 37 versus 11 at W = 8. At 21.27 um^2 per `dfxtp_2` (446.678 / 21 from `synth_stat.rpt`) the extra 9 state bits at W = 16 are roughly 191 um^2 of flip-flops alone (my arithmetic, not a flow result), and the delay line is the part that scales linearly.
+4. **A longer window costs flip-flops.** `model/examples/audio.py` gets 100 % at W = 16 (threshold 5) and W = 32 (threshold 7), with state bits 20 and 37 versus 11 at W = 8. At 21.27 um^2 per `dfxtp_2` (446.678 / 21 from `synth_stat.rpt`) the extra 9 state bits at W = 16 are roughly 191 um^2 of flip-flops alone (my arithmetic, not a flow result), and the delay line is the part that scales linearly.
 
 5. **Bit width: 1-bit samples are cheap.** This design has 21 flip-flops and 234 cells; `audio_onset`, with the same style of window but 4-bit energies, has 25 flip-flops and 316 cells, and 2793.93 vs 1744.17 um^2 of stdcell area (table above). Its combinational synthesis area is 1548.99 um^2 versus 654.38 here (synth_stat, my subtraction), 2.4x. Storage grows 12 vs 8 history bits; arithmetic grows more, because a 3-bit unsigned counter becomes a 6-bit signed add tree.
 
@@ -296,4 +289,4 @@ python3 model/audio_pitch/gen_rom.py   # regenerate ROM and tb/vectors.hex
 
 9. **Verification: windows overlap, so test every window in a stream.** Unlike `vision_block`'s 540 independent frames, a streaming engine's output depends on history, so `gen_rom.py` builds a de Bruijn sequence (`de_bruijn(2, W)`) that makes every one of the 256 window contents occur in a continuing stream, plus tones with noise, short recordings, error samples and resets (370 recordings, 4564 input beats, `README.md`). Three pacing passes (random gaps/stalls, full rate, random again) give 6078 result beats and 12173 checks.
 
-10. **Negative checks are in the testbench, not a mutation suite.** The testbench fails on any X (`!==`), an unexpected result beat when none is due, a result that changes while stalled, garbage on `s_data` while idle, and wrong behaviour after reset. I found no mutation tests of the checker itself in the repo, so "the testbench catches a wrong threshold" is not demonstrated here.
+10. **Negative checks: one corrupted vector, no RTL mutation.** The testbench fails on any X (`!==`), an unexpected result beat when none is due, a result that changes while stalled, garbage on `s_data` while idle, and wrong behaviour after reset. `tests/run_tests.sh` also corrupts one expected value in `tb/vectors.hex` and requires the testbench to fail (`FATAL: ...audio_pitch_tb.v:58: FAIL`). There is no RTL mutation test, so "the testbench catches a wrong threshold" is not demonstrated here.

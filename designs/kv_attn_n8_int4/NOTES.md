@@ -88,7 +88,7 @@ slot 2  K=[-1,-1,0,1]  V=[ 1,-1,-1,2]   pos=2    (A2)
 slot 3  K=[ 1,-1,0,1]  V=[-3, 1,-1,3]   pos=3    (C0)
 DECODE B0 -> response 10 05 01 20 03 ff 01 01  latency 7 cycles   (score 32, slot 1, V=[3,-1,1,1])
 ```
-(`golden.py --trace kv_attn_n8_int4`, verbatim.) `kv_attn_n8` stores the same keys with +-4 and `pos` exact (replay: slots 0, 1, 2 hold K = [-4,-4,0,0], [-4,-4,0,1], [-4,4,0,2]).
+(`golden.py --trace kv_attn_n8_int4`, verbatim.) `kv_attn_n8` stores the same keys with +-4 and `pos` exact (my replay of the `PREFILL A1 A2 B0` script used below, not of the trace above: slots 0, 1, 2 hold K = [-4,-4,0,0], [-4,-4,0,1], [-4,4,0,2]).
 
 A tie caused by quantisation. I replayed a short script with the same `Engine` class from `golden.py` (`kv_attn_n8_int4` and, for comparison, `kv_attn_n8`): `PREFILL A1 A2 B0`, then `DECODE A3`. Both A entries hold key A; A2 is newer (position 1) than A1 (position 0), so the right answer is A2's value.
 The query is q = [-4, -4, 0, 1]. DECODE at E1 = the edge that takes the last input beat; L = n + 3 = 6 (`spec.md` section 6, `golden.py` prints `lat 6`); the replay columns below are my reading of the schedule plus the golden values:
@@ -133,7 +133,7 @@ Task metrics (same run): int4 recalls the right value on 921 of 1128 matching de
 Gate level: the same testbench ran on the synthesised netlist and the routed netlist: `build/flow/kv_attn_n8_int4/stage_gl_synth.log` ends `gl_sim: kv_attn_n8_int4 PASS (1 s)` and `stage_gl_final.log` ends `gl_sim: kv_attn_n8_int4 PASS (1 s)`; `build/flow_kv_attn_n8_int4.log` stage 4: `synthesised PASS 5s, routed PASS 2s`.
 Signoff: stage 3 `check : PASS ... DRC/LVS/XOR/antenna, slack at all corners, no logic lost`; `build/flow/kv_attn_n8_int4/stage_check.log` reports `registers: RTL 246 (allowance 24), surviving sequential cells 222`.
 Negative tests: `tests/run_tests.sh` has a vector-mutation test only for `kv_attn_n8` (one flipped expected beat is rejected); I did not find one for `kv_attn_n8_int4`, so a corrupted vector here is not demonstrated beyond the coverage above.
-A stale-number note: the README section "Why 24 registers are pruned" quotes 249 elaborated and 225 surviving; the current `stage_check.log` and `--breakdown` print 246 and 222 (the difference, 24, is the same). I did not find why the absolute counts moved by 3; `README.md` is not edited by this note beyond its Status line.
+README check: the section "Why 24 registers are pruned" of `designs/kv_attn_n8_int4/README.md` now quotes 246 elaborated and 222 surviving flip-flops, equal to `stage_check.log` and `--breakdown`; no stale number found.
 
 ## Layout (GDSII)
 

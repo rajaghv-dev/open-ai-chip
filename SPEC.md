@@ -4,7 +4,21 @@ This document specifies a private GitHub project that places three deliberately 
 
 The key decision is to build one hard macro named `tiny_ai_core`. It contains three one-neuron examples behind one Wishbone register interface. The fixed Caravel `user_project_wrapper` contains only one instance of that macro. This is much smaller and easier to verify than the MNIST accelerators in the sibling repository while still exercising dense inference, convolution with weight reuse, and embedding lookup.
 
-## Status (as of 2026-10-05)
+## Status (as of 2026-10-06)
+
+> **Update 2026-10-06 (current state, later than the notes below; evidence `build/state_snapshot.md`, each design's `output/metrics.json`):**
+> - 25 designs are hardened clean (DRC, LVS, XOR, antenna 0; setup and hold met; all five `make flow-all` stages PASS, including
+>   gate-level sims of the synthesised and routed netlists). `make test` passes, `make check-generated` covers 41 generated files.
+> - The engines flagged below as "not hardened yet" (`audio_pitch`, `audio_onset`, `image_text_match`) and the seven `prec_*`
+>   precision designs are hardened. New since: the KV-cache attention family `kv_attn_{n4,n8,n16,n8_int4,n8_ring}`
+>   (`shared/rtl/kv_attn_core.v`, `model/kv_attention/`, `docs/LLM_INFERENCE.md`), `soc_kv_attn_n8` (adapter + `kv_attn_n8`, 300 x 300 um)
+>   and `user_project_wrapper_soc_kv`; plus `user_project_wrapper_soc_itm`. All wrapper builds (`user_project_wrapper`,
+>   `_soc_itm`, `_soc_kv`) are signoff-clean.
+> - `make adapter-test` now runs 14 engines (13 stream engines + `kv_attn_n8`). `make soc-kv` (KV firmware on the PicoRV32 SoC) passes.
+> - The full-Caravel sims and the local precheck were run for `user_project_wrapper` (`tiny_ai_core`) only, not for the `_soc_itm` or `_soc_kv` wrappers.
+> - Agent work (`docs/HERMES_AGENT.md`, `examples/`, `tools/`): Hermes prompt mode 13/15, native 6/15
+>   (`build/agent/eval_20261006_143402.json`); harness 13/15 baseline, 15/15 with one deterministic tool.
+> - Still open: Phase 5 and 11 (human), the release manifest (Phase 9), Phase 10, the cell-budget amendment decision.
 
 > **Update 2026-10-06 (precheck, full-chip GL):**
 > - Owner decision: GPIO 5..37 start as `GPIO_MODE_MGMT_STD_INPUT_NOPULL` (`designs/user_project_wrapper/rtl/user_defines.v`,
@@ -62,13 +76,13 @@ evidence that `make` regenerates; everything else named is tracked.
 | 4 Wishbone core | Done. `tiny_ai_core` with the register map below; 784 cases, 65,642 checks through Wishbone on the RTL, the synthesised netlist and the routed netlist | `designs/tiny_ai_core/{rtl,tb}/`, `build/flow/tiny_ai_core/stage_{simulate,gl_synth,gl_final}.log` |
 | 5 Human `cf` initialization checkpoint | NOT STARTED (human only) | none |
 | 6 Macro physical configuration | Done for `tiny_ai_core` standalone with LibreLane, clean. Cell budget exceeded as written (see Physical budgets) | `designs/tiny_ai_core/{config.json,output/metrics.json,output/reports/}`, `README.md` |
-| 7 Wrapper integration | NOT STARTED: no `user_project_wrapper` RTL, no wrapper hardening, no `user_defines.v`, no LVS config | none |
+| 7 Wrapper integration | Done locally (update 2026-10-06 above): `user_project_wrapper` with one `tiny_ai_core mprj`, `user_defines.v`, hardened signoff-clean; later wrappers `user_project_wrapper_soc_itm` and `user_project_wrapper_soc_kv` also clean | `designs/user_project_wrapper*/output/metrics.json`, `designs/user_project_wrapper/README.md` |
 | 8 Caravel verification | DONE with iverilog instead of Cocotb: VexRiscv firmware, Caravel RTL, hybrid GL and full-chip functional GL PASS; full-chip SDF not completed | `docs/CARAVEL_SIM.md`, `build/gpio_fix_chain.log` |
 | 9 Local precheck and candidate bundle | PARTLY DONE: local precheck 14 of 14 PASS (our container); no `release/manifest.json`, no bundle | `precheck/results/summary.tsv`, `docs/PRECHECK.md` |
 | 10 Independent verification | NOT STARTED: no fresh-clone reproduction | none |
 | 11 Human submission checkpoint | NOT STARTED (human only; not part of agent execution) | none |
 
-What is next, in order:
+What is next, in order (items 3 and 4 were done locally later, see the 2026-10-06 updates above; kept as the original plan):
 
 1. Phase 5 (human): `cf` initialization and GPIO configuration for the private repository. Until then no agent runs
    `cf login`, `cf init`, `cf push`, or `cf confirm`.
@@ -393,6 +407,8 @@ The initial 400 by 400 micrometre macro size is chosen so the wrapper's approxim
 > false (it added a diode on buffer outputs; antenna repair stays on and antenna is 0), `PL_RESIZER_MAX_SLEW_MARGIN`
 > and `GRT_DESIGN_REPAIR_MAX_SLEW_PCT` are 70, `MAX_FANOUT_CONSTRAINT` is 8, and `CTS_DISTANCE_BETWEEN_BUFFERS` is
 > 30 with sink clustering size 8 and diameter 20 (a deeper clock tree).
+> Superseded later the same day: with the Caravel macro SDC the 70 % slew margins chased environment-limited input nets
+> until the container ran out of memory; both margins are now 20 (`designs/tiny_ai_core/config.json` key `//SLEW`).
 
 The wrapper remains the fixed 2920 by 3520 micrometre Caravel user area. Do not change any configuration explicitly marked fixed or do not edit in the template.
 
@@ -806,10 +822,10 @@ The project is locally ChipIgnite-ready only when all items pass:
   Met: state (109 <= 128), latency (6, 15, 6 <= 16), layer (met4), timing, DRC, LVS, XOR, antenna, slew, capacitance
   (`designs/tiny_ai_core/output/metrics.json`). Missing: the cell budget (3,521 against 2,500 as written) awaits the
   owner's decision on the proposed amendment.
-- [ ] `user_project_wrapper` contains one macro instance and preserves the golden wrapper interface and geometry. Missing: the wrapper (Phase 7).
+- [x] `user_project_wrapper` contains one macro instance and preserves the golden wrapper interface and geometry. Evidence: `designs/user_project_wrapper/` (one `tiny_ai_core mprj`, signoff-clean) and the precheck 14 of 14 PASS (`precheck/results/summary.tsv`); the fixed geometry is under `fixed_dont_change`.
 - [x] GPIO 5 through 37 all have valid startup modes. Evidence: `designs/user_project_wrapper/rtl/user_defines.v` (`GPIO_MODE_MGMT_STD_INPUT_NOPULL`, owner decision 2026-10-06) and precheck `gpio_defines` PASS (`precheck/results/summary.tsv`). The `cf gpio-config` account step remains human-only.
 - [x] Full-Caravel representative RTL and GL tests pass. Evidence: `make caravel-rtl` PASS 54 s, hybrid GL PASS 59 s (`build/gpio_fix_chain.log`), full-chip functional GL with firmware PASS 14 m 23 s (`docs/CARAVEL_SIM.md`). Caveat: SDF at full-chip level was not completed (SDF passes only on wrapper + macro); representative, one case per mode.
-- [ ] Wrapper-level setup and hold pass at every required corner. Missing: wrapper hardening (macro-level timing passes at nine corners).
+- [x] Wrapper-level setup and hold pass at every required corner. Evidence: `designs/user_project_wrapper/output/metrics.json` (setup +1.461 ns, hold +0.105 ns worst over 9 corners).
 - [x] Local ChipFoundry precheck passes with LVS and Magic DRC enabled. Evidence: 14 of 14 PASS (`precheck/results/summary.tsv`, `docs/PRECHECK.md`). Caveat: run with `cf-precheck 1.3.7` in our own container, not ChipFoundry's `mpw_precheck` image; confirmation with their tooling is a human step.
 - [ ] The release manifest identifies the exact source, tools, PDK, template, GDS hash, and evidence logs. Missing: `release/manifest.json`.
 - [ ] An independent fresh-clone reproduction matches the candidate. Missing: Phase 10.
@@ -862,7 +878,8 @@ the choice was right can only be checked once the wrapper exists.
 added a diode on buffered outputs, which inflated the fanout of those nets; turning it off (antenna repair stays on,
 antenna violations are 0) removed the fanout violations. Second, the repair steps work at the typical corner, so a
 signal that looks fine there can still exceed the maximum slew at the slow corner (ss, 100 C, 1.60 V); the cure was to
-repair with margin (`PL_RESIZER_MAX_SLEW_MARGIN` and `GRT_DESIGN_REPAIR_MAX_SLEW_PCT` 70) and not to loosen the
+repair with margin (`PL_RESIZER_MAX_SLEW_MARGIN` and `GRT_DESIGN_REPAIR_MAX_SLEW_PCT` 70 at first; 20 now, because 70 ran out of
+memory with the Caravel SDC, `config.json` `//SLEW`) and not to loosen the
 limit. Third, the clock root fans out to all 109 flip-flops, so the clock tree was made deeper
 (`CTS_DISTANCE_BETWEEN_BUFFERS` 30, sink clustering size 8, diameter 20); the config records the setting, the repository does not record the before-state. The repository's guard in `tests/run_tests.sh`
 forbids the shortcuts (`MAX_TRANSITION_CONSTRAINT`, `DISABLE_LVS`) so a clean number cannot be bought by relaxing a

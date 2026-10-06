@@ -160,13 +160,13 @@ the routed post-PnR netlist (`make gl-final DESIGN=text_sentiment`:
 `designs/text_sentiment/runs/RUN_2026-10-05_18-16-33/final/nl/text_sentiment.nl.v`, 927 cells), compiled by
 `scripts/flow/gl_sim.sh` against the sky130_fd_sc_hd functional models with a unit gate delay of `#0.01`
 (`GL_UNIT_DELAY`, default in gl_sim.sh; it must be above 0 to avoid flip-flop races and below the 1 ns sample
-point). Results on disk: `build/flow/text_sentiment/stage_gl_synth.log` and `stage_gl_final.log` both end
-`gl_sim: text_sentiment PASS`; `build/gl/text_sentiment/result.txt` reads `text_sentiment |
+point). Results on disk: `build/flow/text_sentiment/stages.txt` lists `gl_synth PASS` and `gl_final PASS` (the `stage_*.log`
+files there hold only the recipe command lines, not simulator output); `build/gl/text_sentiment/result.txt` reads `text_sentiment |
 final:text_sentiment.nl.v | every case of tb/vectors.hex | PASS | 1 s`.
 `build/gl/text_sentiment/synth_checks.txt` reads `synthesis__check_error__count = 0`.
 
-Signoff checks that are verification (`scripts/flow/check_signoff.py text_sentiment`,
-`build/flow/text_sentiment/stage_check.log`): no logic lost, RTL 12 registers, 12 surviving sequential cells,
+Signoff checks that are verification (`python3 scripts/flow/check_signoff.py text_sentiment`,
+the `check` stage in `build/flow/text_sentiment/stages.txt`): no logic lost, RTL 12 registers, 12 surviving sequential cells,
 allowance 0 (the 11 RTL bits become 12 because the 3-state FSM was recoded to one-hot); Yosys driver warnings
 (multiple drivers / no driver) 0, synthesis check errors 0 (`synth_checks.txt`).
 
@@ -223,8 +223,9 @@ Global placement (placement_global.txt): target density 0.3397, 83 movable insta
 overflow went from 0.6328 at iteration 0 to 0.0990 at iteration 317, final HPWL 1566.6 um. Routability check:
 total routing overflow 0, weighted congestion 0.7466 (target 1.01), no inflation. Detailed placement
 (placement_detailed.txt): total/average/max displacement 0.0 u, HPWL 1958.8 u legalized then 1901.7 u after
-optimizing (-2.9 percent), 48 instances mirrored. Timing repair after placement added buffers: 44
-`timing_repair_buffer` cells, 321.558 um^2 (metrics.json). Reports:
+optimizing (-2.9 percent), 48 instances mirrored. The cell type report at the end of detailed placement lists 37 Timing Repair Buffers, 269.01 um^2
+(`placement_detailed.txt`); the final design has 44, 321.558 um^2 (`design__instance__count__class:timing_repair_buffer`,
+`metrics.json`). Reports:
 [output/reports/placement_global.txt](output/reports/placement_global.txt),
 [output/reports/placement_detailed.txt](output/reports/placement_detailed.txt).
 
@@ -362,7 +363,7 @@ arrive, which keeps the engine at 12 flip-flops.
 
 **Verification lessons.** All 256 possible sentences are tested, plus 13 protocol cases (3 short frames, 2 long, 8
 out-of-range tokens; `model/tiny_ai/gen_rom.py` `cases()`): 269 cases, 1358 checks, passing on the RTL, the synthesised
-netlist and the routed netlist (`build/flow/text_sentiment/stage_gl_synth.log`, `stage_gl_final.log`). `tests/run_tests.sh`
+netlist and the routed netlist (`build/sim/text_sentiment/sim.log`; `gl_synth` / `gl_final` PASS in `build/flow/text_sentiment/stages.txt`). `tests/run_tests.sh`
 proves the checks can fail (corrupted vector, broken RTL copy, mutated threshold, each asserted to have applied). The
 `always @(*)` ROM that simulation never evaluated is why `gen_rom.py` emits continuous assignments only (comment at line
 27); this ROM is a conditional-operator chain. Yosys recoded the 3-state FSM as one-hot ("Found FSM state register",

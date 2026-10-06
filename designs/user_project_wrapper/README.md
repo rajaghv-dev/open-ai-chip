@@ -11,7 +11,7 @@ Run:
 
 Status: hardened, signoff-clean (`make wrapper`, 2026-10-06). `designs/user_project_wrapper/output/metrics.json`:
 Magic and KLayout DRC 0, LVS 0, XOR 0, antenna 0, route DRC 0, max-slew / max-cap / max-fanout 0, worst setup
-+1.46 ns and hold +0.105 ns over all corners; layout run 53 s, 0.62 GB. The Wishbone testbench (784 cases, 39,956
++1.46 ns and hold +0.105 ns over all corners; layout run 59 s, 0.62 GB (`output/resources.json`). The Wishbone testbench (784 cases, 39,956
 checks) passes through the wrapper's ports on the RTL, the synthesised netlist and the routed netlist, with the
 macro's routed gate-level netlist inside (`build/macros/tiny_ai_core/nl/`).
 
@@ -30,7 +30,13 @@ How it got clean (each attempt is a lesson):
 5. Signoff flagged 204 undriven wrapper outputs (io_out, io_oeb, la_data_out): accepted explicitly, with the reason,
    in `scripts/flow/signoff_allowances.json` (learning build). Tapeout caveat: a floating io_oeb leaves the pad output
    enable undefined; drive it high from the macro or configure every user GPIO as an input in `user_defines.v`.
+   Resolved the second way on 2026-10-06 (owner decision, see "Status after the precheck" below).
 
-Not done: GPIO startup modes for pads 5..37 (`rtl/user_defines.v` is still the template's), full-Caravel simulation
-with management firmware, and the ChipFoundry precheck (`lvs_config.json` is prepared for it). rtl/user_defines.v is still the template's (GPIO startup modes for pads 5..37 are not set).
-lvs_config.json is for the later ChipFoundry precheck only; LibreLane does not read it.
+Status after the precheck (2026-10-06): `rtl/user_defines.v` now sets GPIO 5..37 to `GPIO_MODE_MGMT_STD_INPUT_NOPULL`
+(header comment "LOCAL CHANGE (owner decision 2026-10-06)"); it is no longer the template's file. With that change the local ChipFoundry
+precheck passes 14 of 14 checks (it was 12 of 14 before: `gpio_defines` and `oeb` failed on the template's `GPIO_MODE_INVALID`;
+`docs/PRECHECK.md`, `precheck/results/summary.tsv`). The full-Caravel simulations were run for this wrapper with the real management core
+and firmware: `make caravel-rtl` PASS, `make caravel-gl` (hybrid) PASS, `make caravel-fullgl` (full-chip gate level) PASS, and
+`make caravel-sdf-wrapper` (wrapper + macro with SDF, three corners) PASS (`docs/CARAVEL_SIM.md`). Not done: full-chip GL with SDF and
+firmware (too slow in the emulated amd64 container), ChipFoundry's own `mpw_precheck` image, and every `cf` account step (human-only).
+`lvs_config.json` is used by the precheck (with the macro netlist path changed in the staged copy, `docs/PRECHECK.md`); LibreLane does not read it.

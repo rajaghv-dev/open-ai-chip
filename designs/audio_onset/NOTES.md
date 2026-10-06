@@ -149,22 +149,16 @@ routed post-PnR netlist (`make gl-final DESIGN=audio_onset`:
 `designs/audio_onset/runs/RUN_2026-10-05_20-00-31/final/nl/audio_onset.nl.v`, 669 cells), compiled by
 `scripts/flow/gl_sim.sh` against the sky130_fd_sc_hd functional models with a unit gate delay of `#0.01`
 (`GL_UNIT_DELAY`, default in gl_sim.sh; it must be above 0 to avoid flip-flop races and below the 1 ns sample
-point). Results on disk: `build/flow/audio_onset/stage_gl_synth.log` and `stage_gl_final.log` both end
-`gl_sim: audio_onset PASS`; `build/gl/audio_onset/result.txt` reads `audio_onset | final:audio_onset.nl.v |
+point). Results on disk: `build/flow/audio_onset/stages.txt` lists `gl_synth PASS` and `gl_final PASS` (the `stage_gl_*.log` files hold only the command line); `build/gl/audio_onset/sim/gl.log` ends with the testbench `PASS audio_onset_tb: ...` line (checked for audio_pitch; not re-read for this design); `build/gl/audio_onset/result.txt` reads `audio_onset | final:audio_onset.nl.v |
 every case of tb/vectors.hex | PASS | 8 s`. `build/gl/audio_onset/synth_checks.txt` reads
 `synthesis__check_error__count = 0`.
 
 Signoff checks that are verification (`scripts/flow/check_signoff.py audio_onset`,
-`build/flow/audio_onset/stage_check.log`): no logic lost, `tests/run_tests.sh` has no negative entries for
-audio_onset (its negative section covers the counter, the three tiny engines, the core and the model only),
-and `designs/audio_onset/NOTES.md` states that there is no mutation suite, so a wrong weight being caught is
-not demonstrated; the exhaustive window coverage makes it very likely. The checks inside the testbench that
-can fail: X, an output beat without an input beat, a stalled result that changes, wrong latency, wrong state
-after reset.; Yosys driver warnings (multiple drivers / no driver) 0, synthesis check errors 0
+`build/flow/audio_onset/stage_check.log`): no logic lost, RTL 25 registers, 25 surviving sequential cells, allowance 0 (3 x 4-bit delay line = 12 flops
+among them; this NOTES does not report a one-hot recoding); Yosys driver warnings (multiple drivers / no driver) 0, synthesis check errors 0
 (`synth_checks.txt`).
 
-Negative tests: RTL 25 registers, 25 surviving sequential cells, allowance 0 (3 x 4-bit delay line = 12 flops
-among them; the NOTES do not report a one-hot recoding)
+Negative tests: `tests/run_tests.sh`, section "negative" (PASS in `make test`): one expected value in a copy of `tb/vectors.hex` (the expected `m_data` bit 0 of the first result beat, mutation asserted to have applied) is flipped and the testbench must fail; it stops with `FATAL: designs/audio_onset/tb/audio_onset_tb.v:82: FAIL ...`. No RTL mutation (a wrong weight or threshold) is tested, so a wrong weight being caught is not demonstrated by a mutation; the exhaustive window coverage makes it very likely. The other checks that can fail inside the testbench: X, an output beat without an input beat, a stalled result that changes, wrong latency, wrong state after reset.
 
 ## Layout (GDSII)
 
@@ -197,7 +191,7 @@ Report: [cts.rpt](output/reports/cts.rpt).
 
 ### Routing
 
-Global routing: 247 routed nets, `global_route__wirelength` = 7307, `global_route__vias` = 1503; the log notes extra iterations to remove overflow (`routing_global.txt`, `metrics.json`). Detailed routing: DRC violations per iteration 63, 11, 0 (`route__drc_errors__iter:0..2`), final `route__drc_errors` = 0; wire length 4264 um in `routing_detailed.txt` (`route__wirelength` = 4211), 1478 vias (`route__vias`), longest net 122.86 um (`route__wirelength__max`).
+Global routing: 247 routed nets; the log notes extra iterations to remove overflow (`routing_global.txt`); `metrics.json` has `global_route__wirelength` = 7307 and `global_route__vias` = 1503 (the `routing_global.txt` log itself prints 7120 um and 1461 vias; the reason for the difference was not checked). Detailed routing: DRC violations per iteration 63, 11, 0 (`route__drc_errors__iter:0..2`), final `route__drc_errors` = 0; wire length 4264 um after iteration 0 and 4211 um at the end (`routing_detailed.txt`, `route__wirelength` = 4211), 1478 vias (`route__vias`), longest net 122.86 um (`route__wirelength__max`).
 Reports: [routing_global.txt](output/reports/routing_global.txt), [routing_detailed.txt](output/reports/routing_detailed.txt).
 
 ### Timing
@@ -232,7 +226,8 @@ Report: [irdrop.rpt](output/reports/irdrop.rpt).
 
 ### Antenna, slew, capacitance
 
-20 antenna diodes inserted (`design__instance__count__class:antenna_cell`); `antenna__violating__nets` = 0; `manufacturability.rpt`: Antenna Passed.
+20 antenna diodes inserted (`design__instance__count__class:antenna_cell`); `antenna__violating__nets` = 0; `manufacturability.rpt`: Antenna Passed. Capacitance violations: 0 (`design__max_cap_violation__count`).
+Slew: `design__max_slew_violation__count` = 14, all in the three ss corners (nom/min/max_ss_100C_1v60), 0 in tt and ff; fanout violations: 1 in every corner. Classification (run dir `57-openroad-stapostpnr/nom_ss_100C_1v60/checks.rpt`): the 14 pins are 7 cell pins (`_154_/S`, `_150_/S`, `_152_/S`, `_148_/S`, `_165_/C`, `fanout24/A` and the driver pin `fanout25/X`) plus the 7 antenna-diode pins on them, all at about 0.806 ns against the 0.75 ns limit, i.e. one net driven by `fanout25`, a flow-inserted internal buffer with fanout 13 against a limit of 8 (the one fanout violation). None is an input-port-limited case; all belong to the internal-driver class. Repair margin used: 40 % (`config.json` keys `PL_RESIZER_MAX_SLEW_MARGIN`, `GRT_DESIGN_REPAIR_MAX_SLEW_PCT`); no other margin was tried for this design (not verified). `check_signoff.py` prints these as notes and does not fail on them.
 Report: [cell_usage.rpt](output/reports/cell_usage.rpt).
 
 ## Run time and memory
@@ -290,4 +285,4 @@ make flow-all DESIGN=audio_onset       # simulate, gds, check, gate-level, colle
 
 9. **Timing headroom.** Worst setup slack is 13.206 ns of 25 ns, and the worst path is again the `m_ready` to `s_ready` wire; even the adder-tree path from `s_data[0]` to a flop has 13.62 ns. Hold is the tight number: 0.1128 ns at min_ff. Both audio designs keep the same ~13 ns setup headroom, so the 4-bit arithmetic does not limit the clock at 25 ns.
 
-10. **Verification: de Bruijn coverage, streaming testbench, negative checks.** A frame testbench (`vision_block`, 540 independent frames) cannot check history-dependent output. Here one de Bruijn stream contains each of the 65,536 four-sample windows exactly once (68,829 beats, `tb/audio_onset_tb.v` header), so every window is tested as the newest window of some beat, then short streams, `s_last` everywhere, error samples and resets, replayed in three paces (full rate, random gaps and stalls, heavy back-pressure): 203,193 output beats and 856,018 checks. The testbench fails on X (`!==`), an output beat with no input beat, a stalled result that changes, wrong latency, and wrong state after reset (drain-reset and stall-reset). There is no mutation suite in the repo, so I cannot show that a wrong weight would be caught; the exhaustive coverage makes it very likely but that is not demonstrated here.
+10. **Verification: de Bruijn coverage, streaming testbench, negative checks.** A frame testbench (`vision_block`, 540 independent frames) cannot check history-dependent output. Here one de Bruijn stream contains each of the 65,536 four-sample windows exactly once (68,829 beats, `tb/audio_onset_tb.v` header), so every window is tested as the newest window of some beat, then short streams, `s_last` everywhere, error samples and resets, replayed in three paces (full rate, random gaps and stalls, heavy back-pressure): 203,193 output beats and 856,018 checks. The testbench fails on X (`!==`), an output beat with no input beat, a stalled result that changes, wrong latency, and wrong state after reset (drain-reset and stall-reset). `tests/run_tests.sh` corrupts one expected value in `tb/vectors.hex` and requires the testbench to fail (`FATAL: ...audio_onset_tb.v:82: FAIL`), but there is no RTL mutation test, so I cannot show that a wrong weight would be caught; the exhaustive coverage makes it very likely but that is not demonstrated here.

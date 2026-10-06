@@ -1,10 +1,18 @@
 # Workshop deck: open-ai-silicon-osi.pptx
 
+**Scope, read first.** These files are copied unchanged from the sibling repository `../open-ai-silicon` (`docs/slides/`; byte-identical,
+checked with `cmp`) as reference material (`provenance/SOURCES.md`, `README.md` last section). The deck describes that repository's designs
+(`spm_ref`, `counter_wb`, `uart`, `ring_osc`, `pwm_dac`, `sigma_delta`, `aes128`, `bnn_mnist`, `cnn_lite`, `fcnn_mnist`, `cnn_fp16`, ...), none
+of which exist under `designs/` here, and it reads its numbers from files of that repository (`build/v4/*.log`, `build/results/_flow_stages/cnn_lite/`,
+`build/labs/`, `docs/SPEC.md`). It does NOT cover this repository's 25 designs (tiny AI engines, precision study, KV-cache family, SoC macros,
+wrappers), and it is not regenerated here: run the commands below from a clone of `open-ai-silicon`, not from this tree, where the data files are missing.
+For this repository's results see `README.md` and `designs/<d>/NOTES.md`.
+
 `build_deck.js` writes `open-ai-silicon-osi.pptx` (16:9). Every number is read from the repository at build time
 (`designs/<design>/output/metrics.json` and `resources.json`, `build/v4/*.log`, `build/results/_flow_stages/cnn_lite/*.json`);
 the source of each number is in that slide's speaker notes.
 
-## Regenerate (from a clean clone)
+## Regenerate (from a clean clone of open-ai-silicon)
 
     cd docs/slides
     npm install                      # pptxgenjs 4.0.1 into docs/slides/node_modules (do not commit it)

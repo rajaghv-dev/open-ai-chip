@@ -13,7 +13,7 @@ Status: **hardened** (`make flow-all DESIGN=image_text_match` passed all 5 stage
 | HORIZ | some row is fully lit |
 | DIAG | a diagonal (0,4,8 or 2,4,6) is fully lit |
 
-All 512 x 4 = 2,048 pairs are enumerated (about 36 percent are true).
+All 512 x 4 = 2,048 pairs are enumerated (451 of them, about 22 percent, are true; counted with `golden.truth_table()`).
 
 - **Image encoder:** two 3-tap binary neurons A and B (kernel 3 bits, threshold), each reused serially over the 8 lines (3 columns, 3 rows, 2 diagonals), one line per cycle. Fires are sum-pooled per line group: the image embedding is 6 small counts (A cols, A rows, A diags, B cols, B rows, B diags), each 0..3.
 - **Text encoder:** a ROM table, caption -> 6 signed 3-bit integers in the same space.

@@ -2,7 +2,7 @@
 
 Status: **Hardened**: `make flow-all` passed all 5 stages (simulate, gds, check, gate-level, collect). 4169 std cells, 340 x 340 um die (`config.json`), 25 ns clock, worst setup slack 8.77 ns, hold 0.096 ns, DRC/LVS/antenna clean, 2073-record RTL and gate-level simulation PASS; max-slew violations 1190 are reported, not failing (`output/metrics.json`, `NOTES.md`).
 
-**What it shows:** a longer context: the largest cache (1024 flip-flops), worst-case decode 18 cycles. One attention head (model dimension 4) with a KV cache in registers and the two phases of LLM inference:
+**What it shows:** a longer context: the largest cache (1024 nominal bits, of which 144 flip-flops were built: kc 112 + vc 32, `NOTES.md`), worst-case decode 18 cycles. One attention head (model dimension 4) with a KV cache in registers and the two phases of LLM inference:
 **prefill** streams prompt tokens into the cache (1 cycle per token, independent of the cache length) and **decode** scans the cache serially
 with ONE dot-product unit (n + 3 cycles for n cached entries), picks the best-scoring entry (strictly greater replaces: the lowest slot wins a tie)
 and returns its value vector (hard attention), then appends the new token.
@@ -13,8 +13,8 @@ and returns its value vector (hard attention), then appends the new token.
 | bits per K/V component | 8 |
 | ring | 0 |
 | cache bits N x 2 x 4 x bits | 1024 |
-| estimated flip-flops (by inspection) | about 1190 |
-| die (estimate) | 340 x 340 um, 25 ns clock |
+| flip-flops: estimated by inspection / built | about 1190 / 277 (`output/metrics.json`, `design__instance__count__class:sequential_cell`) |
+| die (config estimate, flow clean) | 340 x 340 um, 25 ns clock, utilisation 0.224 (`design__instance__utilization`) |
 
 **Ports (24 pins):** `clk`, `rst` (synchronous, active high), input stream `s_valid`, `s_data[7:0]`, `s_last`, `s_ready`, output stream `m_valid`, `m_data[7:0]`, `m_last`, `m_ready`.
 Commands (first beat): `01` RESET_CACHE, `02` PREFILL + tokens, `03` DECODE + token. Responses: 2 beats `[status, count]`, or 8 beats

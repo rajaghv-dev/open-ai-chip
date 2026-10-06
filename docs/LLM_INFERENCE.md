@@ -10,8 +10,11 @@ once it is trained, and what each idea means for the silicon underneath.
   arithmetic on made-up toy or generic parameters. They are not measurements and not claims about any real chip
   or any named commercial model.
 - Numbers marked with a file path are read from this repository's own files.
-- A tiny KV-cache attention engine is being built (see `model/kv_attention/spec.md` and `designs/kv_attn_*`).
-  This page does not quote numbers from it; read those files once they land.
+- The tiny KV-cache attention family is built and hardened: five engines `designs/kv_attn_{n4,n8,n16,n8_int4,n8_ring}`
+  (spec `model/kv_attention/spec.md`, shared RTL `shared/rtl/kv_attn_core.v`), plus the SoC macro
+  `designs/soc_kv_attn_n8` and its Caravel wrapper `designs/user_project_wrapper_soc_kv`. Section 5 quotes their
+  measured numbers, each with the file it comes from (`metrics.json`, `model/kv_attention/golden.py --check`,
+  `firmware/README.md`). They are measurements of a 4-dimensional toy, not of an LLM.
 
 Contents: 1 two phases, 2 KV cache, 3 batching / speculation / tiling / softmax, 4 hardware consequences,
 5 built here versus explained only, 6 intuitions and glossary.
@@ -351,11 +354,12 @@ verified exhaustively. Concepts that cannot be shrunk to that size stay as expla
 
 | Concept | Built here | Explained only (and why) |
 |---|---|---|
-| Prefill (many tokens at once) | `tiny_kv_attention` variants, being built: `designs/kv_attn_*` with spec in `model/kv_attention/spec.md` | |
-| Decode (one token at a time) | same family, being built (`designs/kv_attn_*`) | |
-| KV cache (store K and V) | same family, being built (`designs/kv_attn_*`; `model/kv_attention/spec.md`); concept and toy entry counts in `docs/WHY_AI.md` section 7 | |
-| int4 KV cache | an int4-KV variant in the same family, being built; the number-format study of weights is `docs/PRECISION_STUDY.md` (int4 moves 83 bits per inference against 356 for fp32, "bits moved per inference" table) | |
-| Ring-buffer cache | a ring-buffer variant in the same family, being built (`designs/kv_attn_*`) | |
+| Prefill (many tokens at once) | the `kv_attn_*` family (`designs/kv_attn_n4`, `n8`, `n16`, `n8_int4`, `n8_ring`; spec `model/kv_attention/spec.md`): PREFILL writes the cache at 1 cycle per token, response latency 2 cycles | |
+| Decode (one token at a time) | same family: DECODE scans the n cached entries with one dot-product unit, latency n + 3 cycles (`spec.md` section 6); `kv_attn_n8` worst case 10 | |
+| KV cache (store K and V) | same family: `kv_attn_n4` / `n8` / `n16` hold 4 / 8 / 16 entries (256 / 512 / 1024 nominal bits, `golden.py --check`); concept and toy entry counts in `docs/WHY_AI.md` section 7 | |
+| int4 KV cache | `designs/kv_attn_n8_int4`: 256 nominal cache bits, recall 81.65 % against 100.00 % for int8 (`golden.py --check`). The number-format study of weights is `docs/PRECISION_STUDY.md` (int4 moves 83 bits per inference against 356 for fp32, "bits moved per inference" table) | |
+| Ring-buffer cache | `designs/kv_attn_n8_ring`: the oldest entry is overwritten, never CACHE_FULL; 100.00 % against the last-8 oracle, 91.11 % against an unbounded oracle on 32-token episodes (`golden.py --check`) | |
+| Engine behind firmware (system view) | `designs/soc_kv_attn_n8` (adapter + `kv_attn_n8`, 109-pin macro) and `designs/user_project_wrapper_soc_kv`; PicoRV32 firmware `firmware/kv/` (`make soc-kv`) | |
 | Quantisation (number formats) | seven precision engines `designs/prec_{bin,tern,int4,int8,fp8,fp16,bf16}/`; results in `docs/PRECISION_STUDY.md` (Study table A: int4 94.25 % vs bf16 94.00 % accuracy on its 2000-image test set; this is a tiny image neuron, not an LLM) | |
 | Data-movement cost | `firmware/README.md`: about 55 CPU clocks per bus write; accelerator round trip 490 to 728 clocks against 6 to 15 clocks of computation (cycle table in that file) | |
 | Interface glue dominating | `designs/soc_image_text_match/NOTES.md`: the Wishbone adapter FIFOs and logic are 354 of 393 flip-flops (90.1 %), the engine 39 | |
@@ -371,6 +375,46 @@ Why "explained only": each of those items would break at least one of the three 
 harden in under about ten minutes, small enough to verify exhaustively, small enough to read in an afternoon).
 The point of the built family is to show the *kernel* (store K and V, read them back, attend) honestly;
 the techniques around it are system-scale.
+
+### 5.1 Measured results of the KV family
+
+Hardened on sky130A at the 25 ns clock; every row passes DRC, LVS, XOR, antenna and gate-level simulation
+(`build/state_snapshot.md`; `output/metrics.json` of each design). Std cells, flip-flops, die and worst setup
+slack at `max_ss_100C_1v60` are from `metrics.json`; cache flip-flops are `kc + vc` from
+`check_signoff.py --breakdown` as quoted in each `NOTES.md`; decode worst case is `n + 3` at n = N-1
+(`golden.py --check`; the ring variant scans N slots when full, so N + 3).
+
+| design | cache entries x bits | nominal cache bits | cache flip-flops built | all flip-flops | std cells | die um | setup ns | worst decode cycles |
+|---|---|---|---|---|---|---|---|---|
+| `kv_attn_n4` | 4 x 8 | 256 | 36 | 159 | 1679 | 200 x 200 | +9.349 | 6 |
+| `kv_attn_n8` | 8 x 8 | 512 | 72 | 200 | 2566 | 260 x 260 | +10.740 | 10 |
+| `kv_attn_n16` | 16 x 8 | 1024 | 144 | 277 | 4169 | 340 x 340 | +8.766 | 18 |
+| `kv_attn_n8_int4` | 8 x 4 | 256 | 96 | 222 | 2394 | 220 x 220 | +9.667 | 10 |
+| `kv_attn_n8_ring` | 8 x 8 (ring) | 512 | 72 | 198 | 2621 | 260 x 260 | +10.705 | 11 |
+| `soc_kv_attn_n8` | adapter + `kv_attn_n8` | 512 | 72 | 570 | 4514 | 300 x 300 | +1.442 | 10 (engine) |
+
+What these numbers say, in LLM terms:
+
+- **Nominal cache bits are not silicon.** The weights are constants, so most stored bits are constants or copies and
+  synthesis removes them: `kv_attn_n8` declares 512 cache bits and builds 72 flip-flops. Halving the bits (int4) did
+  not reduce flip-flops (96 versus 72) because the int8 baseline was already pruned (`designs/kv_attn_n8_int4/NOTES.md`).
+  A real cache holds real data, so this effect is specific to a hand-picked toy.
+- **The memory-for-accuracy trade is visible.** int4 recalls the right value on 81.65 % of decode steps and the ring on
+  91.11 % against an unbounded memory (100.00 % against the last 8 tokens): quantisation and windowing are both
+  "fewer bytes, some lost quality" (section 2.4).
+- **Prefill versus decode, measured on the SoC.** `make soc-kv` runs PicoRV32 firmware against `kv_attn_n8` behind
+  the adapter (`firmware/README.md`, section "KV-cache attention"): the prefill cost per prompt token falls from 328.0
+  CPU clocks at P = 1 to 90.6 at P = 7 (one frame pays the setup once, each extra token adds one bus write), while
+  every decode is its own frame at a flat 670 clocks, of which 502 read the 8-beat answer. The engine's own
+  n + 3 growth (7 to 14 clocks above the baseline for n = 0..7) is hidden behind the bus.
+- **The interface sets the margin.** Setup slack falls from +10.74 ns (`kv_attn_n8` alone) to +1.44 ns as the
+  `soc_kv_attn_n8` macro, because the worst path starts at `wb_rst_i` (12.5 ns Caravel input delay) and reaches all
+  570 flip-flops; 370 of those 570 belong to the adapter and 200 to the engine (`designs/soc_kv_attn_n8/NOTES.md`).
+  The Caravel wrapper `user_project_wrapper_soc_kv` is signoff-clean (setup +1.448 ns) with the same testbench
+  passing on RTL and both gate-level netlists.
+- **Not done:** the full-Caravel simulations and the local precheck were run for the `tiny_ai_core` wrapper only, not for
+  the KV wrapper (`build/state_snapshot.md`); the firmware numbers above come from the PicoRV32 simulation, not Caravel's
+  management core.
 
 Note on the data-movement rows: they are measurements of different, smaller systems (a PicoRV32 CPU and a
 generic Wishbone adapter), not of an LLM. They illustrate the same lesson in miniature: moving data costs more

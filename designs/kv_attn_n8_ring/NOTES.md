@@ -75,7 +75,7 @@ Sum 198: my sum of the table 56+16+56+32+5+8+15+6+4 = 198 (the 4 one-bit flags a
 
 ## Data flow
 
-The golden model is bit- and cycle-exact; `python3 model/kv_attention/golden.py --trace kv_attn_n8_ring` prints cache contents per command (its first commands only fill 6 of the 8 slots, e.g. `DECODE A0 -> response 10 06 02 22 01 ff ff 02 latency 8 cycles`, so I did not rely on it for the wrap).
+The golden model is bit- and cycle-exact; `python3 model/kv_attention/golden.py --trace kv_attn_n8_ring` prints cache contents per command (its first commands only fill 6 of the 8 slots, e.g. `DECODE A0 -> response 10 06 02 22 01 ff ff 02 latency 8 cycles`; its later commands do reach a full cache, latency 11, but I did not rely on it for the wrap and used my own script below).
 To show the wrap I replayed my own short script with the same `Engine` class (`model/kv_attention/golden.py`; I ran it for `kv_attn_n8_ring` and for `kv_attn_n8`): `PREFILL A1 B1 C1 D1 B2 C2 D2 B3` (fills the 8 slots, `wp` wraps to 0), `DECODE A0`, `PREFILL C0`, `DECODE A0`. Cache after the prefill (K position component and V0, the value level):
 
 ```

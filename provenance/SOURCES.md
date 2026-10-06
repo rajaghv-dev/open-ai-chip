@@ -24,3 +24,14 @@ template's module name), generated outputs, historical metrics. `designs/*/outpu
 New in this repository (not copied): `designs/*/NOTES.md`; `docs/WHY_AI.md`; and `model/examples/{audio,transformer,precision}.py`,
 designed from `../open-ai-silicon/docs/ARCH_STUDY_PLAN.md` sections 4.3, 4.4, 4.6, 4.7 and 4.8 at the commit above.
 `designs/*/output/reports/` and `layout.png` are this repository's own flow outputs, collected by `scripts/flow/collect.sh`.
+
+Added later (new work in this repository unless noted):
+- `model/{audio_pitch,audio_onset,image_text_match,precision_hw,kv_attention}/` and the designs generated from them
+  (audio, `image_text_match`, `prec_*`, `kv_attn_*`), `shared/rtl/{wb_stream_adapter.v,kv_attn_core.v}`, `shared/tb/*.vh`,
+  `designs/{soc_image_text_match,soc_kv_attn_n8}`, `designs/user_project_wrapper*`, `firmware/`, `soc_sim/*.v`, `caravel_sim/`
+  scripts and testbenches, `precheck/` scripts, `tools/`, `examples/`, `tests/adapter/`: written here. Of the wrapper builds,
+  the fixed Caravel wrapper geometry and `user_defines.v` structure come from the `chipfoundry/caravel_user_project` template
+  (`designs/user_project_wrapper*/fixed_dont_change`).
+- `soc_sim/third_party/picorv32/`: PicoRV32 by Claire Xenia Wolf (ISC licence, header in the file); copied third-party RTL.
+- Downloaded at run time into git-ignored `build/` (not committed): `chipfoundry/caravel-lite` tag CC2509, `caravel_mgmt_soc_litex`
+  tag CC2509, the template at `b510613`, the sky130A PDK; exact commits are in `caravel_sim/VERSIONS.txt` and `versions.lock`.

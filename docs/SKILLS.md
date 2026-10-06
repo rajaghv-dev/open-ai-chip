@@ -168,7 +168,8 @@ could in principle fix it).
 - *Some slew violations are the environment's.* Caravel drives `wbs_dat_i` with a 0.84 ns transition and
   `wbs_adr_i` with 0.92 ns against the 0.75 ns limit (`harden-design/reference.md` item 1). On the
   `tiny_ai_core` run at `max_ss_100C_1v60`, `classify_slew.py` found 80 port-driven and 51 internal of 131
-  listed pins (195 counted) (`harden-design/SKILL.md` section 3). No amount of resizing fixes the 80.
+  listed cell pins; adding the 64 input-port pins themselves gives 144 environment-limited + 51 internal = 195
+  (`designs/tiny_ai_core/NOTES.md`, `harden-design/SKILL.md` section 3). No amount of resizing fixes the 144.
 - *Placement above 100 % means the die is too small.* `image_text_match` at 80 x 80 um was at 82 %, and repair
   ran out of memory; 120 um gave about 36 %. `prec_int8` was at 115 % and global placement refused
   (`harden-design/reference.md` item 2; `designs/image_text_match/config.json` `//DIE_AREA`). Target about 40 %
@@ -179,10 +180,23 @@ could in principle fix it).
   `designs/user_project_wrapper/README.md`). The same change roughly halved the cell count: 3521 standard cells
   for the earlier 400 x 400 um macro, 1809 for the 250 um one (`wrapper-build/reference.md` failure history item 2).
 - *Floats need extra effort at 40 MHz*: see section 2.3.
+- *Run-reuse watches whole directories, so adding a file can make a run stale.* `find_reusable_run.py` treats a run as
+  reusable only if nothing in the directory of any input file changed after the run started. Adding
+  `shared/rtl/kv_attn_core.v` to `shared/rtl/` made `soc_image_text_match` and `user_project_wrapper_soc_itm`
+  stale; both were re-run on 2026-10-06 with identical metrics (163 s / 0.98 GB and 60 s / 0.875 GB,
+  `output/resources.json`). Markdown edits never make a run stale (`harden-design/SKILL.md` section 2).
+- *Where the time goes.* The biggest flow is the macro `soc_kv_attn_n8` at 181 s and 1.099 GB, then
+  `soc_image_text_match` 163 s, `kv_attn_n16` 142 s (`output/resources.json` of each). All 25 designs stay under
+  1.1 GB peak, far from the 8 GB cap; the 600 s timeout is not close.
 
 ---
 
 ### 2.2 add-tiny-engine
+
+(Scope today: 13 classifier-style stream engines built with this recipe plus the five `kv_attn_*` KV-cache attention
+engines, which show a non-classifier shape: a command/response protocol, a shared core `shared/rtl/kv_attn_core.v`, hand-picked
+parameters from `model/kv_attention/` and their own testbench body `shared/tb/kv_attn_tb.vh`. `make adapter-test` covers 14
+engines: the 13 plus `kv_attn_n8`.)
 
 **Purpose and triggers.** Description (from `.claude/skills/add-tiny-engine/SKILL.md`): "Add a new tiny AI
 inference engine (one small neural-network block with the 24-pin valid/ready stream interface) to the
@@ -240,6 +254,10 @@ most 1023 cases); RTL in IO / MEMORY / COMPUTE / CONTROL sections; a five-line t
 
 **Insights and intuitions.**
 
+- *Not every engine is a classifier.* `kv_attn_n8` holds a KV cache in 512 register bits and serves PREFILL (1 cycle per
+  token) and DECODE (n + 3 cycles for n cached entries, `model/kv_attention/spec.md`). Its testbench replays 1521 records
+  with a record layout of its own, so the recipe's wiring (Makefile `MODELS`, `check_generated.sh`, adapter format `KV`) is
+  reused but the model step is `gen.py`, not `train.py`.
 - *The weights are the knowledge.* Training found weights 1,1,1,1 with threshold 4 for the vision example and
   PAD 0, GOOD +1, FINE 0, BAD -1 for text (`SPEC.md` Intuitions; `model/tiny_ai/weights.json`). Different
   labels through the same RTL give a different rule (`docs/WHY_AI.md` section 4).
@@ -370,7 +388,7 @@ undriven outputs), or make the tests/run_tests.sh "== wrapper" checks pass."
 - **Caravel.** ChipFoundry's fixed harness chip: a management core, pads, and a rectangle called
   `user_project_wrapper` where your design lives. The wrapper's pin positions and geometry are fixed
   (`fixed_dont_change/user_project_wrapper.def`: die 2920 x 3520 um) and never edited.
-- **Macro.** A block hardened on its own (here `tiny_ai_core` or `soc_image_text_match`, 109 signal pins:
+- **Macro.** A block hardened on its own (here `tiny_ai_core`, `soc_image_text_match` or `soc_kv_attn_n8`, 109 signal pins:
   Wishbone slave, `irq[2:0]`, power) and then placed as a single instance, `mprj`, inside the wrapper. The
   wrapper has no logic of its own: exactly one instance, no `assign`, no `always` (`tests/run_tests.sh`
   "== wrapper").
@@ -388,7 +406,7 @@ undriven outputs), or make the tests/run_tests.sh "== wrapper" checks pass."
   outputs; the recorded tapeout caveat is that a floating `io_oeb` leaves the pad enable undefined.
 
 **Workflow in short.** Check the macro (109 pins on the S edge in pad order, `base_<macro>.sdc`, `DIODE_ON_PORTS "in"`,
-250 x 250 um, slew margin 20); `make views`; `bash .claude/skills/wrapper-build/new_wrapper.sh <macro> <tag>` (folder name
+250 x 250 um, or 300 x 300 um as `soc_kv_attn_n8`, slew margin 20); `make views`; `bash .claude/skills/wrapper-build/new_wrapper.sh <macro> <tag>` (folder name
 must start with `user_project_wrapper`, `DESIGN_NAME` stays `user_project_wrapper`, only MACROS changes); add the
 undriven-output allowance; a ports-only testbench; `make flow-all DESIGN=user_project_wrapper_<tag>` and expect DRC, LVS,
 XOR, antenna all 0 and setup/hold >= 0. The wrapper is fixed so many designs fit one harness; the macro's netlist is
@@ -401,8 +419,13 @@ passed as `--netlist-extra` at gate level because the wrapper netlist only insta
   macro hardened with default constraints; the macro build ran out of memory at slew margin 70; 204 undriven
   outputs needed an allowance. Each is a row of the skill's failure table.
 - *A copy is cheap.* `soc_image_text_match` reused the same footprint and pin order: setup +2.965 ns, hold
-  +0.110 ns versus +1.461 / +0.105 ns for `tiny_ai_core`; whole flow 83 s, peak 0.8 GB
+  +0.110 ns versus +1.461 / +0.105 ns for `tiny_ai_core`; first run whole flow 83 s, peak 0.8 GB
   (`wrapper-build/SKILL.md` section 6; `wrapper-build/reference.md` "Results to compare against").
+- *A bigger macro still fits.* `user_project_wrapper_soc_kv` wraps the 300 x 300 um `soc_kv_attn_n8` at the same origin:
+  setup +1.448 ns, hold +0.105 ns, all signoff counts 0, flow 76 s and 0.954 GB (`output/metrics.json`,
+  `output/resources.json`). The 300 um macro swallows more PDN straps (four `PDN-0110` via warnings, no failure) and needed
+  one more detail-route iteration (63, 6, 3, 0 against 50, 5, 0). Three wrappers now exist; full-Caravel sims and the
+  precheck ran for the `tiny_ai_core` wrapper only.
 
 ---
 
@@ -410,7 +433,7 @@ passed as `--netlist-extra` at gate level because the wrapper netlist only insta
 
 **Purpose and triggers.** Description (from `.claude/skills/soc-run/SKILL.md`): "Run, debug and extend
 firmware on the open-ai-chip SoC. Use when running or debugging RISC-V firmware against tiny_ai_core on the
-local PicoRV32 SoC (make soc-sim), adding a firmware test case, putting a stream engine behind
+local PicoRV32 SoC (make soc-sim), the KV-cache attention firmware (make soc-kv), adding a firmware test case, putting a stream engine behind
 shared/rtl/wb_stream_adapter.v (make adapter-test), measuring CPU-vs-accelerator cycles, or running the
 full-Caravel RTL / hybrid / full-chip gate-level sims (make caravel-rtl, caravel-gl, caravel-fullgl), SDF runs (caravel-sdf-wrapper), or the local ChipFoundry precheck (make precheck)."
 
@@ -431,13 +454,13 @@ full-Caravel RTL / hybrid / full-chip gate-level sims (make caravel-rtl, caravel
   bus speed from the engine speed.
 - **The verification ladder** (`docs/SOC_PLAN.md` section 4, `soc-run/SKILL.md` section 1), cheapest first:
   engine RTL (`make simulate`) -> local PicoRV32 SoC (`make soc-sim`, about 25 s) and `make adapter-test`
-  (about 9 s) -> full Caravel RTL with real VexRiscv firmware from a flash model (`make caravel-rtl`, about
+  (about 9 s; 14 engines) and `make soc-kv` (about 14 s; the KV firmware in `firmware/kv`) -> full Caravel RTL with real VexRiscv firmware from a flash model (`make caravel-rtl`, about
   53 s) -> hybrid gate level (`make caravel-gl`, about 59 s) -> full-chip GL with SDF -> precheck. Cheap rungs
   catch most bugs quickly; expensive rungs prove integration.
 - **Simulation levels.** **RTL** simulates the source text. **GL (gate level)** simulates the synthesised or
   routed netlist of real cells, here with unit delay. **SDF** back-annotates the real extracted wire and cell
-  delays onto the netlist; that is the first level where timing behaviour is simulated (the repo has not done
-  this yet; section 3).
+  delays onto the netlist; that is the first level where timing behaviour is simulated (done for wrapper + macro with
+  `make caravel-sdf-wrapper`; full-chip GL+SDF with firmware is not done; section 3).
 
 **Workflow in short.** `make soc-sim` passes only with the line `PASS`, `SOC_SIM: firmware exit PASS after N cycles` and no
 `FAIL` line (log `soc_sim/build/sim.log`). New firmware tests take expected values from the golden model via
@@ -462,6 +485,9 @@ full-Caravel RTL / hybrid / full-chip gate-level sims (make caravel-rtl, caravel
   490.0 (0.3x); `text_sentiment` 351.0 vs 490.0 (0.7x); `vision_block` 1318.6 vs 728.0 (1.8x). Software beats the
   accelerator for the 4-input networks; only the 9-pixel convolution wins. This says nothing about large
   networks.
+- *The KV session is bus-bound too.* On `make soc-kv` (`firmware/README.md`): PREFILL as one frame costs 328 CPU clocks per
+  token at P = 1 and 90.6 at P = 7; one DECODE round trip is 670 clocks for every cache fill n = 0..7, while the engine needs
+  n + 3 cycles. Reading the 8-beat answer is 502 of the 670.
 - *The adapter is the data-movement cost.* In `soc_image_text_match`, 354 of 393 flip-flops (90.1 %) are bus
   interface and FIFOs; the matching network is 10 %. The engine alone is 39 flip-flops and 551 cells; wrapped
   it is 393 flip-flops and 3201 cells (10.1x the flops, 5.8x the cells, 11.8x the power)
@@ -509,7 +535,7 @@ flowchart TD
 | harden | `harden-design` | `make flow-all DESIGN=<d>` | `output/metrics.json`, GDS, reports |
 | notes | `write-design-notes` | `check_notes.py` | `designs/<d>/NOTES.md` |
 | wrapper | `wrapper-build` | `make views`, `make flow-all DESIGN=user_project_wrapper_<tag>` | wrapper `output/` |
-| firmware and Caravel | `soc-run` | `make soc-sim`, `make caravel-rtl`, `make caravel-gl` | `soc_sim/build/sim.log`, `build/caravel/work/` |
+| firmware and Caravel | `soc-run` | `make soc-sim`, `make soc-kv`, `make caravel-rtl`, `make caravel-gl` | `soc_sim/build/sim.log`, `soc_sim/kv/build/sim.log`, `build/caravel/work/` |
 | full-chip GL, SDF, precheck | `soc-run` (section 8) | `make caravel-fullgl`, `make caravel-sdf-wrapper`, `make precheck` | `build/caravel/work/run_fullgl.log`, `precheck/results/summary.tsv` |
 
 **Covered by soc-run (section 8).** Full-chip gate-level simulation (`make caravel-fullgl`, PASS in 14 m 23 s), SDF back-annotation

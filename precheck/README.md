@@ -1,6 +1,7 @@
 # precheck/
 
-Local ChipFoundry `cf-precheck 1.3.7` run for the Caravel user project (user_project_wrapper + tiny_ai_core).
+Local ChipFoundry `cf-precheck 1.3.7` run for the Caravel user project (user_project_wrapper + tiny_ai_core ONLY; the
+user_project_wrapper_soc_itm and user_project_wrapper_soc_kv wrappers were not run through it).
 Everything runs on this Mac in the aarch64 Colima VM. No account, no `cf login/init/push/submit`, no uploads.
 
     precheck/run_precheck.sh            # stage + run all 14 checks, one container per check, 45 min cap each

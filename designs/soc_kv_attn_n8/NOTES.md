@@ -12,7 +12,7 @@ check 1 s, gate-level synthesised 8 s and routed 5 s, collect 4 s; `build/flow_s
 `soc_kv_attn_n8` is the KV-cache attention engine as a Caravel SoC macro: the generic Wishbone-to-stream bridge `shared/rtl/wb_stream_adapter.v` (TX and RX FIFO, 16 entries each, 9-bit entries)
 wired to ONE unchanged engine, `kv_attn_n8` (`designs/kv_attn_n8`: one attention head, model dimension 4, an 8-slot KV cache of 8-bit keys and values in flip-flops, shared engine
 `shared/rtl/kv_attn_core.v`, contract `model/kv_attention/spec.md`). `rtl/soc_kv_attn_n8.v` is wiring only. Its port list is exactly `tiny_ai_core`'s: 109 signal pins
-(`design__io` = 111 with `vccd1` / `vssd1`, `output/metrics.json`), so it drops into `user_project_wrapper` as `mprj`. `designs/user_project_wrapper_soc_kv/` exists for that; I did not read its results for this document.
+(`design__io` = 111 with `vccd1` / `vssd1`, `output/metrics.json`), so it drops into `user_project_wrapper` as `mprj`. `designs/user_project_wrapper_soc_kv/` is that wrapper: its flow is clean (worst setup +1.448 ns, worst hold +0.105 ns, DRC, LVS, XOR, antenna 0, `designs/user_project_wrapper_soc_kv/output/metrics.json`; notes in [../user_project_wrapper_soc_kv/NOTES.md](../user_project_wrapper_soc_kv/NOTES.md)).
 
 What is AI and what is not. The AI is the engine: attention over a KV cache, the operation at the heart of LLM inference, in miniature. A DECODE token is a query q; every cached
 key k_j is scored with a dot product `s_j = q . k_j`, the best entry wins (hard attention, strictly greater replaces, lowest slot wins a tie) and its value vector is returned
@@ -131,7 +131,7 @@ in reset for two clocks (`eng_rst` = `wb_rst_i` or `clear_q`, `wb_stream_adapter
 ## How firmware drives it
 
 `firmware/kv/main.c` (rv32i, no libc) runs on PicoRV32 in `soc_sim/kv/` (`soc_sim/kv/run.sh` compiles `wb_stream_adapter.v`, `kv_attn_core.v`, `kv_attn_n8_rom.v`, `kv_attn_n8.v` with `kv_soc_tb.v`, the same adapter and
-engine pair that this macro wraps; it does not simulate `soc_kv_attn_n8.v` itself). One command: `make soc-kv` or `make -C firmware/kv sim` (about 15 s per `firmware/README.md`). The core of the code is one function:
+engine pair that this macro wraps; it does not simulate `soc_kv_attn_n8.v` itself). One command: `make soc-kv` or `make -C firmware/kv sim` (13 s wall time in the latest run per `firmware/README.md`; the Makefile help says about 14 s). The core of the code is one function:
 
 ```c
 /* firmware/kv/main.c, run_frame(): push the beats, poll DONE, pop the response, read CYCLES */
@@ -171,10 +171,10 @@ BAD_FRAME, BAD_TOKEN, CACHE_FULL, same-key chains, every fill level n = 0..8 and
 - RTL (`build/flow/soc_kv_attn_n8/stage_simulate.log`): `PASS soc_kv_attn_n8_tb: 1521 records (all of tb/vectors.hex: 1515 commands with every response beat, m_last, CYCLES, irq; 6 CLEARs of which 2 with a response pending), registers, 31647 checks`.
 - Gate level synthesised (`stage_gl_synth.log`): netlist `build/gl/soc_kv_attn_n8/runs/gl/final/nl/soc_kv_attn_n8.nl.v`, 1965 cells, the same PASS line with 31647 checks, `gl_sim: soc_kv_attn_n8 PASS (2 s)`; `synthesis__check_error__count` = 0.
 - Gate level routed (`stage_gl_final.log`): `designs/soc_kv_attn_n8/runs/RUN_2026-10-06_08-09-32/final/nl/soc_kv_attn_n8.nl.v`, 15565 cells (fill, tap and diodes included), the same PASS line, `gl_sim: soc_kv_attn_n8 PASS (5 s)`.
-- Firmware on PicoRV32 (`soc_sim/kv/build/sim.log`, file time 13:44 on 2026-10-06; not re-run by me): `PASS`, `SOC_SIM: firmware exit PASS after 1020782 cycles`; the sim compiles the adapter and engine RTL, not this macro's wiring file.
+- Firmware on PicoRV32 (`soc_sim/kv/build/sim.log`; the file on disk was re-written by a `make test` run during the second verification of this page, and the cited lines are unchanged; I did not run it myself): `PASS`, `SOC_SIM: firmware exit PASS after 1020782 cycles`; the sim compiles the adapter and engine RTL, not this macro's wiring file.
 - Adapter regression: `tests/adapter/run.sh` lists `kv_attn_n8:KV` among its engines (line 11, shared core line 19); I did not re-run it for this file.
 - Signoff check (`stage_check.log`, `check_signoff.py`): `registers: RTL 570 (allowance 0), surviving sequential cells 570`, `note: max-slew violations: 836`, `note: max-cap violations: 0`, `=> PASS`.
-- Not verified here: the macro's own CLEAR/irq behaviour under the CPU's real bus timing beyond what the two simulations above show; a Caravel-level run with this macro is not part of this document (`designs/user_project_wrapper_soc_kv/` has its own notes).
+- Not verified here: the macro's own CLEAR/irq behaviour under the CPU's real bus timing beyond what the two simulations above show; the wrapper flow with this macro is documented in [../user_project_wrapper_soc_kv/NOTES.md](../user_project_wrapper_soc_kv/NOTES.md); a full-Caravel simulation (`make caravel-rtl` and the later targets) and the local precheck were not run for this macro (they ran for the `user_project_wrapper` / `tiny_ai_core` wrapper only, `build/state_snapshot.md`).
 
 ## Layout (GDSII)
 
@@ -182,14 +182,13 @@ BAD_FRAME, BAD_TOKEN, CACHE_FULL, same-key chains, every fill level n = 0..8 and
 
 The picture (`output/layout.png`, KLayout render) shows the 300 x 300 um die (`design__die__bbox` = `0.0 0.0 300.0 300.0`, `design__die__area` = 90000 um^2); the core is `design__core__bbox` = `5.52 10.88 294.4 288.32`,
 80146.9 um^2, 102 rows (`design__rows`). The 109 signal pins are on the bottom (S) edge, ordered like the wrapper's Wishbone pads (`config.json` `//IO_PIN_ORDER_CFG`, `pin_order.cfg` is identical to `designs/soc_image_text_match/pin_order.cfg`, checked with `diff`), `irq` at the right end.
-Cells (`metrics.json`): 15565 instances in total; 11051 fill (`design__instance__count__class:fill_cell`; `cell_usage.rpt`: 9096 `decap_3`, 1046 `fill_1`, 909 `fill_2`), 1144 tap cells, and 4514 standard cells
-(`design__instance__count__stdcell`, area 42420.7 um^2, utilisation 0.529287): 1358 multi-input combinational, 570 sequential, 955 timing-repair buffers (of which 590 are hold buffers), 387 clock buffers and 15 clock inverters,
-33 inverters, 4 buffers, 48 antenna diodes. Routed wire length 82391 um (`route__wirelength`).
+Cells (`metrics.json`): 15565 instances in total (`design__instance__count`) = 4514 standard cells (`design__instance__count__stdcell`, area 42420.7 um^2, utilisation 0.529287) + 11051 fill (`design__instance__count__class:fill_cell`; `cell_usage.rpt`: 9096 `decap_3`, 1046 `fill_1`, 909 `fill_2`; my sum). The 4514 standard cells include the taps and diodes: 1358 multi-input combinational, 570 sequential, 955 timing-repair buffers (of which 590 are hold buffers), 387 clock buffers and 15 clock inverters,
+33 inverters, 4 buffers, 48 antenna diodes, 1144 tap cells (my sum of these classes = 4514). Routed wire length 82391 um (`route__wirelength`).
 
 Die versus estimate (`config.json` `//DIE_AREA`, written before the first run): the estimate was 29,686 um^2 (the `soc_image_text_match` standard-cell area) minus 3,856 um^2 (its engine) = about 25,800 um^2 for the adapter, plus 16,412 um^2 for `kv_attn_n8`,
 "about 42,200 um2", giving "about 50 percent" at 300 um. Measured: 42,420.7 um^2 (`design__instance__area__stdcell`), +0.5 % against the estimate (my division), and utilisation 0.529 (`design__instance__utilization`) against "about 50 percent".
 The estimate was good because it added two measured final areas. It also says the same sum would be "about 75 percent of a 250 um die's core"; my division of 42,200 by the 250 um die's core area 53,897.9 um^2 (`designs/soc_image_text_match/output/metrics.json`) gives 78 %, so "too dense" stands: the 300 um die was needed and is not oversized.
-The comment's remark that the wrapper's met5 strap crosses the macro is a wrapper-level statement; I did not check it.
+The comment's remark that the wrapper's met5 strap crosses the macro is a wrapper-level statement; it is checked in `designs/user_project_wrapper_soc_kv/NOTES.md` (PDN section): the met5 straps vccd1 at y 195.88 and 375.88 and vssd1 at y 214.48 cross the 300 um macro, and the wrapper's `design__power_grid_violation__count` is 0 (that file's own extraction from the final DEF).
 
 ## From RTL to GDSII: what each step did
 
@@ -251,8 +250,8 @@ Register-to-register setup slack is "N/A" in that table (no reg-to-reg path is t
 
 Worst setup path (`timing_paths_max_ss.rpt`, repeated in `runs/RUN_2026-10-06_08-09-32/56-openroad-stapostpnr/max_ss_100C_1v60/max.rpt`, slack 1.442393 ns): it starts at the input port `wb_rst_i`
 with clock network delay 5.57 ns plus an input external delay of 12.5 ns, so the data launches at 18.07 ns (`base_soc.sdc`: `set_input_delay [expr $::env(CLOCK_PERIOD) * 0.5] ... wb_rst_i`, half of the 25 ns period).
-It passes 15 cells and ends at the D pin of flip-flop `_3048_` at 29.564 ns; the capture clock edge is at 25 + 4.65 = 29.65 ns, plus 1.90 ns of clock tree to the flop, minus 0.25 ns uncertainty and 0.293 ns setup, so the required time is 31.006 ns (`max.rpt`).
-The 15 cells and their delays (all from the path listing, sums are mine):
+It passes 14 cells and ends at the D pin of flip-flop `_3048_` at 29.564 ns; the capture clock edge is at 25 + 4.65 = 29.65 ns, plus 1.90 ns of clock tree to the flop, minus 0.25 ns uncertainty and 0.293 ns setup, so the required time is 31.006 ns (`max.rpt`).
+The 14 cells and their delays (all from the path listing, sums are mine):
 
 | Segment | Cells | Delay (ns) |
 |---|---|---|
@@ -264,7 +263,7 @@ The 15 cells and their delays (all from the path listing, sums are mine):
 | hold buffer into D | `hold368` `dlygate4sd3_1` | 1.138 |
 | Sum | | 11.47 (path total 29.564 - 18.070 = 11.494; the rest is wire delay) |
 
-So 7 of the 15 cells are `clkdlybuf4s25_1`, a deliberately slow delay-buffer cell, and they contribute 6.157 ns (my sum) of the 11.494 ns. What this path is: `wb_rst_i` goes into `eng_rst` (`wb_stream_adapter.v`: `eng_rst = rst | clear_q`, the adapter's own
+So 7 of the 14 cells are `clkdlybuf4s25_1`, a deliberately slow delay-buffer cell, and they contribute 6.157 ns (my sum) of the 11.494 ns. What this path is: `wb_rst_i` goes into `eng_rst` (`wb_stream_adapter.v`: `eng_rst = rst | clear_q`, the adapter's own
 synchronous reset, and the FIFO `clr`), is combined with the clear and handshake logic and lands on the D input of a flop through a mux select: a synchronous reset implemented as data logic. In the routed netlist
 (`runs/RUN_2026-10-06_08-09-32/final/nl/soc_kv_attn_n8.nl.v`, a throwaway script, not checked in) a breadth-first walk from `wb_rst_i` through combinational cells reaches the D pins of all 570 flip-flops: reset is the one net that touches every flop.
 That is why reset distribution, not the attention math, sets the worst setup path of this macro. The same holds for the engine alone: its worst path (`designs/kv_attn_n8/output/reports/timing_paths_max_ss.rpt`) also starts at `rst`, with a 5.0 ns external delay and no clock latency, slack 10.74 ns.
@@ -364,7 +363,7 @@ the per-token cost falls from 328.0 clocks at P = 1 to 90.6 at P = 7 while the t
 speed; what one sees is the interface. The remedies are packing several bytes per bus word (8 of 32 bits are used), a response that is shorter than 8 bytes, a DMA path, or keeping the cache on chip so only the answer crosses (it already is). `CYCLES` hides the CPU: for a decode it reads only 63 to 70 adapter clocks while the CPU needs 670.
 
 **Timing: the margin went to the system interface, not to the math.** Setup slack fell from +10.74 ns (engine alone) to +1.44 ns (macro) because the path now launches 18.07 ns after the clock edge instead of 5.0 ns: the Caravel SDC gives `wb_rst_i` a 12.5 ns input delay (half the 25 ns clock) plus 5.57 ns of clock latency, and reset is the one net that reaches all 570 flip-flops
-(the netlist walk above). The worst path is 15 cells, 7 of them slow delay cells that the resizer used as fanout buffers, with a mux select at the end: reset written as data logic. The attention datapath (cache read, dot product, compare) is not on the worst path of any corner in `timing_paths_max_ss.rpt`. The macro still meets timing by 1.44 ns at ss, so nothing is wrong; the point is
+(the netlist walk above). The worst path is 14 cells, 7 of them slow delay cells that the resizer used as fanout buffers, with a mux select at the end: reset written as data logic. The attention datapath (cache read, dot product, compare) is not on the worst path of any corner in `timing_paths_max_ss.rpt`. The macro still meets timing by 1.44 ns at ss, so nothing is wrong; the point is
 the budget: a designer who looks at the standalone slack of the engine (+10.74 ns) would overestimate the macro's margin by 7.4 times (10.74 / 1.44, my division). Compare `soc_image_text_match`: +2.96 ns, set by an address pin whose launch is 8.6 ns earlier. The cheapest fixes, not tried: reset only the control flops (the cache storage has no reset need; `spec.md`: "cache data need not be cleared"), or register `eng_rst`
 once to cut the fanout depth. Both change RTL and make the committed evidence stale, so I only name them.
 Hold is +0.1048 ns at min_ff, the same order as `kv_attn_n8` alone (0.1052 ns) and `soc_image_text_match` (0.1101 ns): hold repair tracks the flop count (590 `dlygate4sd3_1`, 13.1 % of the cells), not the design.

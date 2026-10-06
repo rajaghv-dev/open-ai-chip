@@ -89,8 +89,10 @@ All evidence is a file in this repo. "cfg" = the design's `config.json` `"//..."
 
 ### 12. Timeouts
 - `FLOW_TIMEOUT` (default 600 s) in `scripts/flow/run_capped.sh`; `docs/SOC_PLAN.md` says use 600 explicitly and
-  give a smaller design when a step estimate approaches it. Biggest builds: `soc_image_text_match` 165 s,
-  `prec_fp16` 104 s (README results table). A timeout well below those is a hang, not a size problem.
+  give a smaller design when a step estimate approaches it. Biggest builds (`output/resources.json` `wall_s_total`): `soc_kv_attn_n8` 181 s (1.099 GB, the biggest macro flow),
+  `soc_image_text_match` 163 s (re-run 2026-10-06; first run 165 s), `kv_attn_n16` 142 s, `kv_attn_n8` 105 s, `prec_fp16` 104 s,
+  `prec_fp8` 101 s, `tiny_ai_core` 99 s; wrappers 59-76 s. Peak memory is at most 1.099 GB across all 25 designs, far from
+  the 8 GB cap (README results table). A timeout well below those is a hang, not a size problem.
 
 ### 13. Max-slew counts that stay
 - Slew violations are reported, not failed on. Classify before fixing: `classify_slew.py`. Port-driven nets (the

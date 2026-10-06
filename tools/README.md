@@ -39,7 +39,7 @@ GDS-based tools need `build/results/<d>/<DESIGN_NAME>.gds` (local, git-ignored).
 
 ## Tests
 
-`build/agent/venv/bin/python -m pytest tests/tools -q` (GDS tests skip with a reason when the GDS is missing).
+`build/agent/venv/bin/python -m pytest tests/tools -q` (`tests/tools/test_eda_tools.py`, 14 test functions; GDS tests skip with a reason when the GDS is missing).
 
 ## MCP server
 
@@ -69,4 +69,4 @@ Any other MCP client: command `build/agent/venv/bin/python`, args `tools/mcp_ser
 Offline agent: a local Hermes 3 8B model (Ollama) answers questions through `eda_tools` only (read-only).
 Run `build/agent/venv/bin/python tools/hermes_agent.py "question"` (add `--mode native` for the Ollama tools field; the default
 is the Hermes prompt format, which honours the system prompt). Eval: `python3 tools/eval/ground_truth.py` then
-`build/agent/venv/bin/python tools/eval/run_eval.py --mode prompt`. Details, scores and limits: `docs/HERMES_AGENT.md`.
+`build/agent/venv/bin/python tools/eval/run_eval.py --mode prompt`. Details, scores and limits: `docs/HERMES_AGENT.md` (prompt mode 13/15, native 6/15). The loop-and-harness example (baseline 13/15, up to 15/15 with a deterministic `pick_extreme` tool) is in `examples/hermes_harness/README.md`; a minimal KLayout demo is in `examples/hermes_klayout_demo/README.md`.

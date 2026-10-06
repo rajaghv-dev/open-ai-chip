@@ -1,5 +1,18 @@
 # firmware: real RISC-V code against the verified hardware, no Caravel
 
+Two firmware programs live here, each run on its own local PicoRV32 SoC sim (iverilog, no Docker, no downloads):
+
+| Program | Command (make target) | DUT | Result of the latest run (2026-10-06) |
+|---|---|---|---|
+| `firmware/` (this directory) | `make -C firmware sim` (`make soc-sim`) | `user_project_wrapper` RTL -> `tiny_ai_core` | PASS, 1,899,308 cycles, wall 24 s |
+| `firmware/kv/` | `make -C firmware/kv sim` (`make soc-kv`) | `wb_stream_adapter` + `kv_attn_n8` RTL | PASS, 1,020,782 cycles, wall 13 s |
+
+Scope: these are not Caravel simulations. The full-Caravel RTL/gate-level/SDF sims (`caravel_sim/`, `make caravel-rtl|caravel-gl|
+caravel-fullgl|caravel-sdf-wrapper`) and the local precheck (`make precheck`) were run only on `user_project_wrapper` (tiny_ai_core).
+The `user_project_wrapper_soc_itm` and `user_project_wrapper_soc_kv` wrappers (hardened, signoff clean) were not run through
+`caravel_sim` or the precheck; `soc_kv_attn_n8` is the hardened version of the adapter + `kv_attn_n8` pair that `make soc-kv` simulates
+at RTL (the sim instantiates the two modules directly, not the wrapper).
+
 What this is: a learning-scale stand-in for Caravel's management core. A PicoRV32 (rv32i, ISC license,
 `soc_sim/third_party/picorv32/`, Wishbone master `picorv32_wb`) runs C firmware in an iverilog SoC
 (`soc_sim/soc_tb.v`) made of 64 KiB RAM, a console / exit / cycle-counter / irq-status block at `0x2000_0000`, and the
@@ -16,13 +29,15 @@ Caravel's master does; the core masks read data by `sel`).
 Needs `riscv64-elf-gcc` (brew), iverilog, python3. Toolchain flags (work, no libgcc needed):
 `-march=rv32i -mabi=ilp32 -Os -ffreestanding -fno-builtin -nostdlib`. The CPU has no MUL/DIV; the code never
 multiplies or divides at run time (a shift-subtract divide is used for printing averages).
-Runtime: about 25 s wall, about 1.9 M simulated clocks.
+Runtime: about 24 s wall, 1,899,308 simulated clocks (`SOC_SIM: firmware exit PASS after 1899308 cycles`).
 
 ## Files
 
 - `gen_expected.py`: generates `build/expected.h` (all test cases, expected class / score / CYCLES, labels, and the
   learned parameters) from `model/tiny_ai/golden.py` and `weights.json`. Nothing is hand-written.
 - `main.c`, `start.S`, `link.ld`, `Makefile`, `bin2hex.py`.
+- `kv/` (`main.c`, `gen_expected.py`, `Makefile`) and `soc_sim/kv/` (`kv_soc_tb.v`, `run.sh`): the KV-cache program, see the last section.
+- `soc_sim/` (`soc_tb.v`, `run.sh`, `third_party/picorv32/`): the SoC sim of the first program.
 
 ## What the firmware does
 
@@ -51,19 +66,22 @@ round trip is dominated by bus writes (about 55 clocks each). For the 4-input ne
 9-pixel convolution (the most work per input) is faster on the accelerator. The comparison is for these tiny networks
 on a slow multi-cycle CPU with a one-input-per-write interface; it says nothing about large networks.
 
-## What remains for the real Caravel run (docs/SOC_PLAN.md ladder iv-vi)
+## Relation to the real Caravel run (docs/SOC_PLAN.md ladder iv-vi)
 
-- Same register sequences compiled for Caravel's management SoC (VexRiscv, `defs.h` addresses, `mprj_*` helpers), run
-  in the full-Caravel RTL simulation with the real `user_project_wrapper` (step iv).
-- Then gate-level simulation with the hardened macro netlists (v) and the physical flow checks (vi).
+- Done, for `user_project_wrapper` (tiny_ai_core) only: a VexRiscv program (`caravel_sim/tiny_ai_wb.c`, ID read plus four
+  cases, not this exhaustive firmware) passes in the full-Caravel RTL sim, the hybrid gate-level sim and the full-chip gate-level
+  sim; see caravel_sim/README.md and docs/CARAVEL_SIM.md. The register sequences are the same Wishbone accesses as here.
+- Not done: this exhaustive firmware and the KV firmware have not been compiled for Caravel's management SoC (`defs.h`
+  addresses, `mprj_*` helpers), and no Caravel sim exists for the soc_itm / soc_kv wrappers.
 - Differences to expect: Wishbone latency through Caravel's arbitration, different CPU cycle costs, flash-resident
-  code, and the cycle counter being a Caravel timer rather than this testbench register.
+  code, and the cycle counter being a Caravel timer rather than this testbench register. The cycle tables here are
+  PicoRV32 numbers, not Caravel numbers.
 
 ## KV-cache attention: prefill vs decode
 
 A second firmware program, `firmware/kv/`, runs on a second SoC sim, `soc_sim/kv/` (PicoRV32 + RAM + `wb_stream_adapter` +
-the unchanged `kv_attn_n8` engine, spec in `model/kv_attention/spec.md`). One command: `make -C firmware/kv sim` (about
-15 s wall time). It reuses `start.S`, `link.ld` and `bin2hex.py` from this directory unchanged.
+the unchanged `kv_attn_n8` engine, spec in `model/kv_attention/spec.md`). One command: `make -C firmware/kv sim` or `make soc-kv` (13 s wall time and 1,020,782 simulated clocks in the latest run:
+`SOC_SIM: firmware exit PASS after 1020782 cycles`; CAPS read 0x00101001). It reuses `start.S`, `link.ld` and `bin2hex.py` from this directory unchanged.
 
 What it does: eight sessions, P = 0..7. Each session sends RESET_CACHE, then PREFILL of P prompt tokens as ONE frame
 `[02, t0..t(P-1)]`, then DECODE `[03, t]` until the 8-entry cache is full, then one more DECODE (the CACHE_FULL error
