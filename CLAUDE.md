@@ -81,3 +81,5 @@ Evidence and hygiene
 - Handoff form for phase reports is in `SPEC.md` "Agent operating rules": status, commands and exit codes, files
   changed, evidence paths, measured budgets, first failure.
 - Other agents may work in the same tree: change only files you own for the task and say what you touched.
+
+Read-only EDA/KLayout tools for agents: `tools/eda_tools.py` (also `tools/mcp_server.py`); local Hermes agent and its evaluation: `docs/HERMES_AGENT.md` (venv at `build/agent/venv`, tests in `tests/tools/`).

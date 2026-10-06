@@ -71,6 +71,7 @@ Background and plans:
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): architecture and block diagrams of every engine and of `tiny_ai_core`.
 - [docs/SOC_PLAN.md](docs/SOC_PLAN.md): the plan from engines to a Caravel SoC.
 - [docs/PRECISION_STUDY.md](docs/PRECISION_STUDY.md): number formats compared in hardware.
+- [docs/HERMES_AGENT.md](docs/HERMES_AGENT.md): a local, offline agent (Hermes 3 8B in Ollama) answering questions about the chips through read-only KLayout/EDA tools (`tools/`, also an MCP server); 12/15 on a ground-truth evaluation.
 - [docs/SKILLS.md](docs/SKILLS.md): the project skills in `.claude/skills/`: what they encode and why, with the chip-design basics behind each.
 
 The flow and the checks are ported from `../open-ai-silicon` (its exercise 1); see `provenance/SOURCES.md`.

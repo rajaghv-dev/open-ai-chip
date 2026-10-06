@@ -1,0 +1,192 @@
+[
+ {
+  "id": "q01",
+  "category": "lookup",
+  "question": "How many standard cells does vision_block have?",
+  "check": {
+   "type": "numbers",
+   "values": [
+    297
+   ],
+   "tol_rel": 0.01
+  },
+  "expected": "297"
+ },
+ {
+  "id": "q02",
+  "category": "lookup",
+  "question": "What is the worst setup slack of prec_fp16 in ns, and in which timing corner?",
+  "check": {
+   "type": "numbers",
+   "values": [
+    0.1106
+   ],
+   "tol_rel": 0.02,
+   "tol_abs": 0.002,
+   "any_words": [
+    "max_ss_100C_1v60",
+    "ss_100C"
+   ]
+  },
+  "expected": "0.1106 ns at max_ss_100C_1v60"
+ },
+ {
+  "id": "q03",
+  "category": "comparison",
+  "question": "Which hardened design has the most flip-flops (sequential cells)?",
+  "check": {
+   "type": "words",
+   "any_words": [
+    "soc_image_text_match"
+   ]
+  },
+  "expected": "soc_image_text_match (393)"
+ },
+ {
+  "id": "q04",
+  "category": "comparison",
+  "question": "Among the designs that contain standard cells, which has the smallest standard-cell area?",
+  "check": {
+   "type": "words",
+   "any_words": [
+    "vision_all_lit"
+   ]
+  },
+  "expected": "vision_all_lit (1084.79 um2)"
+ },
+ {
+  "id": "q05",
+  "category": "comparison",
+  "question": "Which number-format variant (prec_*) has the most standard cells?",
+  "check": {
+   "type": "words",
+   "any_words": [
+    "prec_fp16"
+   ]
+  },
+  "expected": "prec_fp16 (1932)"
+ },
+ {
+  "id": "q06",
+  "category": "layout",
+  "question": "What is the die size of tiny_ai_core in micrometres?",
+  "check": {
+   "type": "numbers",
+   "values": [
+    250.0,
+    250.0
+   ],
+   "tol_rel": 0.001
+  },
+  "expected": "250 x 250 um"
+ },
+ {
+  "id": "q07",
+  "category": "layout",
+  "question": "How many macro instances does user_project_wrapper contain, and which macro is it?",
+  "check": {
+   "type": "numbers",
+   "values": [
+    1
+   ],
+   "tol_rel": 0,
+   "all_words": [
+    "tiny_ai_core"
+   ]
+  },
+  "expected": "1: tiny_ai_core"
+ },
+ {
+  "id": "q08",
+  "category": "layout",
+  "question": "How many wbs_dat_i pins does tiny_ai_core have?",
+  "check": {
+   "type": "numbers",
+   "values": [
+    32
+   ],
+   "tol_rel": 0
+  },
+  "expected": "32"
+ },
+ {
+  "id": "q09",
+  "category": "signoff",
+  "question": "Is image_text_match DRC clean and LVS clean?",
+  "check": {
+   "type": "yesno",
+   "expect": true
+  },
+  "expected": "yes"
+ },
+ {
+  "id": "q10",
+  "category": "signoff",
+  "question": "How many max-slew violations does soc_image_text_match report in total?",
+  "check": {
+   "type": "numbers",
+   "values": [
+    421
+   ],
+   "tol_rel": 0
+  },
+  "expected": "421"
+ },
+ {
+  "id": "q11",
+  "category": "precheck",
+  "question": "How many precheck checks pass in the latest precheck run?",
+  "check": {
+   "type": "numbers",
+   "values": [
+    14
+   ],
+   "tol_rel": 0
+  },
+  "expected": "14 of 14"
+ },
+ {
+  "id": "q12",
+  "category": "multi-step",
+  "question": "How many more standard cells does prec_fp16 have than prec_int8?",
+  "check": {
+   "type": "numbers",
+   "values": [
+    1290
+   ],
+   "tol_rel": 0
+  },
+  "expected": "1290"
+ },
+ {
+  "id": "q13",
+  "category": "multi-step",
+  "question": "What is the ratio of standard cells of prec_fp16 to prec_int8 (give 2 decimals)?",
+  "check": {
+   "type": "numbers",
+   "values": [
+    3.0093457943925235
+   ],
+   "tol_rel": 0.01
+  },
+  "expected": "3.009"
+ },
+ {
+  "id": "q14",
+  "category": "unanswerable",
+  "question": "What is the selling price per chip of the tiny_ai_core design?",
+  "check": {
+   "type": "unknown"
+  },
+  "expected": "unknown"
+ },
+ {
+  "id": "q15",
+  "category": "unanswerable",
+  "question": "What was the measured silicon yield of the fabricated chips?",
+  "check": {
+   "type": "unknown"
+  },
+  "expected": "unknown"
+ }
+]
