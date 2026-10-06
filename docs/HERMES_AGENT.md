@@ -107,4 +107,6 @@ Tool errors are returned to the model as data. Tool output is untrusted text but
 - "Latest precheck run" means the newest `build/precheck/results_*` directory; `classify_slew` needs a local flow run.
 - Questions are about repo data as of the eval; rerun `ground_truth.py` after re-hardening designs.
 
-RAG (documentation search with citations, `search_docs`, BM25, measured recall and end-to-end scores): `examples/hermes_rag/README.md`.
+RAG (documentation search with citations, `search_docs`, BM25; a deterministic router retrieves first for why/how questions; recall@1 5/10 -> 8/10, answerable 2/10 tools-only -> 4/10 model-chosen retrieval -> 6/10 retrieve-first, 5/10 hand-checked, held-out 4/5): `examples/hermes_rag/README.md`.
+
+KLayout view control (offscreen viewer and live-window option; 7 read-only commands, text-only model, 5/5 scripted scenarios with the right tool sequence): `examples/hermes_klayout_gui/README.md`.

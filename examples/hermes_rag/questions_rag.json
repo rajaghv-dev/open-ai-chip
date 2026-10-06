@@ -16,7 +16,12 @@
    ],
    "all_words": []
   },
-  "expect": "the int8 baseline cache was already pruned by Yosys (constant ROM bits and merged K3/V3); the int4 clamp logic hides constants, so 96 vs 72 cache flops (222 vs 200)"
+  "expect": "the int8 baseline cache was already pruned by Yosys (constant ROM bits and merged K3/V3); the int4 clamp logic hides constants, so 96 vs 72 cache flops (222 vs 200)",
+  "evidence": [
+   "pruned",
+   "merged"
+  ],
+  "route": "doc"
  },
  {
   "id": "r02",
@@ -34,7 +39,11 @@
     "12.5"
    ]
   },
-  "expect": "the Caravel SDC input delay of 12.5 ns on wb_rst_i, which fans out to all 570 flip-flops"
+  "expect": "the Caravel SDC input delay of 12.5 ns on wb_rst_i, which fans out to all 570 flip-flops",
+  "evidence": [
+   "12.5"
+  ],
+  "route": "doc"
  },
  {
   "id": "r03",
@@ -55,7 +64,11 @@
     "109"
    ]
   },
-  "expect": "a simpler macro with 109 pins (instead of 361) on the S edge in the order of the wrapper's Wishbone pads"
+  "expect": "a simpler macro with 109 pins (instead of 361) on the S edge in the order of the wrapper's Wishbone pads",
+  "evidence": [
+   "109"
+  ],
+  "route": "doc"
  },
  {
   "id": "r04",
@@ -77,7 +90,12 @@
     "20"
    ]
   },
-  "expect": "70 percent ran out of memory chasing input nets already above the slew limit"
+  "expect": "70 percent ran out of memory chasing input nets already above the slew limit",
+  "evidence": [
+   "out of memory",
+   "ran out"
+  ],
+  "route": "doc"
  },
  {
   "id": "r05",
@@ -94,7 +112,13 @@
    ],
    "all_words": []
   },
-  "expect": "40 antenna diodes added by the router that were not connected to power (unpowered)"
+  "expect": "40 antenna diodes added by the router that were not connected to power (unpowered)",
+  "evidence": [
+   "unpowered",
+   "not connected to power",
+   "diode"
+  ],
+  "route": "doc"
  },
  {
   "id": "r06",
@@ -112,7 +136,11 @@
    ],
    "all_words": []
   },
-  "expect": "user_defines.v: GPIO 5..37 set to GPIO_MODE_MGMT_STD_INPUT_NOPULL instead of the template's GPIO_MODE_INVALID (gpio_defines and oeb checks)"
+  "expect": "user_defines.v: GPIO 5..37 set to GPIO_MODE_MGMT_STD_INPUT_NOPULL instead of the template's GPIO_MODE_INVALID (gpio_defines and oeb checks)",
+  "evidence": [
+   "GPIO_MODE_MGMT_STD_INPUT_NOPULL"
+  ],
+  "route": "doc"
  },
  {
   "id": "r07",
@@ -128,7 +156,11 @@
    ],
    "all_words": []
   },
-  "expect": "ternary or int4: accuracy is flat from tern upward while fp16 costs 4.8x tern"
+  "expect": "ternary or int4: accuracy is flat from tern upward while fp16 costs 4.8x tern",
+  "evidence": [
+   "sweet spot is ternary"
+  ],
+  "route": "doc"
  },
  {
   "id": "r08",
@@ -144,7 +176,11 @@
     "670"
    ]
   },
-  "expect": "one-token prefill 328 cycles round trip; decode 670 cycles per token (about 2x)"
+  "expect": "one-token prefill 328 cycles round trip; decode 670 cycles per token (about 2x)",
+  "evidence": [
+   "328"
+  ],
+  "route": "doc"
  },
  {
   "id": "r09",
@@ -159,7 +195,11 @@
    ],
    "all_words": []
   },
-  "expect": "shared/rtl/kv_attn_core.v was added next to the adapter and find_reusable_run.py watches the whole directory; metrics identical"
+  "expect": "shared/rtl/kv_attn_core.v was added next to the adapter and find_reusable_run.py watches the whole directory; metrics identical",
+  "evidence": [
+   "kv_attn_core"
+  ],
+  "route": "doc"
  },
  {
   "id": "r10",
@@ -177,7 +217,12 @@
     "1809"
    ]
   },
-  "expect": "the 400 um build with 609 I/O had 3521 std cells (2115 tap cells, 468 repair buffers); the 250 um 109-pin build has 1809 (765 taps)"
+  "expect": "the 400 um build with 609 I/O had 3521 std cells (2115 tap cells, 468 repair buffers); the 250 um 109-pin build has 1809 (765 taps)",
+  "evidence": [
+   "3521",
+   "1809"
+  ],
+  "route": "doc"
  },
  {
   "id": "u01",
@@ -186,7 +231,8 @@
   "check": {
    "type": "unknown"
   },
-  "expect": "unknown (no silicon measured)"
+  "expect": "unknown (no silicon measured)",
+  "route": "unknown"
  },
  {
   "id": "u02",
@@ -195,6 +241,126 @@
   "check": {
    "type": "unknown"
   },
-  "expect": "unknown (not in the repo)"
+  "expect": "unknown (not in the repo)",
+  "route": "unknown"
+ },
+ {
+  "id": "h01",
+  "question": "Why does the ring-buffer engine kv_attn_n8_ring lose accuracy on 48-token episodes?",
+  "sources": [
+   "designs/kv_attn_n8_ring/NOTES.md",
+   "model/kv_attention/spec.md"
+  ],
+  "heldout": true,
+  "check": {
+   "type": "words",
+   "any_words": [
+    "saturat",
+    "tie",
+    "tied",
+    "5-bit"
+   ],
+   "all_words": []
+  },
+  "expect": "the 5-bit position counter pos saturates at 31, later entries tie on recency and the lowest physical slot wins, which after a wrap is not the newest (accuracy 100.00 to 89.12 percent vs the window oracle)",
+  "evidence": [
+   "saturat"
+  ],
+  "route": "doc"
+ },
+ {
+  "id": "h02",
+  "question": "Why is the binary format the only one in the precision study that loses accuracy?",
+  "sources": [
+   "designs/prec_bin/NOTES.md",
+   "docs/PRECISION_STUDY.md",
+   "model/precision_hw/spec.md"
+  ],
+  "heldout": true,
+  "check": {
+   "type": "words",
+   "any_words": [
+    "sign",
+    "corner",
+    "hardly",
+    "brightness"
+   ],
+   "all_words": []
+  },
+  "expect": "a sign-only weight cannot say a pixel hardly matters, so corner and centre pixels vote with full strength, and a binarised pixel cannot express brightness 7 versus 9",
+  "evidence": [
+   "hardly matters"
+  ],
+  "route": "doc"
+ },
+ {
+  "id": "h03",
+  "question": "Why could the float formats not be fixed by pipelining the accumulate step?",
+  "sources": [
+   "docs/PRECISION_STUDY.md",
+   "designs/prec_fp16/NOTES.md",
+   "designs/prec_fp8/NOTES.md"
+  ],
+  "heldout": true,
+  "check": {
+   "type": "words",
+   "any_words": [
+    "feed",
+    "previous",
+    "loop",
+    "depend"
+   ],
+   "all_words": []
+  },
+  "expect": "the accumulator feeds back into the next add, so the add-and-normalise chain sits in the accumulate loop and cannot be pipelined without slowing the loop; only the multiply can be split off",
+  "evidence": [
+   "accumulate loop",
+   "feeds back"
+  ],
+  "route": "doc"
+ },
+ {
+  "id": "h04",
+  "question": "Why does kv_attn_n16 have only 144 cache flip-flops when its cache is nominally 1024 bits?",
+  "sources": [
+   "designs/kv_attn_n16/NOTES.md"
+  ],
+  "heldout": true,
+  "check": {
+   "type": "words",
+   "any_words": [
+    "constant"
+   ],
+   "all_words": []
+  },
+  "expect": "the weights are fixed constants so most stored fields carry little information; 7 + 2 = 9 flip-flops per slot instead of 64",
+  "evidence": [
+   "constants"
+  ],
+  "route": "doc"
+ },
+ {
+  "id": "h05",
+  "question": "Why is bf16 smaller than fp16 although both store 16 bits?",
+  "sources": [
+   "docs/PRECISION_STUDY.md",
+   "designs/prec_fp16/NOTES.md",
+   "designs/prec_bf16/NOTES.md"
+  ],
+  "heldout": true,
+  "check": {
+   "type": "words",
+   "any_words": [
+    "mantissa",
+    "multiplier"
+   ],
+   "all_words": []
+  },
+  "expect": "bf16 has a shorter mantissa: its multiplier is 8 x 4 instead of 11 x 4, so it is 14.6 percent smaller (10170 vs 11913 um^2)",
+  "evidence": [
+   "8 x 4",
+   "shorter"
+  ],
+  "route": "doc"
  }
 ]

@@ -180,6 +180,163 @@ def search_docs(query, k=4):
     return out
 
 
+# ------------------------------------------------------------ v2 retrieval (new; v1 above is unchanged and stays the default)
+# Added after the first eval (recall@1 6/10; right file but answer outside the 800-char window in r03, r09, r10):
+# query normalisation (question words and filler dropped, light stemming), a boost for a query identifier that is a design
+# directory name or occurs verbatim in the chunk (kv_attn_n8_int4, wb_rst_i, GRT-0116), file-path and heading tokens as a
+# separate boosted field, a phrase bonus, near-duplicate removal, and two ~600-character windows per hit instead of one 800.
+STOP2 = STOP | set("why how what which when where who whom whose does do did done is are was were be been being has have had "
+                   "can could would should will shall may might must than then so such even though although while only also "
+                   "both each any all some more most many much very just about into over under up down out off again "
+                   "instead rather there their they them we our us you your i me my he she his her".split())
+WIN_CHARS, WIN_N = 600, 2
+PER_FILE_V2 = 2
+HEAD_BOOST, ID_BONUS, DESIGN_BONUS, PHRASE_BONUS, WHY_BONUS = 1.0, 3.0, 2.0, 0.6, 4.0
+WHY_Q = re.compile(r"\b(why|caus\w*|limit\w*|fix\w*|reason|lesson\w*|explain\w*|insight\w*|knee|sweet spot)\b", re.I)
+WHY_HEAD = re.compile(r"intuition|insight|lesson|takeaway|why|reason|limit", re.I)
+ID_RE = re.compile(r"[A-Za-z][A-Za-z0-9]*(?:[_\-][A-Za-z0-9]+)+")
+
+
+def _stem(t):
+    if t.isdigit() or len(t) <= 4 or "_" in t or "-" in t:
+        return t
+    for suf, keep in (("ies", "y"), ("ing", ""), ("ed", ""), ("es", ""), ("s", "")):
+        if t.endswith(suf) and len(t) - len(suf) >= 3:
+            return t[:-len(suf)] + keep
+    return t
+
+
+def tokenize2(text, stop=STOP2):
+    out = []
+    for w in re.findall(r"[A-Za-z0-9_]+(?:[.\-][A-Za-z0-9_]+)*", text.lower()):
+        parts = [p for p in re.split(r"[_.\-]", w) if p]
+        if len(parts) > 1:
+            out.append(w)
+        out.extend(parts)
+    return [_stem(t) for t in out if (t not in stop and len(t) > 1) or t.isdigit()]
+
+
+def query_identifiers(query):
+    """Identifiers in a query: snake_case or dash-code words such as kv_attn_n8_int4, wb_rst_i, GRT-0116 (lower-cased)."""
+    return list(dict.fromkeys(m.lower() for m in ID_RE.findall(query)))
+
+
+def _idx2():
+    if "v2" not in _MEM:
+        idx = _index()
+        df, toks, hfield, tot = {}, [], [], 0
+        for c in idx["chunks"]:
+            t = tokenize2(c["text"])
+            h = tokenize2(c["heading"] + " " + c["file"].replace("/", " "))
+            toks.append(t)
+            hfield.append(set(h))
+            tot += len(t) + len(h)
+            for w in set(t) | set(h):
+                df[w] = df.get(w, 0) + 1
+        _MEM["v2"] = {"df": df, "toks": toks, "head": hfield, "avgdl": tot / max(1, len(toks)),
+                      "lower": [c["text"].lower() for c in idx["chunks"]]}
+    return _MEM["v2"]
+
+
+def _windows(c, weights, n=WIN_CHARS, count=WIN_N):
+    """Up to `count` non-overlapping runs of whole lines (<= n chars each) with the largest sum of query-term weights.
+    A single line longer than n is cut to n characters around its densest part. Returns (text, 'a-b,c-d')."""
+    lines = c["text"].split("\n")
+    if len(c["text"].strip()) <= n * count:
+        return c["text"].strip(), f"{c['start']}-{c['end']}"
+    val = [sum(weights.get(t, 0.0) for t in set(tokenize2(l))) for l in lines]
+    taken, spans = [False] * len(lines), []
+    for _ in range(count):
+        best = (0.0, -1, -1)
+        for i in range(len(lines)):
+            if taken[i]:
+                continue
+            size, j, tot = 0, i, 0.0
+            while j < len(lines) and not taken[j] and (size + len(lines[j]) + 1 <= n or j == i):
+                size += len(lines[j]) + 1
+                tot += val[j]
+                j += 1
+            if tot > best[0]:
+                best = (tot, i, j)
+        if best[1] < 0:
+            break
+        _, i, j = best
+        for x in range(i, j):
+            taken[x] = True
+        spans.append((i, j))
+    if not spans:
+        spans = [(0, 1)]
+    spans.sort()
+    parts, labels = [], []
+    for i, j in spans:
+        txt = "\n".join(lines[i:j]).strip()
+        if len(txt) > n:                                   # one long line (a table row): centre on the query terms
+            pos = [m.start() for t in weights for m in re.finditer(re.escape(t), txt.lower())]
+            mid = sorted(pos)[len(pos) // 2] if pos else 0
+            a = max(0, min(mid - n // 2, len(txt) - n))
+            txt = ("..." if a else "") + txt[a:a + n] + ("..." if a + n < len(txt) else "")
+        parts.append(txt)
+        labels.append(f"{c['start'] + i}-{c['start'] + j - 1}")
+    return "\n[...]\n".join(parts), ",".join(labels)
+
+
+def search_docs_v2(query, k=4):
+    idx, v = _index(), _idx2()
+    N = len(idx["chunks"])
+    q = list(dict.fromkeys(tokenize2(query)))
+    ids = query_identifiers(query)
+    why_q = bool(WHY_Q.search(query))
+    if not q:
+        return []
+    w = {t: math.log(1 + (N - v["df"].get(t, 0) + 0.5) / (v["df"].get(t, 0) + 0.5)) for t in q}
+    scored = []
+    for c in idx["chunks"]:
+        i = c["id"]
+        toks, head = v["toks"][i], v["head"][i]
+        tf = {}
+        for t in toks:
+            if t in w:
+                tf[t] = tf.get(t, 0) + 1
+        s = 0.0
+        dl = len(toks) / v["avgdl"]
+        for t, f in tf.items():
+            s += w[t] * f * (K1 + 1) / (f + K1 * (1 - B + B * dl))
+        s += HEAD_BOOST * sum(w[t] for t in q if t in head)
+        if s <= 0:
+            continue
+        low = v["lower"][i]
+        for ident in ids:
+            if ident in low:
+                s += ID_BONUS
+            if f"/{ident}/" in "/" + c["file"]:
+                s += DESIGN_BONUS * (1.5 if c["file"].endswith("NOTES.md") else 1.0)
+        if why_q and WHY_HEAD.search(c["heading"].split(" > ")[-1]):   # repo convention: the explanations sit under "Intuitions and insights"
+            s += WHY_BONUS
+        if len(q) >= 2:                                    # phrase bonus: adjacent query terms adjacent in the chunk
+            pairs = set(zip(q, q[1:]))
+            s += PHRASE_BONUS * sum(1 for p in zip(toks, toks[1:]) if p in pairs)
+        scored.append((-s, c["file"], c["start"], c))
+    scored.sort(key=lambda x: x[:3])
+    picked, per, seen = [], {}, []
+    for item in scored:
+        f, c = item[1], item[3]
+        if per.get(f, 0) >= PER_FILE_V2:
+            continue
+        ts = set(v["toks"][c["id"]])
+        if any(len(ts & o) / max(1, len(ts | o)) > 0.8 for o in seen):      # near-duplicate of a chunk already chosen
+            continue
+        per[f] = per.get(f, 0) + 1
+        seen.append(ts)
+        picked.append(item)
+        if len(picked) >= max(1, int(k)):
+            break
+    out = []
+    for ns, _, _, c in picked:
+        text, lines = _windows(c, w)
+        out.append({"id": c["id"], "file": c["file"], "heading": c["heading"], "lines": lines, "score": round(-ns, 3), "text": text})
+    return out
+
+
 # ------------------------------------------------------------ agent tool (same schema style as tools/eda_tools.py TOOLS)
 TOOL = {"type": "function", "function": {
     "name": "search_docs",
@@ -193,15 +350,16 @@ TOOL = {"type": "function", "function": {
         "required": ["query"]}}}
 
 
-def call(args):
-    """Tool dispatch for the agent: never raises; {"error": ...} on bad input."""
+def call(args, mode="v1"):
+    """Tool dispatch for the agent: never raises; {"error": ...} on bad input. mode "v2" uses search_docs_v2."""
     try:
         if not isinstance(args, dict) or not isinstance(args.get("query"), str) or not args["query"].strip():
             return {"error": "search_docs needs a non-empty string argument 'query'"}
         k = args.get("k") or 4
         if not isinstance(k, int) or isinstance(k, bool):
             return {"error": "k must be an integer 1..8"}
-        return {"query": args["query"], "hits": search_docs(args["query"], min(max(k, 1), 8))}
+        fn = search_docs_v2 if mode == "v2" else search_docs
+        return {"query": args["query"], "hits": fn(args["query"], min(max(k, 1), 8))}
     except Exception as e:  # noqa: BLE001
         return {"error": f"{type(e).__name__}: {e}"}
 

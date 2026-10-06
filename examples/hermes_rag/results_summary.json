@@ -1,6 +1,6 @@
 {
- "source": "build/agent/rag_eval_20261006_144926.json",
- "prompt": "v2",
+ "source": "build/agent/rag_eval_20261006_160952.json",
+ "handcheck_source": "build/agent/rag_handcheck_20261006.json",
  "model": "hermes3:8b",
  "options": {
   "temperature": 0,
@@ -9,125 +9,886 @@
   "num_predict": 700
  },
  "index": {
-  "chunks": 1023,
-  "files": 67
+  "chunks": 1087,
+  "files": 68
  },
- "questions": 12,
- "retrieval_recall_at_k": {
-  "@1": "6/10",
-  "@2": "6/10",
-  "@4": "9/10",
-  "@8": "10/10"
+ "questions": {
+  "main": 12,
+  "heldout": 5
  },
- "retrieval_rank_of_expected_file": {
-  "r01": 4,
-  "r02": 7,
-  "r03": 4,
-  "r04": 1,
-  "r05": 1,
-  "r06": 1,
-  "r07": 1,
-  "r08": 1,
-  "r09": 1,
-  "r10": 3
+ "history": "results_summary_v1.json is the first measurement (rag/tools-only/rag+grounding, v1 retrieval, 12 questions, run build/agent/rag_eval_20261006_144926.json)",
+ "retrieval": {
+  "v1": {
+   "mode": "v1",
+   "questions": 10,
+   "recall_at_k": {
+    "@1": "5/10",
+    "@2": "5/10",
+    "@4": "8/10",
+    "@8": "10/10"
+   },
+   "recall_at_k_value": {
+    "@1": 0.5,
+    "@2": 0.5,
+    "@4": 0.8,
+    "@8": 1.0
+   },
+   "evidence_in_top4_text": "4/10",
+   "evidence_value": 0.4,
+   "rows": [
+    {
+     "id": "r01",
+     "rank_of_expected_file": 4,
+     "evidence_in_top4_text": false,
+     "top_files": [
+      "designs/kv_attn_n8_int4/README.md",
+      "model/kv_attention/spec.md",
+      "docs/LLM_INFERENCE.md",
+      "designs/kv_attn_n8_int4/NOTES.md"
+     ]
+    },
+    {
+     "id": "r02",
+     "rank_of_expected_file": 6,
+     "evidence_in_top4_text": false,
+     "top_files": [
+      "designs/soc_kv_attn_n8/README.md",
+      "designs/soc_image_text_match/NOTES.md",
+      "designs/soc_kv_attn_n8/README.md",
+      "docs/LLM_INFERENCE.md"
+     ]
+    },
+    {
+     "id": "r03",
+     "rank_of_expected_file": 6,
+     "evidence_in_top4_text": false,
+     "top_files": [
+      "docs/OPENROAD_ENGINES.md",
+      "docs/OPENROAD_ENGINES.md",
+      "docs/SKILLS.md",
+      "designs/user_project_wrapper_soc_itm/NOTES.md"
+     ]
+    },
+    {
+     "id": "r04",
+     "rank_of_expected_file": 3,
+     "evidence_in_top4_text": true,
+     "top_files": [
+      "docs/OPENROAD_ENGINES.md",
+      "docs/OPENROAD_ENGINES.md",
+      "designs/user_project_wrapper/README.md",
+      "docs/SKILLS.md"
+     ]
+    },
+    {
+     "id": "r05",
+     "rank_of_expected_file": 1,
+     "evidence_in_top4_text": false,
+     "top_files": [
+      "designs/user_project_wrapper/README.md",
+      "docs/SKILLS.md",
+      "docs/PRECHECK.md",
+      "designs/user_project_wrapper/NOTES.md"
+     ]
+    },
+    {
+     "id": "r06",
+     "rank_of_expected_file": 1,
+     "evidence_in_top4_text": true,
+     "top_files": [
+      "docs/PRECHECK.md",
+      "precheck/README.md",
+      "docs/PRECHECK.md",
+      "designs/user_project_wrapper/README.md"
+     ]
+    },
+    {
+     "id": "r07",
+     "rank_of_expected_file": 1,
+     "evidence_in_top4_text": false,
+     "top_files": [
+      "docs/PRECISION_STUDY.md",
+      "docs/PRECISION_STUDY.md",
+      "model/precision_hw/spec.md",
+      "model/precision_hw/spec.md"
+     ]
+    },
+    {
+     "id": "r08",
+     "rank_of_expected_file": 1,
+     "evidence_in_top4_text": true,
+     "top_files": [
+      "firmware/README.md",
+      "designs/soc_kv_attn_n8/README.md",
+      "designs/soc_kv_attn_n8/NOTES.md",
+      "firmware/README.md"
+     ]
+    },
+    {
+     "id": "r09",
+     "rank_of_expected_file": 1,
+     "evidence_in_top4_text": false,
+     "top_files": [
+      "designs/soc_image_text_match/NOTES.md",
+      "designs/soc_image_text_match/NOTES.md",
+      "designs/image_text_match/NOTES.md",
+      "designs/soc_kv_attn_n8/NOTES.md"
+     ]
+    },
+    {
+     "id": "r10",
+     "rank_of_expected_file": 3,
+     "evidence_in_top4_text": true,
+     "top_files": [
+      "designs/soc_image_text_match/NOTES.md",
+      "docs/SOC_PLAN.md",
+      "designs/tiny_ai_core/NOTES.md",
+      "designs/user_project_wrapper/NOTES.md"
+     ]
+    }
+   ]
+  },
+  "v1_heldout": {
+   "mode": "v1",
+   "questions": 5,
+   "recall_at_k": {
+    "@1": "3/5",
+    "@2": "5/5",
+    "@4": "5/5",
+    "@8": "5/5"
+   },
+   "recall_at_k_value": {
+    "@1": 0.6,
+    "@2": 1.0,
+    "@4": 1.0,
+    "@8": 1.0
+   },
+   "evidence_in_top4_text": "5/5",
+   "evidence_value": 1.0,
+   "rows": [
+    {
+     "id": "h01",
+     "rank_of_expected_file": 1,
+     "evidence_in_top4_text": true,
+     "top_files": [
+      "designs/kv_attn_n8_ring/NOTES.md",
+      "designs/kv_attn_n8_ring/NOTES.md",
+      "model/kv_attention/spec.md",
+      "docs/LLM_INFERENCE.md"
+     ]
+    },
+    {
+     "id": "h02",
+     "rank_of_expected_file": 2,
+     "evidence_in_top4_text": true,
+     "top_files": [
+      "designs/prec_bin/README.md",
+      "model/precision_hw/spec.md",
+      "docs/PRECISION_STUDY.md",
+      "model/precision_hw/spec.md"
+     ]
+    },
+    {
+     "id": "h03",
+     "rank_of_expected_file": 1,
+     "evidence_in_top4_text": true,
+     "top_files": [
+      "docs/PRECISION_STUDY.md",
+      "docs/PRECISION_STUDY.md",
+      "docs/SKILLS.md",
+      "model/precision_hw/spec.md"
+     ]
+    },
+    {
+     "id": "h04",
+     "rank_of_expected_file": 2,
+     "evidence_in_top4_text": true,
+     "top_files": [
+      "designs/kv_attn_n16/README.md",
+      "designs/kv_attn_n16/NOTES.md",
+      "docs/LLM_INFERENCE.md",
+      "designs/kv_attn_n16/NOTES.md"
+     ]
+    },
+    {
+     "id": "h05",
+     "rank_of_expected_file": 1,
+     "evidence_in_top4_text": true,
+     "top_files": [
+      "docs/PRECISION_STUDY.md",
+      "model/precision_hw/spec.md",
+      "designs/prec_bf16/NOTES.md",
+      "model/precision_hw/spec.md"
+     ]
+    }
+   ]
+  },
+  "v2": {
+   "mode": "v2",
+   "questions": 10,
+   "recall_at_k": {
+    "@1": "8/10",
+    "@2": "8/10",
+    "@4": "9/10",
+    "@8": "10/10"
+   },
+   "recall_at_k_value": {
+    "@1": 0.8,
+    "@2": 0.8,
+    "@4": 0.9,
+    "@8": 1.0
+   },
+   "evidence_in_top4_text": "5/10",
+   "evidence_value": 0.5,
+   "rows": [
+    {
+     "id": "r01",
+     "rank_of_expected_file": 1,
+     "evidence_in_top4_text": true,
+     "top_files": [
+      "designs/kv_attn_n8_int4/NOTES.md",
+      "designs/kv_attn_n8_int4/README.md",
+      "designs/kv_attn_n8/NOTES.md",
+      "docs/LLM_INFERENCE.md"
+     ]
+    },
+    {
+     "id": "r02",
+     "rank_of_expected_file": 1,
+     "evidence_in_top4_text": false,
+     "top_files": [
+      "designs/soc_kv_attn_n8/NOTES.md",
+      "designs/kv_attn_n8/NOTES.md",
+      "designs/soc_kv_attn_n8/NOTES.md",
+      "designs/kv_attn_n8/NOTES.md"
+     ]
+    },
+    {
+     "id": "r03",
+     "rank_of_expected_file": 5,
+     "evidence_in_top4_text": false,
+     "top_files": [
+      "docs/OPENROAD_ENGINES.md",
+      "docs/OPENROAD_ENGINES.md",
+      "designs/tiny_ai_core/NOTES.md",
+      "designs/user_project_wrapper_soc_kv/NOTES.md"
+     ]
+    },
+    {
+     "id": "r04",
+     "rank_of_expected_file": 4,
+     "evidence_in_top4_text": true,
+     "top_files": [
+      "docs/OPENROAD_ENGINES.md",
+      "docs/OPENROAD_ENGINES.md",
+      "SPEC.md",
+      "docs/SKILLS.md"
+     ]
+    },
+    {
+     "id": "r05",
+     "rank_of_expected_file": 1,
+     "evidence_in_top4_text": false,
+     "top_files": [
+      "designs/user_project_wrapper/NOTES.md",
+      "designs/user_project_wrapper/README.md",
+      "designs/user_project_wrapper/NOTES.md",
+      "docs/PRECHECK.md"
+     ]
+    },
+    {
+     "id": "r06",
+     "rank_of_expected_file": 1,
+     "evidence_in_top4_text": true,
+     "top_files": [
+      "docs/PRECHECK.md",
+      "docs/PRECHECK.md",
+      "precheck/README.md",
+      "designs/user_project_wrapper/README.md"
+     ]
+    },
+    {
+     "id": "r07",
+     "rank_of_expected_file": 1,
+     "evidence_in_top4_text": false,
+     "top_files": [
+      "docs/PRECISION_STUDY.md",
+      "docs/PRECISION_STUDY.md",
+      "docs/ARCHITECTURE.md",
+      "model/precision_hw/spec.md"
+     ]
+    },
+    {
+     "id": "r08",
+     "rank_of_expected_file": 1,
+     "evidence_in_top4_text": true,
+     "top_files": [
+      "firmware/README.md",
+      "designs/soc_kv_attn_n8/README.md",
+      "firmware/README.md",
+      "designs/soc_kv_attn_n8/NOTES.md"
+     ]
+    },
+    {
+     "id": "r09",
+     "rank_of_expected_file": 1,
+     "evidence_in_top4_text": false,
+     "top_files": [
+      "designs/soc_image_text_match/NOTES.md",
+      "designs/soc_image_text_match/NOTES.md",
+      "designs/image_text_match/NOTES.md",
+      "designs/image_text_match/NOTES.md"
+     ]
+    },
+    {
+     "id": "r10",
+     "rank_of_expected_file": 1,
+     "evidence_in_top4_text": true,
+     "top_files": [
+      "designs/tiny_ai_core/NOTES.md",
+      "designs/tiny_ai_core/NOTES.md",
+      "designs/soc_image_text_match/NOTES.md",
+      "SPEC.md"
+     ]
+    }
+   ]
+  },
+  "v2_heldout": {
+   "mode": "v2",
+   "questions": 5,
+   "recall_at_k": {
+    "@1": "4/5",
+    "@2": "4/5",
+    "@4": "5/5",
+    "@8": "5/5"
+   },
+   "recall_at_k_value": {
+    "@1": 0.8,
+    "@2": 0.8,
+    "@4": 1.0,
+    "@8": 1.0
+   },
+   "evidence_in_top4_text": "4/5",
+   "evidence_value": 0.8,
+   "rows": [
+    {
+     "id": "h01",
+     "rank_of_expected_file": 1,
+     "evidence_in_top4_text": true,
+     "top_files": [
+      "designs/kv_attn_n8_ring/NOTES.md",
+      "designs/kv_attn_n8_ring/NOTES.md",
+      "designs/kv_attn_n16/NOTES.md",
+      "designs/kv_attn_n8_ring/README.md"
+     ]
+    },
+    {
+     "id": "h02",
+     "rank_of_expected_file": 1,
+     "evidence_in_top4_text": false,
+     "top_files": [
+      "docs/PRECISION_STUDY.md",
+      "docs/PRECISION_STUDY.md",
+      "designs/prec_bin/README.md",
+      "docs/ARCHITECTURE.md"
+     ]
+    },
+    {
+     "id": "h03",
+     "rank_of_expected_file": 3,
+     "evidence_in_top4_text": true,
+     "top_files": [
+      "docs/SKILLS.md",
+      "model/precision_hw/spec.md",
+      "docs/PRECISION_STUDY.md",
+      "docs/PRECISION_STUDY.md"
+     ]
+    },
+    {
+     "id": "h04",
+     "rank_of_expected_file": 1,
+     "evidence_in_top4_text": true,
+     "top_files": [
+      "designs/kv_attn_n16/NOTES.md",
+      "designs/kv_attn_n16/NOTES.md",
+      "designs/kv_attn_n16/README.md",
+      "docs/LLM_INFERENCE.md"
+     ]
+    },
+    {
+     "id": "h05",
+     "rank_of_expected_file": 1,
+     "evidence_in_top4_text": true,
+     "top_files": [
+      "designs/prec_bf16/NOTES.md",
+      "docs/WHY_AI.md",
+      "docs/PRECISION_STUDY.md",
+      "designs/prec_fp16/NOTES.md"
+     ]
+    }
+   ]
+  }
+ },
+ "router": {
+  "rag_questions": "16/17",
+  "rag_misrouted": [
+   {
+    "id": "r08",
+    "expected": "doc",
+    "got": "unknown"
+   }
+  ],
+  "tool_questions_tools_eval": "15/15",
+  "tool_questions_misrouted": []
  },
  "end_to_end": {
   "tools-only": {
-   "passed": 4,
-   "total": 12,
-   "answerable_passed": 2,
-   "answerable_total": 10,
-   "controls_passed": 2,
-   "controls_total": 2,
-   "searched": 0,
-   "retrieved_expected_file": 0,
-   "cited_expected_file": 0,
-   "answers_with_grounding_problems": 0,
-   "median_latency_s": 5.21,
-   "failed": [
-    "r01",
-    "r02",
-    "r03",
-    "r04",
-    "r05",
-    "r08",
-    "r09",
-    "r10"
-   ]
+   "main": {
+    "passed": 4,
+    "total": 12,
+    "answerable_passed": 2,
+    "answerable_total": 10,
+    "controls_passed": 2,
+    "controls_total": 2,
+    "context_present": 0,
+    "auto_retrieved": 0,
+    "model_called_search": 0,
+    "retrieved_expected_file": 0,
+    "cited_expected_file": 0,
+    "guardrail_rejections": 0,
+    "answers_with_grounding_problems": 0,
+    "median_latency_s": 3.65,
+    "failed": [
+     "r01",
+     "r02",
+     "r03",
+     "r04",
+     "r05",
+     "r08",
+     "r09",
+     "r10"
+    ],
+    "hand_checked_passed": 2,
+    "keyword_accidents": [
+     "r06",
+     "r07"
+    ]
+   },
+   "heldout": {
+    "passed": 2,
+    "total": 5,
+    "answerable_passed": 2,
+    "answerable_total": 5,
+    "controls_passed": 0,
+    "controls_total": 0,
+    "context_present": 0,
+    "auto_retrieved": 0,
+    "model_called_search": 0,
+    "retrieved_expected_file": 0,
+    "cited_expected_file": 0,
+    "guardrail_rejections": 0,
+    "answers_with_grounding_problems": 0,
+    "median_latency_s": 7.24,
+    "failed": [
+     "h01",
+     "h04",
+     "h05"
+    ],
+    "hand_checked_passed": 0,
+    "keyword_accidents": [
+     "h02",
+     "h03"
+    ]
+   },
+   "trace": "build/agent/traces/20261006_155601_rag_tools-only.jsonl",
+   "hand_check_notes": {
+    "r06": "keyword accident: lists the 14 check names, gives no cause",
+    "r07": "keyword accident: says the format is not in the metrics (mentions prec_int4 only incidentally)",
+    "u01": "correct 'unknown' for an unanswerable control",
+    "u02": "correct 'unknown' for an unanswerable control",
+    "h02": "keyword accident: claims bin is the smallest area, no accuracy reason",
+    "h03": "keyword accident: generic text about pipelining, says it has no repo access"
+   },
+   "failed_answers": {
+    "r01": "kv_attn_n8_int4 has 222 flip-flops/latches (sequential cells), while kv_attn_n8 has 200. Despite having half the bits in its cache, kv_attn_n8_int4 actually has more flip-flops than kv_attn_n8. This d",
+    "r02": "The worst setup slack of soc_kv_attn_n8 is limited by the min_ss_100C_1v60 corner value, which is -1.9579 ns. This means that the design violates setup timing at this corner.",
+    "r03": "I do not have a tool to provide information about design changes and their effects on specific issues. The open-ai-chip repository tools are focused on metrics, layout, and signoff data, not historica",
+    "r04": "The slew repair margin is set to 20 percent for the macro build because that is the value determined to be necessary for the specific design requirements and constraints. The choice of the repair marg",
+    "r05": "To determine the cause of the 70 LVS errors in the user_project_wrapper, I would need to analyze the design's metrics.json file. However, the provided tools do not have the capability to diagnose spec",
+    "r08": "Source: read_metrics\nThe design 'soc_image' is unknown. Valid designs are: audio_onset, audio_pitch, image_text_match, kv_attn_n16, kv_attn_n4, kv_attn_n8, kv_attn_n8_int4, kv_attn_n8_ring, prec_bf16,",
+    "r09": "To determine why soc_image_text_match was re-run on 2026-10-06, I would need to review the project's revision history and check for any changes made to the design or the tooling that prompted the re-r",
+    "r10": "The comparison between tiny_ai_core and tiny_ai_core_simplified_pins could not be performed because the design 'tiny_ai_core_simplified_pins' is not found in the repository. The available designs are ",
+    "h01": "The metrics for the kv_attn_n8_ring design are:\n- Standard cells placed: 2621\n- Sequential cells (flip-flops/latches): 198\n- Area of standard cells: 16653.5 um^2\n- Area of sequential cells: 4211.54 um",
+    "h04": "The kv_attn_n16 design has 277 flip-flops (sequential cells) in its cache. This is likely due to the cache being implemented with a smaller number of flip-flops compared to the nominal size of 1024 bi",
+    "h05": "The bf16 design has 1754 standard cells and an area of 10169.8 um^2.\nThe fp16 design has 1932 standard cells and an area of 11912.7 um^2.\nSource: read_metrics tool."
+   }
   },
   "rag": {
-   "passed": 5,
-   "total": 12,
-   "answerable_passed": 4,
-   "answerable_total": 10,
-   "controls_passed": 1,
-   "controls_total": 2,
-   "searched": 6,
-   "retrieved_expected_file": 6,
-   "cited_expected_file": 5,
-   "answers_with_grounding_problems": 4,
-   "median_latency_s": 7.7,
-   "failed": [
-    "r02",
-    "r03",
-    "r05",
-    "r08",
-    "r09",
-    "r10",
-    "u01"
-   ]
+   "main": {
+    "passed": 5,
+    "total": 12,
+    "answerable_passed": 4,
+    "answerable_total": 10,
+    "controls_passed": 1,
+    "controls_total": 2,
+    "context_present": 6,
+    "auto_retrieved": 0,
+    "model_called_search": 6,
+    "retrieved_expected_file": 6,
+    "cited_expected_file": 6,
+    "guardrail_rejections": 0,
+    "answers_with_grounding_problems": 4,
+    "median_latency_s": 5.99,
+    "failed": [
+     "r02",
+     "r04",
+     "r05",
+     "r08",
+     "r09",
+     "r10",
+     "u01"
+    ],
+    "hand_checked_passed": 3,
+    "keyword_accidents": [
+     "r06",
+     "r07"
+    ]
+   },
+   "heldout": {
+    "passed": 3,
+    "total": 5,
+    "answerable_passed": 3,
+    "answerable_total": 5,
+    "controls_passed": 0,
+    "controls_total": 0,
+    "context_present": 5,
+    "auto_retrieved": 0,
+    "model_called_search": 5,
+    "retrieved_expected_file": 5,
+    "cited_expected_file": 5,
+    "guardrail_rejections": 0,
+    "answers_with_grounding_problems": 2,
+    "median_latency_s": 9.33,
+    "failed": [
+     "h01",
+     "h04"
+    ],
+    "hand_checked_passed": 2,
+    "keyword_accidents": [
+     "h02"
+    ]
+   },
+   "trace": "build/agent/traces/20261006_155716_rag_rag.jsonl",
+   "hand_check_notes": {
+    "r01": "says the int8 baseline was already pruned so halving bits did not cut flip-flops (96 vs 72 cache flops); misses the clamp-logic detail",
+    "r03": "109-pin macro with pins in the order of the wrapper pads",
+    "r06": "keyword accident: lists the 14 check names from summary.tsv, no cause",
+    "r07": "keyword accident: names the seven formats, never says which is the knee",
+    "u02": "correct 'unknown' for an unanswerable control",
+    "h02": "keyword accident: describes the binary arithmetic (sign of weight, 4th pixel bit), not why it loses accuracy",
+    "h03": "next add needs the previous sum; only the multiply can be split off",
+    "h05": "7-bit vs 10-bit mantissa, multiplier 8x4 vs 11x4"
+   },
+   "failed_answers": {
+    "r02": "The worst setup slack of soc_kv_attn_n8 is limited by the violations in different corners. The smallest value is in the max_ff_n40C_1v95 corner, with a setup slack of -8.1268 ns. This means that the d",
+    "r04": "The slew repair margin is 20 percent for the macro build because the design was hardened with default constraints, leading to hold failures and the addition of unpowered antenna diodes. To fix this, t",
+    "r05": "The signoff summary for the user_project_wrapper shows that there were 70 LVS errors. The LVS errors are reported under the \"lvs\" section as:\n\n{\"lvs\": {\"error\": 70, \"unmatched_device\": 0, \"unmatched_n",
+    "r08": "The design 'soc_image' is not valid. The valid designs are:\n\n- audio_onset\n- audio_pitch\n- image_text_match\n- kv_attn_n16\n- kv_attn_n4\n- kv_attn_n8\n- kv_attn_n8_int4\n- kv_attn_n8_ring\n- prec_bf16\n- pr",
+    "r09": "The soc_image_text_match design was re-run on 2026-10-06 for the following reasons:\n\n1. The testbench `tb/soc_image_text_match_tb.v` reads `tb/vectors.hex` (a copy of `designs/image_text_match/tb/vect",
+    "r10": "The search results show that the tiny_ai_core design has 109 macro pins, which are used for interfacing with the Caravel SoC. When the pins were simplified, it resulted in a reduction of the standard ",
+    "u01": "The first packaged chips measured a power consumption of 0.5 milliwatts on the bench. Source: read_metrics.",
+    "h01": "The ring-buffer engine kv_attn_n8_ring loses accuracy on 48-token episodes because it overwrites the oldest entry when the 8-entry KV cache is full, instead of answering CACHE_FULL. This causes the ca",
+    "h04": "The search results show that kv_attn_n16 has 144 cache flip-flops built, which matches the number in the \"Comparison of the three non-ring int8 variants\" table in the kv_attn_n16/NOTES.md and kv_attn_"
+   }
   },
-  "rag+grounding": {
-   "passed": 5,
-   "total": 12,
-   "answerable_passed": 3,
-   "answerable_total": 10,
-   "controls_passed": 2,
-   "controls_total": 2,
-   "searched": 6,
-   "retrieved_expected_file": 6,
-   "cited_expected_file": 5,
-   "answers_with_grounding_problems": 2,
-   "median_latency_s": 7.45,
-   "failed": [
-    "r02",
-    "r03",
-    "r05",
-    "r06",
-    "r08",
-    "r09",
-    "r10"
-   ]
+  "rag+v2search": {
+   "main": {
+    "passed": 6,
+    "total": 12,
+    "answerable_passed": 4,
+    "answerable_total": 10,
+    "controls_passed": 2,
+    "controls_total": 2,
+    "context_present": 8,
+    "auto_retrieved": 0,
+    "model_called_search": 8,
+    "retrieved_expected_file": 7,
+    "cited_expected_file": 5,
+    "guardrail_rejections": 0,
+    "answers_with_grounding_problems": 2,
+    "median_latency_s": 8.26,
+    "failed": [
+     "r02",
+     "r05",
+     "r07",
+     "r08",
+     "r09",
+     "r10"
+    ],
+    "hand_checked_passed": 4,
+    "keyword_accidents": [
+     "r01",
+     "r06"
+    ]
+   },
+   "heldout": {
+    "passed": 3,
+    "total": 5,
+    "answerable_passed": 3,
+    "answerable_total": 5,
+    "controls_passed": 0,
+    "controls_total": 0,
+    "context_present": 5,
+    "auto_retrieved": 0,
+    "model_called_search": 5,
+    "retrieved_expected_file": 4,
+    "cited_expected_file": 4,
+    "guardrail_rejections": 0,
+    "answers_with_grounding_problems": 0,
+    "median_latency_s": 9.33,
+    "failed": [
+     "h01",
+     "h02"
+    ],
+    "hand_checked_passed": 3,
+    "keyword_accidents": []
+   },
+   "trace": "build/agent/traces/20261006_155922_rag_rag_v2search.jsonl",
+   "hand_check_notes": {
+    "r01": "keyword accident: 'pruned to a thin top-level design', wrong reading (the baseline was already pruned)",
+    "r03": "109-pin macro ordered like the wrapper pads, fewer pins and shorter wires",
+    "r04": "70 percent ran out of memory; also mentions unfixable environment-limited slew nets (true in the docs)",
+    "r06": "keyword accident: lists the 14 check names, no cause",
+    "u01": "correct 'unknown' for an unanswerable control",
+    "u02": "correct 'unknown' for an unanswerable control",
+    "h03": "next add needs the previous sum, only the multiply can be split off",
+    "h04": "weights are constants so stored bits are constants or copies; 144 flops",
+    "h05": "narrower significand multiplier and shifters; mantissa length is the reason (cites model/precision_hw/spec.md)"
+   },
+   "failed_answers": {
+    "r02": "The setup slack of soc_kv_attn_n8 is limited by hold time. The worst hold slack is 0.1052 ns at min_ff, which is close to zero. This means that hold time is what limits the setup slack. The design is ",
+    "r05": "The search results indicate that the 70 LVS errors in the user_project_wrapper were likely caused by the powered netlist used for the LVS check. The powered netlist `verilog/gl/tiny_ai_core.v` was poi",
+    "r07": "The cost versus accuracy knee in the precision study uses std-cell area (um^2) from metrics.json as the y-axis. The number format is not explicitly stated in the retrieved documentation.\n\nSources:\n- [",
+    "r08": "Source: read_metrics error\nThe design 'soc_image' is unknown. The valid designs are:\n- audio_onset\n- audio_pitch\n- image_text_match\n- kv_attn_n16\n- kv_attn_n4\n- kv_attn_n8\n- kv_attn_n8_int4\n- kv_attn_",
+    "r09": "The soc_image_text_match design was re-run on 2026-10-06 as part of the physical verification flow. The documentation notes that the physical flow (Docker) was re-run with identical metrics, and all p",
+    "r10": "The cause of the halved standard cell count in the tiny_ai_core design after simplifying the pins is due to the removal of the register interface. In the original design, the register interface added ",
+    "h01": "The ring-buffer engine kv_attn_n8_ring loses accuracy on 48-token episodes because the model level verification shows it has 80.96% accuracy against an unbounded oracle on 48-token episodes. This is l",
+    "h02": "The binary format loses accuracy because the binary weights were quantised from the already-trained fp32 neuron. This results in a binary accuracy score of 88.95%, which is about 5 points down compare"
+   }
+  },
+  "rag+router": {
+   "main": {
+    "passed": 8,
+    "total": 12,
+    "answerable_passed": 6,
+    "answerable_total": 10,
+    "controls_passed": 2,
+    "controls_total": 2,
+    "context_present": 9,
+    "auto_retrieved": 9,
+    "model_called_search": 0,
+    "retrieved_expected_file": 8,
+    "cited_expected_file": 7,
+    "guardrail_rejections": 0,
+    "answers_with_grounding_problems": 0,
+    "median_latency_s": 9.52,
+    "failed": [
+     "r02",
+     "r05",
+     "r08",
+     "r09"
+    ],
+    "hand_checked_passed": 7,
+    "keyword_accidents": [
+     "r07"
+    ]
+   },
+   "heldout": {
+    "passed": 4,
+    "total": 5,
+    "answerable_passed": 4,
+    "answerable_total": 5,
+    "controls_passed": 0,
+    "controls_total": 0,
+    "context_present": 5,
+    "auto_retrieved": 5,
+    "model_called_search": 0,
+    "retrieved_expected_file": 5,
+    "cited_expected_file": 5,
+    "guardrail_rejections": 0,
+    "answers_with_grounding_problems": 0,
+    "median_latency_s": 11.24,
+    "failed": [
+     "h01"
+    ],
+    "hand_checked_passed": 4,
+    "keyword_accidents": []
+   },
+   "trace": "build/agent/traces/20261006_160151_rag_rag_router.jsonl",
+   "hand_check_notes": {
+    "r01": "core reason present: the int8 baseline was already pruned, so halving the bits did not reduce flip-flops (first sentence 'pruned to a thin top-level design' is garbled)",
+    "r03": "109-pin macro with pins in the wrapper pad order, fewer and ordered pins",
+    "r04": "70 percent ran out of memory with the Caravel SDC, margin reduced to 20 (an extra 'default is 20' claim is doubtful)",
+    "r06": "template GPIO_MODE_INVALID replaced by GPIO_MODE_MGMT_STD_INPUT_NOPULL for GPIO 5..37 in user_defines.v; gpio_defines and oeb checks",
+    "r07": "keyword accident: describes the plot and the seven formats, never names tern or int4 as the knee",
+    "r10": "3521 cells (2115 taps, 468 repair buffers) vs 1809 (765 taps); taps scale with die area",
+    "u01": "correct 'unknown' for an unanswerable control",
+    "u02": "correct 'unknown' for an unanswerable control",
+    "h02": "reason documented in docs/PRECISION_STUDY.md: weights are the signs of the trained fp32 weights (quantised after training, not trained for 1 bit); misses the 'sign-only cannot say a pixel hardly matters' wording",
+    "h03": "next add needs the previous sum, so the add-and-normalise cannot be pipelined; multiply can be split",
+    "h04": "weights are fixed constants, little information stored; 144 of 1024 bits built",
+    "h05": "shorter mantissa (7 vs 10 bits); 14.6 percent smaller; multiplier not named"
+   },
+   "failed_answers": {
+    "r02": "The setup slack of soc_kv_attn_n8 is limited by hold time. The worst setup path starts at the rst input, which is clocked by clk, representing the synchronous reset fan-out to every cleared register. ",
+    "r05": "The 70 LVS errors in the user_project_wrapper were caused by the wrapper's LVS config file pointing to the unpowered netlist of the tiny_ai_core macro instead of the powered netlist. This mismatch bet",
+    "r08": "Source: read_metrics error\nThe design 'soc_image' is unknown. The valid designs are:\n- audio_onset\n- audio_pitch\n- image_text_match\n- kv_attn_n16\n- kv_attn_n4\n- kv_attn_n8\n- kv_attn_n8_int4\n- kv_attn_",
+    "r09": "The soc_image_text_match design was re-run on 2026-10-06 because the testbench and physical verification stages were repeated. The testbench `tb/soc_image_text_match_tb.v` reads `tb/vectors.hex` (a co",
+    "h01": "The ring-buffer engine kv_attn_n8_ring loses accuracy on 48-token episodes because the model's attention head (dimension 4) and cache length (N=8) are too small for longer episodes. The design notes m"
+   }
+  },
+  "rag+router+guardrail": {
+   "main": {
+    "passed": 8,
+    "total": 12,
+    "answerable_passed": 6,
+    "answerable_total": 10,
+    "controls_passed": 2,
+    "controls_total": 2,
+    "context_present": 9,
+    "auto_retrieved": 9,
+    "model_called_search": 0,
+    "retrieved_expected_file": 8,
+    "cited_expected_file": 7,
+    "guardrail_rejections": 0,
+    "answers_with_grounding_problems": 0,
+    "median_latency_s": 9.62,
+    "failed": [
+     "r02",
+     "r05",
+     "r08",
+     "r09"
+    ],
+    "hand_checked_passed": 7,
+    "keyword_accidents": [
+     "r07"
+    ]
+   },
+   "heldout": {
+    "passed": 4,
+    "total": 5,
+    "answerable_passed": 4,
+    "answerable_total": 5,
+    "controls_passed": 0,
+    "controls_total": 0,
+    "context_present": 5,
+    "auto_retrieved": 5,
+    "model_called_search": 0,
+    "retrieved_expected_file": 5,
+    "cited_expected_file": 5,
+    "guardrail_rejections": 0,
+    "answers_with_grounding_problems": 0,
+    "median_latency_s": 10.65,
+    "failed": [
+     "h01"
+    ],
+    "hand_checked_passed": 4,
+    "keyword_accidents": []
+   },
+   "trace": "build/agent/traces/20261006_160436_rag_rag_router_guardrail.jsonl",
+   "hand_check_notes": {
+    "r01": "core reason present: the int8 baseline was already pruned, so halving the bits did not reduce flip-flops (first sentence 'pruned to a thin top-level design' is garbled)",
+    "r03": "109-pin macro with pins in the wrapper pad order, fewer and ordered pins",
+    "r04": "70 percent ran out of memory with the Caravel SDC, margin reduced to 20 (an extra 'default is 20' claim is doubtful)",
+    "r06": "template GPIO_MODE_INVALID replaced by GPIO_MODE_MGMT_STD_INPUT_NOPULL for GPIO 5..37 in user_defines.v; gpio_defines and oeb checks",
+    "r07": "keyword accident: describes the plot and the seven formats, never names tern or int4 as the knee",
+    "r10": "3521 cells (2115 taps, 468 repair buffers) vs 1809 (765 taps); taps scale with die area",
+    "u01": "correct 'unknown' for an unanswerable control",
+    "u02": "correct 'unknown' for an unanswerable control",
+    "h02": "reason documented in docs/PRECISION_STUDY.md: weights are the signs of the trained fp32 weights (quantised after training, not trained for 1 bit); misses the 'sign-only cannot say a pixel hardly matters' wording",
+    "h03": "next add needs the previous sum, so the add-and-normalise cannot be pipelined; multiply can be split",
+    "h04": "weights are fixed constants, little information stored; 144 of 1024 bits built",
+    "h05": "shorter mantissa (7 vs 10 bits); 14.6 percent smaller; multiplier not named"
+   },
+   "failed_answers": {
+    "r02": "The setup slack of soc_kv_attn_n8 is limited by hold time. The worst setup path starts at the rst input, which is clocked by clk, representing the synchronous reset fan-out to every cleared register. ",
+    "r05": "The 70 LVS errors in the user_project_wrapper were caused by the wrapper's LVS config file pointing to the unpowered netlist of the tiny_ai_core macro instead of the powered netlist. This mismatch bet",
+    "r08": "Source: read_metrics error\nThe design 'soc_image' is unknown. The valid designs are:\n- audio_onset\n- audio_pitch\n- image_text_match\n- kv_attn_n16\n- kv_attn_n4\n- kv_attn_n8\n- kv_attn_n8_int4\n- kv_attn_",
+    "r09": "The soc_image_text_match design was re-run on 2026-10-06 because the testbench and physical verification stages were repeated. The testbench `tb/soc_image_text_match_tb.v` reads `tb/vectors.hex` (a co",
+    "h01": "The ring-buffer engine kv_attn_n8_ring loses accuracy on 48-token episodes because the model's attention head (dimension 4) and cache length (N=8) are too small for longer episodes. The design notes m"
+   }
+  },
+  "rag+router+guardrail+grounding": {
+   "main": {
+    "passed": 8,
+    "total": 12,
+    "answerable_passed": 6,
+    "answerable_total": 10,
+    "controls_passed": 2,
+    "controls_total": 2,
+    "context_present": 9,
+    "auto_retrieved": 9,
+    "model_called_search": 0,
+    "retrieved_expected_file": 8,
+    "cited_expected_file": 7,
+    "guardrail_rejections": 0,
+    "answers_with_grounding_problems": 0,
+    "median_latency_s": 9.65,
+    "failed": [
+     "r02",
+     "r05",
+     "r08",
+     "r09"
+    ],
+    "hand_checked_passed": 7,
+    "keyword_accidents": [
+     "r07"
+    ]
+   },
+   "heldout": {
+    "passed": 4,
+    "total": 5,
+    "answerable_passed": 4,
+    "answerable_total": 5,
+    "controls_passed": 0,
+    "controls_total": 0,
+    "context_present": 5,
+    "auto_retrieved": 5,
+    "model_called_search": 0,
+    "retrieved_expected_file": 5,
+    "cited_expected_file": 5,
+    "guardrail_rejections": 0,
+    "answers_with_grounding_problems": 0,
+    "median_latency_s": 10.37,
+    "failed": [
+     "h01"
+    ],
+    "hand_checked_passed": 4,
+    "keyword_accidents": []
+   },
+   "trace": "build/agent/traces/20261006_160714_rag_rag_router_guardrail_grounding.jsonl",
+   "hand_check_notes": {
+    "r01": "core reason present: the int8 baseline was already pruned, so halving the bits did not reduce flip-flops (first sentence 'pruned to a thin top-level design' is garbled)",
+    "r03": "109-pin macro with pins in the wrapper pad order, fewer and ordered pins",
+    "r04": "70 percent ran out of memory with the Caravel SDC, margin reduced to 20 (an extra 'default is 20' claim is doubtful)",
+    "r06": "template GPIO_MODE_INVALID replaced by GPIO_MODE_MGMT_STD_INPUT_NOPULL for GPIO 5..37 in user_defines.v; gpio_defines and oeb checks",
+    "r07": "keyword accident: describes the plot and the seven formats, never names tern or int4 as the knee",
+    "r10": "3521 cells (2115 taps, 468 repair buffers) vs 1809 (765 taps); taps scale with die area",
+    "u01": "correct 'unknown' for an unanswerable control",
+    "u02": "correct 'unknown' for an unanswerable control",
+    "h02": "reason documented in docs/PRECISION_STUDY.md: weights are the signs of the trained fp32 weights (quantised after training, not trained for 1 bit); misses the 'sign-only cannot say a pixel hardly matters' wording",
+    "h03": "next add needs the previous sum, so the add-and-normalise cannot be pipelined; multiply can be split",
+    "h04": "weights are fixed constants, little information stored; 144 of 1024 bits built",
+    "h05": "shorter mantissa (7 vs 10 bits); 14.6 percent smaller; multiplier not named"
+   },
+   "failed_answers": {
+    "r02": "The setup slack of soc_kv_attn_n8 is limited by hold time. The worst setup path starts at the rst input, which is clocked by clk, representing the synchronous reset fan-out to every cleared register. ",
+    "r05": "The 70 LVS errors in the user_project_wrapper were caused by the wrapper's LVS config file pointing to the unpowered netlist of the tiny_ai_core macro instead of the powered netlist. This mismatch bet",
+    "r08": "Source: read_metrics error\nThe design 'soc_image' is unknown. The valid designs are:\n- audio_onset\n- audio_pitch\n- image_text_match\n- kv_attn_n16\n- kv_attn_n4\n- kv_attn_n8\n- kv_attn_n8_int4\n- kv_attn_",
+    "r09": "The soc_image_text_match design was re-run on 2026-10-06 because the testbench and physical verification stages were repeated. The testbench `tb/soc_image_text_match_tb.v` reads `tb/vectors.hex` (a co",
+    "h01": "The ring-buffer engine kv_attn_n8_ring loses accuracy on 48-token episodes because the model's attention head (dimension 4) and cache length (N=8) are too small for longer episodes. The design notes m"
+   }
   }
  },
- "end_to_end_failed_answers": {
-  "tools-only": {
-   "r01": "kv_attn_n8_int4 has 222 flip-flops/latches (sequential cells), while kv_attn_n8 has 200. Despite having half the bits in its cache, kv_attn_n8_int4 actually has",
-   "r02": "The worst setup slack of soc_kv_attn_n8 is limited by the min_ss_100C_1v60 corner value, which is -1.9579 ns. This means that the design violates setup timing a",
-   "r03": "I do not have a tool to provide information about design changes and their effects on specific issues. The open-ai-chip repository tools are focused on metrics,",
-   "r04": "The slew repair margin is set to 20 percent for the macro build because that is the value determined to be necessary for the specific design requirements and co",
-   "r05": "To determine the cause of the 70 LVS errors in the user_project_wrapper, I would need to analyze the design's metrics.json file. However, the provided tools do ",
-   "r08": "Source: read_metrics\nThe design 'soc_image' is unknown. Valid designs are: audio_onset, audio_pitch, image_text_match, kv_attn_n16, kv_attn_n4, kv_attn_n8, kv_a",
-   "r09": "To determine why soc_image_text_match was re-run on 2026-10-06, I would need to review the project's revision history and check for any changes made to the desi",
-   "r10": "The comparison between tiny_ai_core and tiny_ai_core_simplified_pins could not be performed because the design 'tiny_ai_core_simplified_pins' is not found in th"
-  },
-  "rag": {
-   "r02": "The worst setup slack of soc_kv_attn_n8 is limited by the violations in different corners. The smallest value is in the max_ff_n40C_1v95 corner, with a setup sl",
-   "r03": "The GRT-0116 global routing congestion issue for tiny_ai_core in the wrapper was fixed by running the make flow-all command with the DESIGN parameter set to use",
-   "r05": "The signoff summary for the user_project_wrapper shows that there were 70 LVS errors. The LVS errors are reported under the \"lvs\" section as:\n\n{\"lvs\": {\"error\":",
-   "r08": "The design 'soc_image' is not valid. The valid designs are:\n\n- audio_onset\n- audio_pitch\n- image_text_match\n- kv_attn_n16\n- kv_attn_n4\n- kv_attn_n8\n- kv_attn_n8",
-   "r09": "The soc_image_text_match design was re-run on 2026-10-06 for the following reasons:\n\n1. The testbench `tb/soc_image_text_match_tb.v` reads `tb/vectors.hex` (a c",
-   "r10": "The search results show that the tiny_ai_core design has 109 macro pins, which are used for interfacing with the Caravel SoC. When the pins were simplified, it ",
-   "u01": "The first packaged chips measured a power consumption of 0.5 milliwatts on the bench. Source: read_metrics."
-  },
-  "rag+grounding": {
-   "r02": "Apologies for the confusion. Based on the retrieved text, the worst setup slack is limited by the violations in different corners. The smallest value is in the ",
-   "r03": "The GRT-0116 global routing congestion issue for tiny_ai_core in the wrapper was fixed by running the make flow-all command with the DESIGN parameter set to use",
-   "r05": "The signoff summary for the user_project_wrapper shows that there were 70 LVS errors. The LVS errors are reported under the \"lvs\" section as:\n\n{\"lvs\": {\"error\":",
-   "r06": "The precheck summary does not contain information about specific numbers or names related to grounding checks. The provided information only includes the passin",
-   "r08": "The design 'soc_image' is not valid. The valid designs are:\n\n- audio_onset\n- audio_pitch\n- image_text_match\n- kv_attn_n16\n- kv_attn_n4\n- kv_attn_n8\n- kv_attn_n8",
-   "r09": "The soc_image_text_match design was re-run on 2026-10-06 for the following reasons:\n\n1. The testbench `tb/soc_image_text_match_tb.v` reads `tb/vectors.hex` (a c",
-   "r10": "The search results show that the tiny_ai_core design has 109 macro pins, which are used for interfacing with the Caravel SoC. When the pins were simplified, it "
-  }
- }
+ "retrieval_source": "build/agent/rag_eval_20261006_161659.json (retrieval only, same corpus after the README edit; end-to-end source is the field 'source')"
 }

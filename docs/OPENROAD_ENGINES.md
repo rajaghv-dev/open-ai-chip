@@ -36,6 +36,7 @@ paths exist only on the machine that ran the flow.
   - WR = Run W: the `user_project_wrapper_soc_kv` run (the fixed Caravel wrapper; elaborate-only synthesis, manual macro
     placement, no CTS or resizer).
 - Origin and algorithm statements that could not be checked against the binary or a log are marked "not verified".
+- Pictures of these engines' results (placement density, congestion, IR drop, clock tree, worst path) from OpenROAD's own GUI, rendered off-screen: [examples/openroad_gui/README.md](../examples/openroad_gui/README.md).
 - Related: the EDA open-source vs proprietary table in the [README](../README.md#eda-perspective-open-source-vs-proprietary),
   the [harden-design skill](../.claude/skills/harden-design/SKILL.md) for failures and fixes.
 

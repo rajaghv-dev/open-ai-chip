@@ -86,7 +86,7 @@ VIEWS_OF := $(if $(filter file,$(origin DESIGN)),tiny_ai_core,$(DESIGN))
 SIM_PLUS := $(if $(SIM_VEC),+VEC=$(abspath $(SIM_VEC)))
 GL_DESC  := $(if $(SIM_VEC),every case of tb/vectors.hex,committed tb)
 
-.PHONY: help doctor test views macro-views wrapper simulate gds flow check gl gl-final collect view flow-all tiny all-designs designs table generate check-generated model-check clean soc-sim adapter-test caravel-rtl caravel-gl precheck caravel-fullgl caravel-sdf-wrapper soc-kv
+.PHONY: help doctor test test-full views macro-views wrapper simulate gds flow check gl gl-final collect view flow-all tiny all-designs designs table generate check-generated model-check clean soc-sim adapter-test caravel-rtl caravel-gl precheck caravel-fullgl caravel-sdf-wrapper soc-kv
 .DEFAULT_GOAL := help
 
 help:
@@ -97,6 +97,7 @@ help:
 	@echo "  model-check      golden.py --check of tiny_ai, image_text_match, precision_hw, kv_attention (audio_* have no --check; the testbench is the check)"
 	@echo "  doctor     host tools, Docker daemon, LibreLane image, PDK"
 	@echo "  test       fast repository checks (structure, configs, RTL lint), no Docker"
+	@echo "  test-full  heavy local checks, no physical flow: simulate/check/gl-final of all designs, soc, caravel (tests/test_full.sh; FLAGS=--precheck --synth-gl --fullgl --sdf --quick)"
 	@echo "  simulate   RTL simulation, self-checking testbench (iverilog)"
 	@echo "  views      export the hardened macro's views to build/macros/<macro>/ (DESIGN=<macro>, default tiny_ai_core)"
 	@echo "  wrapper    views, then flow-all DESIGN=user_project_wrapper"
@@ -133,6 +134,9 @@ test:
 $(SIM_DIR)/tb.vvp: $(SIM_RTL) $(SIM_TB) $(wildcard shared/tb/*.vh)
 	@mkdir -p $(SIM_DIR)
 	iverilog -g2012 -Wall -Wno-timescale -I shared/tb $(SIM_INCS) -o $@ $(SIM_RTL) $(SIM_TB)
+
+test-full:
+	@bash tests/test_full.sh $(FLAGS)
 
 simulate: $(SIM_DIR)/tb.vvp
 	cd $(SIM_DIR) && set -o pipefail && vvp -n tb.vvp $(SIM_PLUS) | tee sim.log

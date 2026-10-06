@@ -32,8 +32,12 @@ Sibling `../open-ai-silicon` is reference material only: never edit it.
 ## First commands
 - `make help` lists every target (`DESIGN=<name>` selects the design; default `user_proj_example`).
 - `make doctor` checks host tools, Docker daemon, LibreLane image, PDK. Run it before any physical flow.
-- `make test` is the fast gate (about 65 s, no Docker): structure, configs, lint of every design, model checks,
-  regeneration reproducibility, RTL sims, adapter, SoC sim, notes headings, negative tests.
+- Opening GUIs and finding logs (macOS and Linux): `docs/GUI_AND_LOGS.md`.
+- `make test` is the fast gate (about 100 s, no Docker): structure, configs, lint of every design, model checks,
+  regeneration reproducibility, RTL sims, adapter, SoC sims, notes headings, negative tests for every design family,
+  docs checks (links, make targets, inventory, README numbers vs metrics.json) and the agent/tools pytest (`tests/tools`).
+- `make test-full` (`tests/test_full.sh`, about 5 min): per design run-state + simulate + check + gl-final, plus adapter,
+  soc-sim, soc-kv, caravel-rtl/gl; never re-runs a physical flow. Coverage map: `tests/TEST_MATRIX.md`; results: `docs/VALIDATION.md`.
 - `make flow-all DESIGN=<d>`: simulate, gds, check, gl, gl-final, collect (the one command).
 
 ## Workflows (project skills in `.claude/skills/`)

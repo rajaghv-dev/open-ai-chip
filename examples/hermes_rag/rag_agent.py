@@ -16,9 +16,11 @@ ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.join(ROOT, "examples", "hermes_harness"))
 import rag                                  # noqa: E402
+import router                               # noqa: E402
 import harness                              # noqa: E402  (also imports eda_tools and hermes_agent)
 from harness import eda_tools, hermes_agent  # noqa: E402
 
+SEARCH_RESULT_CHARS_V2 = 5600               # v2 hits carry two ~600-character windows each
 SEARCH_RESULT_CHARS = 4400                  # 4 chunks of up to 800 chars plus headers fit; hermes_agent.RESULT_CHARS (3500) would cut them
 
 RAG_RULES_V1 = """
@@ -35,7 +37,15 @@ Documentation search (RAG):
 RAG_RULES_V2 = RAG_RULES_V1 + """
 - Routing: a question that asks why, how, what caused, what fixed, what limits, what was learned or which choice is best is a DOCUMENTATION question. Do NOT answer it from read_metrics, signoff_summary or precheck_summary (they only hold numbers and pass/fail lists; they cannot say why). Call search_docs first, with 4 to 8 keywords copied from the question, and leave k unset.
 - Look at the lines of each chunk that match the question; if the chunks are about a different design or topic than the question, search again with the design name plus the key words."""
-RAG_RULES = {"v1": RAG_RULES_V1, "v2": RAG_RULES_V2}
+# V3 (router configs): short. The harness may already have run search_docs for a documentation question (the result is the first
+# tool response in the conversation); the model only has to read it, answer and cite.
+RAG_RULES_V3 = """
+
+Documentation questions (why, how, what fixed, what caused, what limits): the answer is written text, not a number in metrics.json.
+- Use the search_docs results already in this conversation, or call search_docs(query) with 4 to 8 keywords from the question if they do not contain the answer.
+- Answer in 1 to 3 sentences from the retrieved text only: state the cause or reason, copy numbers exactly.
+- End with 'Sources: <file> > <heading>' for each chunk you used. If the retrieved text does not answer it, say unknown."""
+RAG_RULES = {"v1": RAG_RULES_V1, "v2": RAG_RULES_V2, "v3": RAG_RULES_V3}
 PROMPT = {"version": "v2"}
 
 
@@ -43,8 +53,8 @@ def schemas(use_rag):
     return eda_tools.TOOLS + ([rag.TOOL] if use_rag else [])
 
 
-def system_prompt(use_rag):
-    base = hermes_agent.SYSTEM + (RAG_RULES[PROMPT["version"]] if use_rag else "")
+def system_prompt(use_rag, version=None):
+    base = hermes_agent.SYSTEM + (RAG_RULES[version or PROMPT["version"]] if use_rag else "")
     tools = json.dumps([t["function"] for t in schemas(use_rag)])
     return (base + "\n\nYou are a function calling AI model. You may call one or more functions to assist with the user query. "
             f"Don't make assumptions about what values to plug into functions. Here are the available tools:\n<tools> {tools} </tools>\n"
@@ -52,14 +62,15 @@ def system_prompt(use_rag):
             '<tool_call>\n{"name": <function-name>, "arguments": <args-dict>}\n</tool_call>')
 
 
-def format_hits(res):
+def format_hits(res, limit=None):
     if "error" in res:
         return json.dumps(res)
     out = []
     for i, h in enumerate(res["hits"], 1):
         out.append(f"[{i}] file: {h['file']} | heading: {h['heading']} | lines {h['lines']}\n{h['text']}")
     s = "\n\n".join(out) or "no matching chunks"
-    return s if len(s) <= SEARCH_RESULT_CHARS else s[:SEARCH_RESULT_CHARS] + "...[truncated]"
+    limit = limit or SEARCH_RESULT_CHARS
+    return s if len(s) <= limit else s[:limit] + "...[truncated]"
 
 
 # ---------------------------------------------------------------- citations and the RAG grounding check
@@ -95,18 +106,60 @@ def rag_grounding(question, answer, retrieved, results):
     return bad
 
 
+GUARD_MSG = ("This is a documentation question and your answer cites no retrieved file. Call search_docs with 4 to 8 keywords from the "
+             "question, or answer only from the retrieved text and end with 'Sources: <file> > <heading>' naming a retrieved file; "
+             "if the documents do not say, answer unknown.")
+
+
+def guardrail_problem(route, answer, retrieved):
+    """Retrieval guardrail: for a doc-type question an answer must cite a retrieved file (or say it is unknown).
+    Returns a problem string or None. Pure function, no model."""
+    if route != "doc" or UNKNOWN_RE.search(answer):
+        return None
+    files = {h["file"] for h in retrieved}
+    if any(_file_ok(c, files) for c in citations(answer)):
+        return None
+    return "doc-type question answered without citing a retrieved file"
+
+
 # ---------------------------------------------------------------- the loop
-def run_rag_episode(question, use_rag=True, grounding=True, tracer=None, verbose=False, max_revisions=1):
+def run_rag_episode(question, use_rag=True, grounding=True, tracer=None, verbose=False, max_revisions=1,
+                    search_mode="v1", auto_retrieve=False, guardrail=False, chat=None, prompt_version=None):
+    """search_mode "v2": improved retrieval for every search_docs call. auto_retrieve: the router classifies the question and
+    for doc-type the harness calls search_docs itself before the first model turn. guardrail: one rejection of a doc-type
+    answer that cites no retrieved file. chat: the model call (default harness.chat; a stub in the tests)."""
+    chat = chat or harness.chat
     cfg = harness.Config(grounding=grounding)
     tracer = tracer or harness.Tracer("rag" if use_rag else "norag")
     tracer.episode += 1
     t0 = time.time()
-    sysmsg = system_prompt(use_rag)
+    sysmsg = system_prompt(use_rag, prompt_version)
     allowed = schemas(use_rag)
-    tracer.event("start", question=question, rag=use_rag, grounding=grounding)
+    route = router.classify(question)
+    tracer.event("start", question=question, rag=use_rag, grounding=grounding, route=route, search_mode=search_mode,
+                 auto_retrieve=auto_retrieve, guardrail=guardrail)
     msgs = [{"role": "system", "content": sysmsg}, {"role": "user", "content": question}]
     calls, results, retrieved, revisions, steps, verdict, answer = [], [], [], 0, 0, None, ""
-    searches = []
+    searches, guard_used = [], 0
+    limit = SEARCH_RESULT_CHARS_V2 if search_mode == "v2" else SEARCH_RESULT_CHARS
+
+    def record_search(args, res, auto):
+        retrieved.extend(res["hits"])
+        searches.append({"query": res["query"], "chunk_ids": [h["id"] for h in res["hits"]],
+                         "files": [h["file"] for h in res["hits"]], "auto": auto})
+
+    if use_rag and auto_retrieve and route == "doc":      # retrieve-first: the harness, not the model, decides to search
+        args = {"query": question}
+        res = rag.call(args, search_mode)
+        calls.append({"name": "search_docs", "args": args, "error": "error" in res, "auto": True})
+        if "hits" in res:
+            record_search(args, res, True)
+        txt = format_hits(res, limit)
+        tracer.event("auto_retrieve", route=route, args=args, chunk_ids=[h["id"] for h in res.get("hits", [])])
+        msgs.append({"role": "assistant", "content": "<tool_call>\n" + json.dumps({"name": "search_docs", "arguments": args}) + "\n</tool_call>"})
+        msgs.append({"role": "tool", "content": json.dumps({"name": "search_docs", "content": txt})})
+        if verbose:
+            print(f"[auto search_docs] {question!r} -> {[h['file'] for h in res.get('hits', [])]}", file=sys.stderr, flush=True)
 
     def do_calls(tcs):
         blocks = []
@@ -114,13 +167,11 @@ def run_rag_episode(question, use_rag=True, grounding=True, tracer=None, verbose
             if len(calls) >= cfg.max_calls:
                 txt = json.dumps({"error": "tool call budget exhausted; answer from what you have or say unknown"})
             elif name == "search_docs" and use_rag:
-                res = rag.call(args)
-                calls.append({"name": name, "args": args, "error": "error" in res})
+                res = rag.call(args, search_mode)
+                calls.append({"name": name, "args": args, "error": "error" in res, "auto": False})
                 if "hits" in res:
-                    retrieved.extend(res["hits"])
-                    searches.append({"query": res["query"], "chunk_ids": [h["id"] for h in res["hits"]],
-                                     "files": [h["file"] for h in res["hits"]]})
-                txt = format_hits(res)
+                    record_search(args, res, False)
+                txt = format_hits(res, limit)
                 tracer.event("tool", tool=name, args=args, chunk_ids=[h["id"] for h in res.get("hits", [])])
             else:
                 err = harness.validate_args(name, args, allowed) if name not in {s["function"]["name"] for s in allowed} else None
@@ -137,7 +188,7 @@ def run_rag_episode(question, use_rag=True, grounding=True, tracer=None, verbose
 
     while steps < cfg.max_steps and time.time() - t0 < cfg.max_seconds:
         steps += 1
-        content = harness.chat(msgs)["message"].get("content") or ""
+        content = chat(msgs)["message"].get("content") or ""
         tracer.event("model", step=steps, output=content[:1500])
         tcs = hermes_agent._parse_tool_calls(content)
         if tcs:
@@ -145,6 +196,13 @@ def run_rag_episode(question, use_rag=True, grounding=True, tracer=None, verbose
             do_calls(tcs)
             continue
         answer = content.strip()
+        if guardrail and not guard_used and answer:
+            gp = guardrail_problem(route, answer, retrieved)
+            tracer.event("guardrail", route=route, problem=gp)
+            if gp:
+                guard_used += 1
+                msgs += [{"role": "assistant", "content": answer}, {"role": "user", "content": GUARD_MSG}]
+                continue
         if grounding and revisions < max_revisions and answer:
             bad = rag_grounding(question, answer, retrieved, results)
             verdict = {"ok": not bad, "problems": bad}
@@ -159,7 +217,7 @@ def run_rag_episode(question, use_rag=True, grounding=True, tracer=None, verbose
     else:
         answer = answer or "unknown (step or time budget exhausted)"
     final_bad = rag_grounding(question, answer, retrieved, results) if (use_rag or grounding) else None
-    out = {"answer": answer, "tool_calls": calls, "searches": searches, "citations": citations(answer),
+    out = {"answer": answer, "route": route, "guardrail_rejections": guard_used, "tool_calls": calls, "searches": searches, "citations": citations(answer),
            "seconds": round(time.time() - t0, 2), "revisions": revisions, "steps": steps,
            "grounding_verdict": verdict, "final_grounding_problems": final_bad}
     tracer.event("end", answer=answer, seconds=out["seconds"], revisions=revisions, citations=out["citations"])
@@ -170,16 +228,19 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("question", nargs="+")
     ap.add_argument("--no-rag", action="store_true", help="do not offer search_docs (the 10 EDA tools only)")
-    ap.add_argument("--prompt", choices=["v1", "v2"], default="v2", help="RAG prompt paragraph (v2 adds routing rules)")
+    ap.add_argument("--prompt", choices=["v1", "v2", "v3"], default="v2", help="RAG prompt paragraph (v2 adds routing rules, v3 is the short router-config prompt)")
+    ap.add_argument("--router", action="store_true", help="v2 retrieval + retrieve-first for doc-type questions (implies --prompt v3)")
+    ap.add_argument("--guardrail", action="store_true", help="reject once a doc-type answer that cites no retrieved file")
     ap.add_argument("--no-grounding", action="store_true", help="skip the grounding check and its one revision")
     a = ap.parse_args()
     use_rag = not a.no_rag
-    PROMPT["version"] = a.prompt
+    PROMPT["version"] = "v3" if a.router else a.prompt
     tr = harness.Tracer("rag" if use_rag else "norag")
     idx = rag.build_index() if use_rag else None
     if idx:
         print(f"[index: {len(idx['chunks'])} chunks, {'cached' if idx['cached'] else 'rebuilt'}]", file=sys.stderr)
-    r = run_rag_episode(" ".join(a.question), use_rag, use_rag and not a.no_grounding, tr, verbose=True)
+    r = run_rag_episode(" ".join(a.question), use_rag, use_rag and not a.no_grounding, tr, verbose=True,
+                        search_mode="v2" if a.router else "v1", auto_retrieve=a.router, guardrail=a.guardrail)
     print(r["answer"])
     print("\n--- trace ---", file=sys.stderr)
     for s in r["searches"]:

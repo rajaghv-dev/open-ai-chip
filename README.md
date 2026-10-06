@@ -76,7 +76,7 @@ Areas are std-cell um2 from `metrics.json`; flow times are from `resources.json`
 | 8 | KV cache | [kv_attn_n4](designs/kv_attn_n4/NOTES.md), [n8](designs/kv_attn_n8/NOTES.md), [n16](designs/kv_attn_n16/NOTES.md), [n8_int4](designs/kv_attn_n8_int4/NOTES.md), [n8_ring](designs/kv_attn_n8_ring/NOTES.md) | One attention head with a KV cache: prefill and decode | 1,679-4,169 cells, 200-340 um, 82-142 s |
 | 9 | KV SoC | [soc_kv_attn_n8](designs/soc_kv_attn_n8/NOTES.md), [user_project_wrapper_soc_kv](designs/user_project_wrapper_soc_kv/NOTES.md) | The KV engine behind the adapter, inside Caravel's wrapper | 4,514 cells, +1.44 ns; wrapper 76 s |
 | 10 | System checks | [firmware](firmware/README.md), [Caravel sims](docs/CARAVEL_SIM.md), [precheck](docs/PRECHECK.md) | RISC-V firmware, full-chip gate level, ChipFoundry precheck | full-chip GL 14 m 23 s; precheck 14/14 |
-| 11 | Agents | [Hermes agent](docs/HERMES_AGENT.md), [KLayout demo](examples/hermes_klayout_demo/README.md), [harness](examples/hermes_harness/README.md), [RAG](examples/hermes_rag/README.md) | A local LLM that reads chip results through read-only tools and searches the docs | 13/15, then 15/15 with one deterministic tool; RAG 2/10 -> 4/10 |
+| 11 | Agents | [Hermes agent](docs/HERMES_AGENT.md), [KLayout demo](examples/hermes_klayout_demo/README.md), [harness](examples/hermes_harness/README.md), [RAG](examples/hermes_rag/README.md), [KLayout GUI](examples/hermes_klayout_gui/README.md), [OpenROAD GUI views](examples/openroad_gui/README.md) | A local LLM that reads chip results through read-only tools and searches the docs | 13/15, then 15/15 with one deterministic tool; RAG 2/10 -> 4/10 -> 6/10 (retrieve-first router) |
 
 ### Chip design perspective
 
@@ -145,8 +145,10 @@ Measured where it applies:
 - Precision: six formats at 94.00-94.25 % and binary at 88.95 % (fp32 is 94.05 %).
 - KV cache: int4 recall 81.65 % vs 100 %; ring 91.11 % against the unbounded cache.
 - Hermes agent: 13/15 baseline, 15/15 with one deterministic tool.
-- Hermes RAG: retrieval finds the right file in the top 4 for 9 of 10 questions; end to end 2/10 without and 4/10 with retrieval,
-  because the 8B model calls `search_docs` on only 6 of 12 questions (`examples/hermes_rag/results_summary.json`).
+- Hermes RAG: the 8B model alone calls `search_docs` on only 6 of 12 questions (answerable 2/10 without, 4/10 with the tool), so
+  retrieval is now decided in code: a deterministic router retrieves before the first model turn for why/how questions. Answerable
+  6/10 by keywords (5/10 hand-checked), held-out doc questions 4/5; recall@1 5/10 -> 8/10 with the new search
+  (`examples/hermes_rag/results_summary.json`).
 
 `user_proj_example` is the non-AI control ([docs/WHY_AI.md](docs/WHY_AI.md)).
 
@@ -258,6 +260,9 @@ precision_hw and kv_attention; the two audio models have none, their testbenches
 (re-fit, regenerate ROMs and vectors), `make check-generated` (regeneration reproduces every committed generated file). Defaults: `PROFILE=tight`
 (container capped at 2 CPUs / 8 GB), `CPUSET=0-1`. If `DOCKER_HOST` is unset and `~/.colima/osl/docker.sock` exists,
 the Makefile uses it.
+
+Opening GUIs (KLayout, OpenROAD) and reading every log, macOS and Linux: [docs/GUI_AND_LOGS.md](docs/GUI_AND_LOGS.md).
+Validation of every run: [docs/VALIDATION.md](docs/VALIDATION.md), an independent re-validation of all 25 runs (current, evidence, signoff, RTL and both gate-level sims) and the system runs; tests: [tests/TEST_MATRIX.md](tests/TEST_MATRIX.md), `make test`, `make test-full`.
 
 | Stage | What passes means |
 |---|---|

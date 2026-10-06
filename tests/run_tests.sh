@@ -14,6 +14,10 @@
 #   adapter       tests/adapter/run.sh: wb_stream_adapter with all stream engines
 #   soc           make -C firmware sim (PicoRV32 SoC sim; NOTE if riscv64-elf-gcc is missing); Caravel runs are not included
 #   notes         every design with output/metrics.json has NOTES.md with the required headings
+#   negative-all  one corrupted expected value per remaining family (kv variants, soc macros, wrappers, prec_*), through the adapter too
+#   tools         pytest of tests/tools (agent, KLayout/OpenROAD tools, RAG, MCP) with build/agent/venv; NOTE when the venv is missing
+#   docs          tests/check_docs.py: markdown links, make targets in docs, design inventory, README Status numbers vs metrics.json
+#                 (self-tested by tests/lib/check_docs_selftest.sh); the test matrix is tests/TEST_MATRIX.md
 #   negative      (also: one corrupted expected value each for audio_pitch, audio_onset, image_text_match, prec_int8)
 #                 the testbenches and the model FAIL on deliberately broken input (they can catch a bug): the counter with
 #                 +2 increments; per tiny engine a corrupted expected value in vectors.hex and a broken RTL copy; a mutated
@@ -332,6 +336,36 @@ if cmp -s "$TMP/mm/model/tiny_ai/weights.json" model/tiny_ai/weights.json; then 
 elif (cd "$TMP/mm/model/tiny_ai" && python3 golden.py --check >"$TMP/negm.log" 2>&1); then fail "model: golden.py --check passed a mutated threshold"
 else pass "golden.py --check rejects a mutated threshold ($(grep -m1 -v ' 0 mismatches' "$TMP/negm.log" | cut -c1-60))"; fi
 
+# every design family: one expected value in a copy of its vectors.hex flipped (tests/lib/mutate_vectors.py); the self-checking
+# testbench (already compiled in == rtl) must exit non-zero with no PASS line. The unmodified vectors pass in == sim / == wrapper.
+# Covers what the cases above do not: kv_attn_n4/n16/n8_int4/n8_ring, soc_image_text_match, soc_kv_attn_n8, the three wrappers, 6 prec_*.
+echo "== negative-all"
+for d in kv_attn_n4 kv_attn_n16 kv_attn_n8_int4 kv_attn_n8_ring prec_bin prec_tern prec_int4 prec_fp8 prec_fp16 prec_bf16 \
+         soc_image_text_match soc_kv_attn_n8 $WRAPS; do
+  src=designs/$d/tb/vectors.hex; [ -f $src ] || src=designs/$(python3 -c "import json,sys; print(next(iter(json.load(open(sys.argv[1]))['MACROS'])))" designs/$d/config.json)/tb/vectors.hex
+  if [ ! -f "$TMP/tb_$d.vvp" ]; then fail "$d: no compiled testbench for the negative test"; continue; fi
+  if ! python3 tests/lib/mutate_vectors.py "$d" "$src" "$TMP/$d.nbad.hex" || cmp -s "$TMP/$d.nbad.hex" "$src"; then fail "$d: vector mutation did not apply"; continue; fi
+  vsim "nall_$d" "$d" "tb_$d.vvp" "$TMP/$d.nbad.hex"
+  if [ $rc -ne 0 ] && ! grep -q '^PASS' "$TMP/nall_$d.log" && grep -q 'FAIL' "$TMP/nall_$d.log"; then pass "$d: testbench rejects a corrupted expected value ($(grep -m1 FAIL "$TMP/nall_$d.log" | cut -c1-60))"
+  else fail "$d: testbench passed a corrupted vector (exit $rc)"; fi
+done
+# adapter: the same corruption behind the Wishbone adapter (VEC_DIR makes tests/adapter/run.sh read <engine>.hex from a scratch dir)
+mkdir -p "$TMP/advec"
+for d in vision_block kv_attn_n8 audio_pitch; do python3 tests/lib/mutate_vectors.py $d designs/$d/tb/vectors.hex "$TMP/advec/$d.hex" || fail "adapter $d: mutation did not apply"; done
+if VEC_DIR="$TMP/advec" ONLY="vision_block kv_attn_n8 audio_pitch" bash tests/adapter/run.sh >"$TMP/adapter_neg.log" 2>&1; then fail "adapter passed corrupted vectors"
+else pass "adapter test rejects corrupted vectors ($(grep -c '^FAIL' "$TMP/adapter_neg.log") of 3 engines FAIL)"; [ "$(grep -c '^FAIL' "$TMP/adapter_neg.log")" = 3 ] || fail "adapter: not every corrupted engine was caught"; fi
+# the documentation checks themselves: each must pass a good scratch tree and fail the same tree with one fault
+if bash tests/lib/check_docs_selftest.sh >"$TMP/docs_self.log" 2>&1; then pass "tests/check_docs.py self-test: $(grep -c '^ok' "$TMP/docs_self.log") cases (good tree accepted, each fault rejected)"
+else fail "check_docs.py self-test:"; grep '^BAD' "$TMP/docs_self.log"; fi
+
+echo "== docs"
+# evidence and documentation consistency (tests/check_docs.py): relative links of every tracked *.md, make targets named in the docs,
+# design inventory (files, tables.py ORDER, README, counts, model dirs), numbers in design README Status lines vs output/metrics.json
+for c in inventory evidence targets links; do
+  if python3 tests/check_docs.py $c >"$TMP/docs_$c.log" 2>&1; then pass "docs $c: $(tail -1 "$TMP/docs_$c.log")"
+  else fail "docs $c:"; head -20 "$TMP/docs_$c.log"; fi
+done
+
 echo "== notes"
 # every design with output/metrics.json needs NOTES.md with these headings (## or ###, case-insensitive prefix match)
 for d in designs/*/; do
@@ -369,6 +403,14 @@ if command -v riscv64-elf-gcc >/dev/null 2>&1; then
   else fail "make -C firmware/kv sim:"; tail -5 "$TMP/soc_kv.log"; fi
 else note "riscv64-elf-gcc not found: firmware KV SoC sim skipped"; fi
 note "full-Caravel runs (make caravel-rtl, make caravel-gl) are not part of make test: they need build/caravel downloads (about 5 GB)"
+
+echo "== tools"
+# agent/tools pytest (tests/tools, owned by the tools agent; no Ollama, no Docker; live tests are opt-in and skip by default)
+if [ -x build/agent/venv/bin/python ]; then
+  t0=$(date +%s)
+  if build/agent/venv/bin/python -m pytest -q tests/tools >"$TMP/tools.log" 2>&1; then pass "tests/tools pytest: $(tail -1 "$TMP/tools.log") ($(( $(date +%s)-t0 )) s)"
+  else fail "tests/tools pytest:"; tail -15 "$TMP/tools.log"; fi
+else note "build/agent/venv missing: tests/tools pytest skipped (docs/HERMES_AGENT.md)"; fi
 
 echo "== tables"
 if python3 scripts/docs/tables.py --check >"$TMP/tables.log" 2>&1; then pass "README results tables up to date"; else fail "tables.py --check: $(cat "$TMP/tables.log")"; fi

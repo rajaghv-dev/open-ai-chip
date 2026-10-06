@@ -136,3 +136,5 @@ one call per step, so it takes three steps.
 - `examples/hermes_harness/`: the loop-and-harness example (baseline 13/15 to 15/15 with a deterministic tool).
 - `docs/HERMES_AGENT.md`: setup, scores and honest failures.
 - `examples/hermes_rag/`: retrieval-augmented generation (BM25 search_docs over the repo docs) on top of the same tools, with measured recall and end-to-end scores.
+
+Next step: a model that drives a KLayout view (zoom, layers, DRC markers, snapshots) with seven read-only commands: `examples/hermes_klayout_gui/README.md`.

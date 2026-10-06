@@ -2,7 +2,8 @@
 # tests/adapter/run.sh -- run shared/rtl/wb_stream_adapter.v with every stream engine behind it, driven only through
 # Wishbone, against each engine's own tb/vectors.hex (tests/adapter/adapter_tb.v). One PASS/FAIL line per engine;
 # exits non-zero if any engine fails. Run from anywhere. Needs iverilog and vvp.
-# Env: ONLY="a b"  run only these engines;  NLIM_AUDIO_ONSET=<n>  cap on audio_onset input beats (default: all 68,829).
+# Env: VEC_DIR=<dir>  read <dir>/<engine>.hex instead of designs/<engine>/tb/vectors.hex (negative tests with corrupted vectors);
+#      ONLY="a b"  run only these engines;  NLIM_AUDIO_ONSET=<n>  cap on audio_onset input beats (default: all 68,829).
 cd "$(dirname "$0")/../.." || exit 1
 OUT=build/adapter_tests
 mkdir -p "$OUT"
@@ -17,10 +18,11 @@ for e in $ENGINES; do
   nl=""
   if [ "$d" = audio_onset ] && [ -n "${NLIM_AUDIO_ONSET:-}" ]; then nl="+NLIM=$NLIM_AUDIO_ONSET"; fi
   core=""; if [ "$f" = KV ]; then core=shared/rtl/kv_attn_core.v; fi   # the KV engines share one core
+  vec="$PWD/designs/$d/tb/vectors.hex"; [ -n "${VEC_DIR:-}" ] && vec="$(cd "$VEC_DIR" && pwd)/$d.hex"
   vvp_file="$OUT/$d.vvp"; log="$OUT/$d.log"
   if iverilog -g2012 -Wall -Wno-timescale -D"ENG=$d" -D"$f" -D"NAME=\"$d\"" -o "$vvp_file" \
         shared/rtl/wb_stream_adapter.v $core designs/$d/rtl/*.v tests/adapter/adapter_tb.v >"$log" 2>&1 \
-     && (cd "$OUT" && vvp -n "$d.vvp" +VEC="$PWD/../../designs/$d/tb/vectors.hex" $nl) >>"$log" 2>&1 \
+     && (cd "$OUT" && vvp -n "$d.vvp" +VEC="$vec" $nl) >>"$log" 2>&1 \
      && grep -q '^PASS' "$log"; then
     grep -h '^PASS' "$log" | head -1
   else
