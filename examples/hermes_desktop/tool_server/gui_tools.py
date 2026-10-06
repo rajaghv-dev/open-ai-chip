@@ -6,12 +6,18 @@ Defines `router` (FastAPI APIRouter), auto-mounted by tool_server.py _mount_exte
                              Magic in the LibreLane container on XQuartz with examples/hermes_desktop/magic_bridge, 127.0.0.1:8766)
   gui_stop {tool}            close only the window this module started
   gui_status                 pid, port, ready for both
+  gui_command {text, tool?}  ONE plain-English sentence -> one or more of the actions below, by a regex parser (no model); starts the
+                             window if needed; returns did / results / markdown / understood / hint (the 8B model routes this reliably)
+  GET /gui                   "Layout tools" control panel (layout_panel.html, model-free; the desktop app opens it in a second window)
+  gui_examples               the example sentences gui_command understands (what you type -> what happens)
   klayout_live {action, ...} open|zoom|layers|markers|measure|snapshot|state on the live KLayout window (LiveBackend)
   magic_live {action, ...}   open|zoom|layers|drc|find|measure|snapshot|state on the live Magic window (magic_bridge)
 Every klayout_live / magic_live reply carries png_url and `markdown` (paste verbatim); PNGs go to build/agent/klayout_gui/
 and are served by the tool server's GET /img/<name>. Safety: localhost only, allow-listed commands, never saves or writes
 a layout, one window per tool, gui_stop kills only the pid / container it recorded. Does not import tool_server.py.
-Docs: examples/hermes_desktop/magic_bridge/README.md, docs/HERMES_DESKTOP.md ("Operating KLayout and Magic from the chat")
+Docs: examples/hermes_desktop/magic_bridge/README.md, docs/HERMES_DESKTOP.md ("Operating KLayout and Magic from the chat",
+"Operate KLayout and Magic by text"), examples/hermes_desktop/demos/GUI_DEMO.md
+Tests: tests/tools/test_gui_tools.py
 """
 import json
 import os
@@ -436,6 +442,14 @@ def _points(req: LiveReq):
     return None, None
 
 
+@router.get("/gui", include_in_schema=False)
+def gui_panel():
+    """The Layout tools control panel: one self-contained HTML page that calls the GUI endpoints of this server (no model)."""
+    from fastapi.responses import HTMLResponse
+    with open(os.path.join(HERE, "layout_panel.html"), encoding="utf-8") as f:
+        return HTMLResponse(f.read())
+
+
 def post(name: str, summary: str):
     return router.post("/" + name, operation_id=name, summary=summary, response_model=None)
 
@@ -649,3 +663,326 @@ def magic_live(req: LiveReq) -> dict:
             return r
         except Exception as e:  # noqa: BLE001
             return {"ok": False, "error": str(e) if isinstance(e, (RuntimeError, mb.MagicError)) else "%s: %s" % (type(e).__name__, e)}
+
+
+
+# ---------------------------------------------------------------- tool: gui_command (text -> actions, regex parser, no model)
+NUM = r"-?\d+(?:\.\d+)?"
+ALL_LAYERS = ["diff", "poly", "li1", "met1", "met2", "met3", "met4", "met5", "mcon", "via", "via2", "via3"]
+LAYER_RE = re.compile(r"\b(met[1-5]|li1|poly|diff|mcon|via[1-4]?|nwell)\b")
+VERBS = r"open|load|launch|start|show|display|hide|zoom|run|check|measure|find|locate|snapshot|screenshot|take|status|close|quit|exit|stop|fit|save|write|export|dump|delete|edit|draw|paste|copy|rename|undo|erase"
+SPLIT_RE = re.compile(r"\s*(?:;|\.\s+|,\s*(?:and\s+)?then\s+|\bthen\b|\band\s+then\b|\band\b(?=\s+(?:%s)\b)|,(?=\s*(?:%s)\b))\s*" % (VERBS, VERBS))
+FILLER_RE = re.compile(r"^(?:(?:please|pls|now|next|also|first|finally|can you|could you|would you|i want to|i would like to|let'?s|go ahead and|and)\s+)+")
+VISUAL_OPS = ("open", "zoom", "layers", "drc", "measure", "find", "snapshot")
+EXAMPLES = [
+    ("open kv_attn_n8 in klayout", "starts KLayout on kv_attn_n8 (or loads it into the open window)", "the whole engine, 260 x 260 um"),
+    ("show only met1 and met2", "keeps only li1/met1-style layers you name visible, hides the rest", "rails and routing only"),
+    ("hide met5", "hides one layer, keeps the others", "same view without met5"),
+    ("show all", "all layers visible again", "every mask layer stacked"),
+    ("zoom to the lower-left 50 um", "view = the 50 x 50 um corner at the die origin", "standard-cell rows"),
+    ("zoom to the macro mprj", "KLayout zooms to the cell or instance (wrapper designs)", "our engine inside the Caravel user area"),
+    ("zoom to 0 0 100 100", "view = that box in um", "a 100 x 100 um window"),
+    ("zoom out", "whole design (also: fit, full)", "the whole die"),
+    ("open kv_attn_n8 in magic", "starts Magic (in the container, on XQuartz) on kv_attn_n8", "a Magic window and its picture"),
+    ("run drc", "Magic: its own DRC (count + reasons). KLayout: markers from the run's DRC report", "0 errors for these clean designs"),
+    ("measure from 0,0 to 100,0", "ruler between two points in um", "dx, dy and distance"),
+    ("find clk", "Magic: moves the box to the pin or net label", "the pin highlighted"),
+    ("snapshot", "a picture of the open window", "the current view"),
+    ("status", "which windows are open", "pid, port, design"),
+    ("close all", "closes the windows this tool opened (close klayout / close magic for one)", "windows disappear"),
+]
+HINT = ("I did not understand. Say one or more of: " + "; ".join('"%s"' % e[0] for e in EXAMPLES[:12])
+        + ". Layers: met1..met5, li1, poly, diff. Chain with 'and' or 'then'. Add 'in klayout' or 'in magic' to pick the tool.")
+
+
+class GuiCommandReq(BaseModel):
+    text: str = Field(..., description="the user's sentence, VERBATIM (do not rewrite or translate it), e.g. "
+                      "\"open kv_attn_n8 and show only met1 and met2\"", examples=["zoom to the lower-left 50 um"])
+    tool: Optional[str] = Field(None, description="\"klayout\" or \"magic\" only when the user's message starts with /klayout "
+                                "or /magic; otherwise omit it (the open window, else KLayout, is used)")
+
+
+def _designs_list() -> List[str]:
+    try:
+        return sorted(eda_tools._designs(), key=len, reverse=True)
+    except Exception:  # noqa: BLE001
+        return []
+
+
+def _layers_in(clause: str) -> List[str]:
+    ls = [m for m in LAYER_RE.findall(clause)]
+    ls += ["met" + n for n in re.findall(r"\bmetal\s*([1-5])\b", clause)]
+    return list(dict.fromkeys(ls))
+
+
+def _tool_in(clause: str) -> Optional[str]:
+    m = re.search(r"\b(klayout|k-layout|magic)\b", clause)
+    return None if not m else ("magic" if m.group(1) == "magic" else "klayout")
+
+
+def _design_in(clause: str, designs: List[str]) -> Optional[str]:
+    toks = set(re.findall(r"[a-z0-9_]+", clause))
+    for d in designs:
+        if d.lower() in toks:
+            return d
+    return None
+
+
+def parse_text(text: str, tool: Optional[str] = None, running: Optional[List[str]] = None, designs: Optional[List[str]] = None,
+               last_tool: Optional[str] = None) -> dict:
+    """Pure parser. -> {"actions": [{"op", "tool", ...}], "unparsed": [clause, ...]}. ops: open, zoom, layers, drc, measure, find,
+    snapshot, status, close. Never produces a save or write action (there is no such op)."""
+    designs = designs if designs is not None else _designs_list()
+    running = list(running or [])
+    t = re.sub(r"\s+", " ", (text or "").lower().replace("µm", "um")).strip()
+    t = re.sub(r"[?!]+$", "", t).strip()
+    sentence_tool = tool if tool in TOOLS else _tool_in(t)
+    default = sentence_tool or (last_tool if last_tool in running else (running[0] if running else "klayout"))
+    clauses = [c for c in SPLIT_RE.split(t) if c.strip()]
+    actions, unparsed = [], []
+    sent_design = _design_in(t, designs)
+    for raw in clauses:
+        c = FILLER_RE.sub("", raw.strip()).strip(" ,.")
+        if not c:
+            continue
+        own = _tool_in(c)
+        tl = own or default
+        nums = re.findall(NUM, c)
+        a = None
+        if re.match(r"(close|quit|exit|stop|shut ?down|kill)\b", c):
+            tgt = own or (None if re.search(r"\b(all|everything|both|windows?)\b", c) else None)
+            a = [{"op": "close", "tool": x} for x in ((tgt,) if tgt else TOOLS)]
+        elif re.search(r"\bstatus\b|what(?:'s| is) open|which windows|is .*open", c):
+            a = [{"op": "status", "tool": tl}]
+        elif re.search(r"\b(snapshot|screenshot|screen shot|picture|photo|take a pic)\b", c) and not re.match(r"(zoom|open|show)", c):
+            a = [{"op": "snapshot", "tool": tl}]
+        elif re.search(r"\bdrc\b|design rule", c):
+            a = [{"op": "drc", "tool": tl}]
+        elif re.search(r"\b(measure|distance|ruler)\b", c) and len(nums) == 4:
+            a = [{"op": "measure", "tool": tl, "a": [float(nums[0]), float(nums[1])], "b": [float(nums[2]), float(nums[3])]}]
+        elif re.match(r"(find|locate|where is|highlight)\b", c) and not _layers_in(c):
+            m = re.match(r"(?:find|locate|where is|highlight)\s+(?:the\s+)?(?:net|label|pin|signal)?\s*([a-z0-9_\[\]./<>-]+)$", c)
+            if m and m.group(1) not in ("drc", "markers"):
+                a = [{"op": "find", "tool": own or "magic", "label": m.group(1)}]
+        elif re.match(r"(zoom|go to|look at|fit|focus)\b", c):
+            a = _parse_zoom(c, nums, tl)
+        elif re.match(r"(hide|remove|turn off|disable|drop)\b", c) and (_layers_in(c)):
+            a = [{"op": "layers", "tool": tl, "hide": _layers_in(c)}]
+        elif re.match(r"(show|display|turn on|enable|only|see|view|switch to|add|keep)\b", c) and (_layers_in(c) or re.search(r"\ball\b", c)):
+            ls = _layers_in(c)
+            if not ls:
+                a = [{"op": "layers", "tool": tl, "layers": list(ALL_LAYERS), "only": False, "all": True}]
+            else:
+                add = bool(re.search(r"\b(also|add|in addition|too|as well)\b", c)) or c.startswith(("add", "turn on", "enable"))
+                a = [{"op": "layers", "tool": tl, "layers": ls, "only": not add}]
+        elif re.match(r"(open|load|launch|start|show|view|display|go)\b", c) or (own and re.match(r"(klayout|magic)\b", c)):
+            d = _design_in(c, designs)
+            if d or own or re.match(r"(open|load|launch|start)\b", c):
+                a = [{"op": "open", "tool": tl, "design": d or (sent_design if re.match(r"(open|load|launch|start)\b", c) else None)}]
+        if a:
+            actions.extend(a)
+        else:
+            unparsed.append(raw.strip())
+    return {"actions": actions, "unparsed": unparsed}
+
+
+def _parse_zoom(c: str, nums: List[str], tl: str) -> Optional[List[dict]]:
+    z = {"op": "zoom", "tool": tl}
+    if re.search(r"\b(out|fit|full|whole|everything|entire|reset|all)\b", c):
+        return [dict(z, full=True)]
+    m = re.search(r"\b(lower|bottom|upper|top)[- ]?(left|right)\b[^0-9-]*(%s)(?:\s*x\s*(%s))?" % (NUM, NUM), c)
+    if m:
+        v, h = ("lower" if m.group(1) in ("lower", "bottom") else "upper"), m.group(2)
+        return [dict(z, corner="%s-%s" % (v, h), size=float(m.group(3)))]
+    m = re.search(r"\b(?:center|centre|middle)\b[^0-9-]*(%s)" % NUM, c)
+    if m:
+        return [dict(z, corner="center", size=float(m.group(1)))]
+    if len(nums) == 4:
+        x1, y1, x2, y2 = [float(n) for n in nums]
+        return [dict(z, bbox=[min(x1, x2), min(y1, y2), max(x1, x2), max(y1, y2)])]
+    m = re.search(r"\b(?:macro|cell|instance|block|module)\s+([a-z0-9_.\[\]]+)", c)
+    if m:
+        return [dict(z, cell=m.group(1))]
+    m = re.match(r"(?:zoom|go|look|focus)\s*(?:to|into|at|on)?\s*(?:the\s+)?([a-z][a-z0-9_]*)$", c)
+    if m and m.group(1) not in ("in", "to", "zoom", "lower", "upper", "center"):
+        return [dict(z, cell=m.group(1))]
+    return None
+
+
+def _die_bbox(design: str) -> List[float]:
+    cfg = os.path.join(REPO, "designs", design, "config.json")
+    try:
+        d = json.load(open(cfg)).get("DIE_AREA")
+        if isinstance(d, str):
+            d = [float(x) for x in d.split()]
+        if d and len(d) == 4:
+            return [float(x) for x in d]
+    except (OSError, ValueError, TypeError):
+        pass
+    raise RuntimeError("cannot read DIE_AREA of %s; give coordinates instead (zoom to x1 y1 x2 y2)" % design)
+
+
+def _corner_bbox(corner: str, size: float, die: List[float]) -> List[float]:
+    x1, y1, x2, y2 = die
+    w, h = x2 - x1, y2 - y1
+    sx, sy = min(size, w), min(size, h)
+    if corner == "center":
+        cx, cy = (x1 + x2) / 2, (y1 + y2) / 2
+        return [round(cx - sx / 2, 3), round(cy - sy / 2, 3), round(cx + sx / 2, 3), round(cy + sy / 2, 3)]
+    left = corner.endswith("left")
+    lower = corner.startswith("lower")
+    bx = x1 if left else x2 - sx
+    by = y1 if lower else y2 - sy
+    return [round(bx, 3), round(by, 3), round(bx + sx, 3), round(by + sy, 3)]
+
+
+_VIS: Dict[str, Optional[List[str]]] = {"klayout": None, "magic": None}   # layers last shown (None = all)
+_LAST = {"tool": None}
+
+
+def _slim(r: dict) -> dict:
+    return {k: v for k, v in r.items() if k not in ("markdown", "png")}
+
+
+def _running() -> List[str]:
+    st = gui_status()
+    return [t for t in TOOLS if st[t]["running"] and st[t]["ready"]]
+
+
+def _gui_design(tool: str) -> Optional[str]:
+    st = _load_state()
+    return (st.get(tool) or {}).get("design")
+
+
+def _exec(act: dict, ctx: dict, final: bool) -> dict:
+    """Run one parsed action; returns a reply dict (ok, ...). final=True: take the picture (Magic skips it otherwise)."""
+    op, tool = act["op"], act["tool"]
+    if op == "status":
+        return gui_status()
+    if op == "close":
+        r = gui_stop(GuiStopReq(tool=tool))
+        _VIS[tool] = None
+        return r
+    started = None
+    if op != "open" and tool not in _running():
+        d = ctx.get("design") or _gui_design("magic" if tool == "klayout" else "klayout")
+        if not d:
+            return {"ok": False, "error": "no %s window is open and no design was named; say e.g. \"open kv_attn_n8 in %s\" first" % (tool, tool)}
+        started = gui_start(GuiStartReq(tool=tool, design=d))
+        if not started.get("ok"):
+            return started
+        ctx["design"] = d
+        _VIS[tool] = None
+    if op == "open":
+        d = act.get("design") or ctx.get("design") or _gui_design(tool) or _gui_design("magic" if tool == "klayout" else "klayout")
+        if not d:
+            return {"ok": False, "error": "which design? say e.g. \"open kv_attn_n8 in %s\"" % tool}
+        r = gui_start(GuiStartReq(tool=tool, design=d))
+        ctx["design"] = d
+        _VIS[tool] = None
+        act["design"] = d
+        if r.get("ok") and final:
+            s = klayout_live(LiveReq(action="zoom", full=True)) if tool == "klayout" else magic_live(LiveReq(action="snapshot"))
+            r = {**r, **{k: s[k] for k in ("png_url", "markdown", "view_bbox_um") if k in s}}
+        return r
+    d = ctx.get("design") or _gui_design(tool)
+    req = None
+    if op == "zoom":
+        if "corner" in act:
+            act["bbox"] = _corner_bbox(act["corner"], act["size"], _die_bbox(d))
+        req = LiveReq(action="zoom", bbox=act.get("bbox"), cell=act.get("cell"), full=True if act.get("full") else None)
+    elif op == "layers":
+        if act.get("hide"):
+            cur = list(_VIS[tool] or ALL_LAYERS)
+            keep = [x for x in cur if x not in act["hide"]]
+            if not keep:
+                return {"ok": False, "error": "that would hide every layer"}
+            act["layers"], act["only"] = keep, True
+        elif not act.get("only") and not act.get("all"):
+            act["layers"] = list(dict.fromkeys(list(_VIS[tool] or []) + act["layers"])) if _VIS[tool] else act["layers"]
+            act["only"] = True
+        req = LiveReq(action="layers", layers=act["layers"], only=True if act.get("only", True) else False)
+        if tool == "klayout" and act.get("all"):
+            req.only = True
+    elif op == "drc":
+        req = LiveReq(action="markers" if tool == "klayout" else "drc", design=d)
+    elif op == "measure":
+        req = LiveReq(action="measure", a=act["a"], b=act["b"])
+    elif op == "find":
+        req = LiveReq(action="find", label=act["label"])
+    elif op == "snapshot":
+        req = LiveReq(action="snapshot")
+    if tool == "klayout":
+        if op == "find":
+            return {"ok": False, "error": "find works in Magic only; say \"find %s in magic\"" % act["label"]}
+        r = klayout_live(req)
+    elif final or op == "snapshot":
+        r = magic_live(req)
+    else:
+        with _LOCK["magic"]:
+            try:
+                r = _magic_do(req, req.action, _mg())
+            except Exception as e:  # noqa: BLE001
+                r = {"ok": False, "error": str(e)}
+    if r.get("ok") and op == "layers":
+        _VIS[tool] = list(act["layers"])
+    if started:
+        r = dict(r, started_window=True)
+    return r
+
+
+@post("gui_command", "Operate KLayout or Magic with one plain-English sentence")
+def gui_command(req: GuiCommandReq) -> dict:
+    """Use for ANY request about the KLayout or Magic windows, layers, zoom, DRC on a layout, or opening a design in KLayout/Magic.
+    Pass the user's sentence VERBATIM in text (do not rewrite it); pass tool only for a /klayout or /magic message. It understands:
+    open <design> [in klayout|magic]; show [only] met1 and met2 (met1..met5, li1, poly, diff, all); hide met5; zoom to the
+    lower-left|upper-right|center 50 um; zoom to x1 y1 x2 y2; zoom to the macro mprj; zoom out; run drc; measure from 0,0 to 100,0;
+    find clk (Magic); snapshot; status; close klayout|magic|all. Chain with 'and' / 'then'. Starts the window when needed. Returns
+    did, results, markdown (a picture of the last view: paste it verbatim), understood, and a hint with examples when not understood."""
+    t0 = time.time()
+    tool = (req.tool or "").lower().strip() or None
+    if tool and tool not in TOOLS:
+        return {"ok": False, "understood": False, "error": "tool must be klayout or magic"}
+    try:
+        running = _running()
+    except Exception:  # noqa: BLE001
+        running = []
+    p = parse_text(req.text, tool, running, last_tool=_LAST["tool"])
+    acts, unparsed = p["actions"], p["unparsed"]
+    if not acts or unparsed:
+        return {"ok": False, "understood": False, "did": [], "results": [], "unparsed": unparsed or [req.text], "hint": HINT,
+                "markdown": "", "note": "nothing was run" + ("" if not acts else " (part of the sentence was not understood)")}
+    ctx = {"design": _design_in((req.text or "").lower(), _designs_list())}
+    final = None
+    for i in range(len(acts) - 1, -1, -1):          # the last visual action whose window is not closed afterwards
+        if acts[i]["op"] in VISUAL_OPS and not any(b["op"] == "close" and b["tool"] == acts[i]["tool"] for b in acts[i + 1:]):
+            final = i
+            break
+    did, results, md, ok = [], [], "", True
+    for i, a in enumerate(acts):
+        t1 = time.time()
+        try:
+            r = _exec(a, ctx, i == final)
+        except Exception as e:  # noqa: BLE001
+            r = {"ok": False, "error": str(e) if isinstance(e, (RuntimeError, mb.MagicError)) else "%s: %s" % (type(e).__name__, e)}
+        if r.get("ok") and a["op"] in VISUAL_OPS:
+            _LAST["tool"] = a["tool"]
+        did.append({k: v for k, v in a.items() if v is not None})
+        results.append({"action": a["op"], "tool": a["tool"], "ok": bool(r.get("ok")), "seconds": round(time.time() - t1, 1),
+                        **_slim(r)})
+        if r.get("markdown"):
+            md = r["markdown"]
+        if not r.get("ok"):
+            ok = False
+            break
+    return {"ok": ok, "understood": True, "did": did, "results": results, "markdown": md,
+            "seconds": round(time.time() - t0, 1), **({} if ok else {"error": results[-1].get("error")})}
+
+
+@post("gui_examples", "Example sentences for gui_command")
+def gui_examples(req: Empty = Empty()) -> dict:
+    """List the sentences gui_command understands, what each does and what you see. Show the table to the user."""
+    rows = ["| what you type | what happens | what you see |", "|---|---|---|"]
+    rows += ["| `%s` | %s | %s |" % e for e in EXAMPLES]
+    return {"ok": True, "examples": [{"say": a, "does": b, "see": c} for a, b, c in EXAMPLES], "markdown": "\n".join(rows),
+            "note": "Add 'in klayout' or 'in magic' to pick a tool; chain with 'and'. Or type /klayout <sentence> or /magic <sentence>."}

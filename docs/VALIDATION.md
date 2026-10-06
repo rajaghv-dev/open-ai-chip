@@ -1,3 +1,61 @@
+# Run validation (2026-10-07: clean validation and freeze)
+
+Clean re-validation of all 25 designs of Makefile `ALL_DESIGNS`, then freeze (`designs/FROZEN.json`, `designs/FROZEN.md`).
+No physical flow was run (`make gds` / `flow-all` never called); every design had a current run, so nothing was STALE.
+Docker via `DOCKER_HOST=unix://$HOME/.colima/osl/docker.sock`, one container at a time, no other flow containers running.
+Raw logs: `build/validation/test_full_2026-10-07.log` and `build/test_full/` (git-ignored).
+Command: `bash tests/test_full.sh --synth-gl` (per design: run-state via `find_reusable_run.py`, `make simulate`, `make check`
+= `check_signoff.py`, `make gl-final`, `make gl`; then adapter-test, soc-sim, soc-kv, caravel-rtl, caravel-gl), result line
+"test-full: 130 PASS, 0 FAIL, 3 SKIP, 0 STALE in 430 s" (the 3 SKIP are the opt-in caravel-fullgl, caravel-sdf-wrapper, precheck).
+Evidence column: `output/metrics.json` equals the run's `final/metrics.json` (parsed JSON equal), `error.log` empty,
+`resources.json` `run_dir` = this run, `layout.png` present (checked with a script over all 25, 25 of 25).
+
+| design | run dir | current | evidence | signoff | sim | gl | gl-final |
+|---|---|---|---|---|---|---|---|
+| user_proj_example | RUN_2026-10-05_18-17-43 | PASS | YES (metrics.json identical, layout.png, resources.json run_dir) | PASS | PASS | PASS | PASS |
+| vision_all_lit | RUN_2026-10-05_18-14-33 | PASS | YES (metrics.json identical, layout.png, resources.json run_dir) | PASS | PASS | PASS | PASS |
+| vision_block | RUN_2026-10-05_18-15-29 | PASS | YES (metrics.json identical, layout.png, resources.json run_dir) | PASS | PASS | PASS | PASS |
+| text_sentiment | RUN_2026-10-05_18-16-33 | PASS | YES (metrics.json identical, layout.png, resources.json run_dir) | PASS | PASS | PASS | PASS |
+| tiny_ai_core | RUN_2026-10-05_20-33-28 | PASS | YES (metrics.json identical, layout.png, resources.json run_dir) | PASS | PASS | PASS | PASS |
+| user_project_wrapper | RUN_2026-10-06_03-29-55 | PASS | YES (metrics.json identical, layout.png, resources.json run_dir) | PASS | PASS | PASS | PASS |
+| audio_pitch | RUN_2026-10-05_19-59-29 | PASS | YES (metrics.json identical, layout.png, resources.json run_dir) | PASS | PASS | PASS | PASS |
+| audio_onset | RUN_2026-10-05_20-00-31 | PASS | YES (metrics.json identical, layout.png, resources.json run_dir) | PASS | PASS | PASS | PASS |
+| image_text_match | RUN_2026-10-05_20-23-15 | PASS | YES (metrics.json identical, layout.png, resources.json run_dir) | PASS | PASS | PASS | PASS |
+| prec_bin | RUN_2026-10-05_20-16-32 | PASS | YES (metrics.json identical, layout.png, resources.json run_dir) | PASS | PASS | PASS | PASS |
+| prec_tern | RUN_2026-10-05_20-17-29 | PASS | YES (metrics.json identical, layout.png, resources.json run_dir) | PASS | PASS | PASS | PASS |
+| prec_int4 | RUN_2026-10-05_20-18-29 | PASS | YES (metrics.json identical, layout.png, resources.json run_dir) | PASS | PASS | PASS | PASS |
+| prec_int8 | RUN_2026-10-05_20-13-05 | PASS | YES (metrics.json identical, layout.png, resources.json run_dir) | PASS | PASS | PASS | PASS |
+| prec_fp8 | RUN_2026-10-05_20-28-04 | PASS | YES (metrics.json identical, layout.png, resources.json run_dir) | PASS | PASS | PASS | PASS |
+| prec_fp16 | RUN_2026-10-05_20-25-56 | PASS | YES (metrics.json identical, layout.png, resources.json run_dir) | PASS | PASS | PASS | PASS |
+| prec_bf16 | RUN_2026-10-05_20-30-14 | PASS | YES (metrics.json identical, layout.png, resources.json run_dir) | PASS | PASS | PASS | PASS |
+| soc_image_text_match | RUN_2026-10-06_08-18-20 | PASS | YES (metrics.json identical, layout.png, resources.json run_dir) | PASS | PASS | PASS | PASS |
+| user_project_wrapper_soc_itm | RUN_2026-10-06_08-21-27 | PASS | YES (metrics.json identical, layout.png, resources.json run_dir) | PASS | PASS | PASS | PASS |
+| kv_attn_n4 | RUN_2026-10-06_06-57-12 | PASS | YES (metrics.json identical, layout.png, resources.json run_dir) | PASS | PASS | PASS | PASS |
+| kv_attn_n8 | RUN_2026-10-06_07-00-35 | PASS | YES (metrics.json identical, layout.png, resources.json run_dir) | PASS | PASS | PASS | PASS |
+| kv_attn_n16 | RUN_2026-10-06_07-04-34 | PASS | YES (metrics.json identical, layout.png, resources.json run_dir) | PASS | PASS | PASS | PASS |
+| kv_attn_n8_int4 | RUN_2026-10-06_06-58-48 | PASS | YES (metrics.json identical, layout.png, resources.json run_dir) | PASS | PASS | PASS | PASS |
+| kv_attn_n8_ring | RUN_2026-10-06_07-02-36 | PASS | YES (metrics.json identical, layout.png, resources.json run_dir) | PASS | PASS | PASS | PASS |
+| soc_kv_attn_n8 | RUN_2026-10-06_08-09-32 | PASS | YES (metrics.json identical, layout.png, resources.json run_dir) | PASS | PASS | PASS | PASS |
+| user_project_wrapper_soc_kv | RUN_2026-10-06_08-13-27 | PASS | YES (metrics.json identical, layout.png, resources.json run_dir) | PASS | PASS | PASS | PASS |
+
+Signoff: `python3 scripts/flow/check_signoff.py --all` also run separately: "check-all: 25 of 25 pass" (allowances unchanged:
+24 flops in `kv_attn_n8_int4` [246 RTL vs 222 surviving], 204 undriven wrapper output bits x3 wrappers).
+
+## System results (2026-10-07)
+
+| target | result |
+|---|---|
+| `make test` | all sections PASS (incl. new `== frozen`) except 2 tests in `tests/tools` (RAG: `test_recall_at_k_v2_main_and_heldout`, `test_eval_rag_committed_retrieval_numbers_reproduce`, evidence recall 0.4 < 0.5). Not caused by this work: they fail identically with the 2026-10-07 doc edits (FROZEN.md, VALIDATION.md, CLAUDE.md) removed; another session is editing the RAG tests/corpus (uncommitted changes under `tests/tools/`, `tools/prompts/`, `examples/hermes_desktop/`) |
+| `make test-full` system part (via `tests/test_full.sh --synth-gl`) | adapter-test (14 engines), soc-sim, soc-kv, caravel-rtl, caravel-gl all PASS |
+| `make check-generated` | PASS (regeneration reproduces 41 files) |
+| `make model-check` | PASS golden: 69 checks |
+| `make freeze` / `make check-frozen` | wrote 25 designs, 523 input hashes, 29 model hashes; check PASS (602 hashes verified) |
+| caravel-fullgl, caravel-sdf-wrapper, precheck | not re-run (opt-in, long); the 2026-10-06 evidence below still applies because no design file changed |
+
+Freeze: see `designs/FROZEN.md` (unfreeze procedure, per-design numbers and hashes). Guard API for tools: `scripts/flow/frozen.py`.
+
+---
+
 # Run validation (2026-10-06)
 
 Independent re-validation of every hardened design and every system run, done by parallel agents from the

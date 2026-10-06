@@ -11,7 +11,9 @@ Open WebUI + the chip tool server + a Mac window for Hermes 3 8B. Full guide: [d
 | `prompt_suggestions.json` | Open WebUI default prompt suggestions (env `DEFAULT_PROMPT_SUGGESTIONS`, set by `start.sh`) |
 | `tools_prompt.txt` | tool-routing prompt for Open WebUI's prompt-based function calling |
 | `desktop/make_app.sh`, `desktop/app.py` | build `build/desktop/Hermes Chip Agent.app` (`--install` copies to ~/Applications) |
-| `demos.py`, `demo_defs.py`, `demos/` | the numbered demos (`python3 examples/hermes_desktop/demos.py` = menu, `... 2` or `... kv` runs one) and their transcripts |
+| `receipt_filter.py` | Open WebUI filter: code-built receipt (model digest, repo commit, files with sha256, context, speed) and citations under every answer; `memory_filter.py` is the memory-digest filter (records what it injected) |
+| `demos.py`, `demo_defs.py`, `demos/` | the numbered demos (`python3 examples/hermes_desktop/demos.py` = menu, `... 2` or `... kv` runs one) and their transcripts; demo 8 `proof` (`demos/proof_demo.py`, `demos/PROOF_DEMO.md`) shows local, repo and context proof |
+| `install_prompts.py` | installs the slash prompts (skills, demos, and the repo-integration library `CHIP_PROMPTS`: /help /log /open-gds /run ...) and the filters; the desktop app's Prompts menu lists the same library |
 | `tool_server/` | the FastAPI tool server (separate owner) |
 
 Quick start: `bash examples/hermes_desktop/setup_webui.sh && bash examples/hermes_desktop/start.sh`, then http://127.0.0.1:8080.
@@ -32,3 +34,7 @@ run would start. Tighten it (for example only expose `run_make` to explicit "run
 | How do I run the full flow for kv_attn_n8? | run_make (unwanted) | `make flow-all DESIGN=kv_attn_n8` |
 | write me a poem about cats | none | polite redirect to the repo scope |
 | What is the tapeout yield? | none | unknown, no tool or file has it |
+
+## Layout tools (KLayout and Magic by text or click)
+- `gui_command {text}`: one plain sentence to window actions (`open kv_attn_n8 in klayout and show only met1 and met2`, `run drc`); `gui_examples` lists them; slash prompts `/klayout`, `/magic`.
+- `http://127.0.0.1:8770/gui`: model-free control panel (buttons, layer toggles, command box). Docs: docs/HERMES_DESKTOP.md "Operate KLayout and Magic by text", "Layout tools window".

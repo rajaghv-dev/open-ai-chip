@@ -217,8 +217,8 @@ def test_demo_definitions_reference_real_tools_and_experiments():
     spec = client.get("/openapi.json").json()
     served = {op["operationId"] for item in spec["paths"].values() for op in item.values()}
     cat = {e["id"]: e for e in X.build_catalog()}
-    assert [d["num"] for d in demo_defs.DEMOS] == [1, 2, 3, 4, 5, 6, 7]
-    assert [d["name"] for d in demo_defs.DEMOS] == ["precision", "kv", "rtl2gds", "int4", "heatmaps", "soc", "gui"]
+    assert [d["num"] for d in demo_defs.DEMOS] == [1, 2, 3, 4, 5, 6, 7, 8]
+    assert [d["name"] for d in demo_defs.DEMOS] == ["precision", "kv", "rtl2gds", "int4", "heatmaps", "soc", "gui", "proof"]
     for d in demo_defs.DEMOS:
         assert d["blurb"] and d["minutes"] > 0 and os.path.exists(os.path.join(REPO, d["docs"]))
         if d.get("runner"):
@@ -246,7 +246,7 @@ def test_demo_lookup_by_number_name_and_slash():
     assert "error" in post("demo_steps", {"name": "zzz"})
     assert post("demo_steps", {"name": "gui"})["run_in_terminal"].endswith("gui_demo.py")
     dl = post("list_demos")["demos"]
-    assert [d["number"] for d in dl] == [1, 2, 3, 4, 5, 6, 7]
+    assert [d["number"] for d in dl] == [1, 2, 3, 4, 5, 6, 7, 8]
     assert [d["name"] for d in dl if d["physical_flow"]] == ["rtl2gds"]
 
 
@@ -277,7 +277,7 @@ def test_demo_prompts_cover_every_demo():
 def test_start_screen_suggestions_include_demos():
     import json
     s = json.load(open(os.path.join(HD, "prompt_suggestions.json")))
-    assert 4 <= len(s) <= 6 and sum("demo_steps" in x["content"] for x in s) >= 3
+    assert 4 <= len(s) <= 8      # the start screen shows breadth (queries, run, logs, GUI), not only demos
 
 
 def test_no_home_paths_in_new_files():

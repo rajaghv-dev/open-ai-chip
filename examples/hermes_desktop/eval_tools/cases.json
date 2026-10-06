@@ -1,0 +1,1072 @@
+{
+ "//": "Tool-calling eval cases for the Hermes chip agent (desktop / Open WebUI). Fields: expect_tools (all called), expect_any (one of), args (tool -> arg -> exact value | [alternatives] | 're:<regex>' | {contains:[..]} | 'absent'), forbid_tools, tools_optional (tool check skipped; forbid_tools and answer still count), no_tools (no tool except neutral ones), answer (chat mode only: metric | must_contain_regex | not_regex | any_words), side_effect (gui|memory: skipped in chat mode unless --allow-gui / --allow-memory), needs_tools (case is 'pending' while one is not served; read_log, open_gds and capability_map were added on 2026-10-07). Neutral tools never counted: context_brief, memory_digest, job_list, job_status unless a case expects them. Run cases never start a job: the runner compares job_list before and after, and confirm cases use bogus ids.",
+ "cases": [
+  {
+   "id": "m01",
+   "group": "metrics",
+   "prompt": "How many standard cells does kv_attn_n8 have?",
+   "expect_tools": [
+    "read_metrics"
+   ],
+   "args": {
+    "read_metrics": {
+     "design": "kv_attn_n8"
+    }
+   },
+   "forbid_tools": [
+    "run_make",
+    "compare_designs",
+    "search_docs"
+   ],
+   "answer": {
+    "metric": {
+     "design": "kv_attn_n8",
+     "key": "design__instance__count__stdcell"
+    }
+   }
+  },
+  {
+   "id": "m02",
+   "group": "metrics",
+   "prompt": "What is the worst setup slack of prec_fp16?",
+   "expect_tools": [
+    "read_metrics"
+   ],
+   "args": {
+    "read_metrics": {
+     "design": "prec_fp16"
+    }
+   },
+   "forbid_tools": [
+    "run_make"
+   ],
+   "answer": {
+    "metric": {
+     "design": "prec_fp16",
+     "key": "timing__setup__ws",
+     "digits": 2
+    }
+   }
+  },
+  {
+   "id": "m03",
+   "group": "metrics",
+   "prompt": "What is the die area of vision_block?",
+   "expect_tools": [
+    "read_metrics"
+   ],
+   "args": {
+    "read_metrics": {
+     "design": "vision_block"
+    }
+   },
+   "forbid_tools": [
+    "run_make",
+    "layout_summary"
+   ],
+   "answer": {
+    "metric": {
+     "design": "vision_block",
+     "key": "design__die__area"
+    }
+   }
+  },
+  {
+   "id": "m04",
+   "group": "metrics",
+   "prompt": "Compare the standard cell count of kv_attn_n4, kv_attn_n8 and kv_attn_n16",
+   "expect_tools": [
+    "compare_designs"
+   ],
+   "args": {
+    "compare_designs": {
+     "metric": "re:stdcell",
+     "designs": {
+      "contains": [
+       "kv_attn_n4",
+       "kv_attn_n8",
+       "kv_attn_n16"
+      ]
+     }
+    }
+   },
+   "forbid_tools": [
+    "run_make"
+   ]
+  },
+  {
+   "id": "m05",
+   "group": "metrics",
+   "prompt": "Which precision design has the most standard cells?",
+   "expect_tools": [
+    "compare_designs"
+   ],
+   "args": {
+    "compare_designs": {
+     "metric": "re:stdcell"
+    }
+   },
+   "forbid_tools": [
+    "run_make"
+   ],
+   "note": "no designs list means all designs; the model should pass the prec_* family or none"
+  },
+  {
+   "id": "m06",
+   "group": "metrics",
+   "prompt": "Give me the signoff summary of text_sentiment",
+   "expect_tools": [
+    "signoff_summary"
+   ],
+   "args": {
+    "signoff_summary": {
+     "design": "text_sentiment"
+    }
+   },
+   "forbid_tools": [
+    "run_make",
+    "claude_task"
+   ]
+  },
+  {
+   "id": "m07",
+   "group": "metrics",
+   "prompt": "List the pins of audio_pitch that match clk",
+   "expect_tools": [
+    "find_pins"
+   ],
+   "args": {
+    "find_pins": {
+     "design": "audio_pitch",
+     "pattern": "re:(?i)clk"
+    }
+   },
+   "forbid_tools": [
+    "run_make"
+   ]
+  },
+  {
+   "id": "w01",
+   "group": "why_docs",
+   "prompt": "Why does kv_attn_n8_int4 have more flip-flops than kv_attn_n8?",
+   "expect_any": [
+    "explain",
+    "rag_answer",
+    "rag_search",
+    "search_docs"
+   ],
+   "forbid_tools": [
+    "read_metrics",
+    "run_make",
+    "compare_designs"
+   ]
+  },
+  {
+   "id": "w02",
+   "group": "why_docs",
+   "prompt": "Why is prec_fp16 the slowest of the precision designs?",
+   "expect_any": [
+    "explain",
+    "rag_answer",
+    "rag_search",
+    "search_docs"
+   ],
+   "forbid_tools": [
+    "run_make",
+    "read_metrics"
+   ]
+  },
+  {
+   "id": "w03",
+   "group": "why_docs",
+   "prompt": "Explain how vision_block works",
+   "expect_any": [
+    "explain",
+    "notes_section",
+    "rag_answer",
+    "rag_search",
+    "search_docs"
+   ],
+   "forbid_tools": [
+    "run_make"
+   ]
+  },
+  {
+   "id": "w04",
+   "group": "why_docs",
+   "prompt": "What does the Intuitions section of kv_attn_n8 say?",
+   "expect_tools": [
+    "notes_section"
+   ],
+   "args": {
+    "notes_section": {
+     "design": "kv_attn_n8"
+    }
+   },
+   "forbid_tools": [
+    "run_make"
+   ]
+  },
+  {
+   "id": "w06",
+   "group": "why_docs",
+   "prompt": "What does the documentation say about the slew limit?",
+   "expect_any": [
+    "rag_answer",
+    "rag_search",
+    "search_docs"
+   ],
+   "forbid_tools": [
+    "run_make",
+    "read_metrics"
+   ],
+   "answer": {
+    "any_words": [
+     "slew",
+     "transition"
+    ]
+   }
+  },
+  {
+   "id": "r01",
+   "group": "run",
+   "prompt": "Run make simulate for vision_block",
+   "expect_tools": [
+    "run_make"
+   ],
+   "args": {
+    "run_make": {
+     "target": "simulate",
+     "design": "vision_block",
+     "confirm_id": "absent"
+    }
+   },
+   "forbid_tools": [
+    "claude_task",
+    "run_experiment"
+   ],
+   "answer": {
+    "must_contain_regex": "yes,? run[\\s*`'\"]*[0-9a-f]{6}"
+   },
+   "note": "confirm step: no confirm_id in args, no job started"
+  },
+  {
+   "id": "r02",
+   "group": "run",
+   "prompt": "Run make test",
+   "expect_tools": [
+    "run_make"
+   ],
+   "args": {
+    "run_make": {
+     "target": "test",
+     "confirm_id": "absent"
+    }
+   },
+   "forbid_tools": [
+    "claude_task",
+    "run_experiment"
+   ],
+   "answer": {
+    "must_contain_regex": "yes,? run[\\s*`'\"]*[0-9a-f]{6}"
+   }
+  },
+  {
+   "id": "r03",
+   "group": "run",
+   "prompt": "Run the full flow for kv_attn_n4",
+   "expect_tools": [
+    "run_make"
+   ],
+   "args": {
+    "run_make": {
+     "target": "flow-all",
+     "design": "kv_attn_n4",
+     "confirm_id": "absent"
+    }
+   },
+   "forbid_tools": [
+    "claude_task"
+   ],
+   "answer": {
+    "must_contain_regex": "yes,? run[\\s*`'\"]*[0-9a-f]{6}"
+   }
+  },
+  {
+   "id": "r04",
+   "group": "run",
+   "prompt": "Run the experiment soc-kv",
+   "expect_tools": [
+    "run_experiment"
+   ],
+   "args": {
+    "run_experiment": {
+     "id": "soc-kv",
+     "confirm_id": "absent"
+    }
+   },
+   "forbid_tools": [
+    "run_make",
+    "claude_task"
+   ],
+   "answer": {
+    "must_contain_regex": "yes,? run[\\s*`'\"]*[0-9a-f]{6}"
+   }
+  },
+  {
+   "id": "r05",
+   "group": "run",
+   "prompt": "Ask Claude to review the signoff checks of vision_block and tell me what could be improved",
+   "expect_tools": [
+    "claude_task"
+   ],
+   "args": {
+    "claude_task": {
+     "design": "vision_block",
+     "confirm_id": "absent"
+    }
+   },
+   "forbid_tools": [
+    "run_make"
+   ],
+   "answer": {
+    "must_contain_regex": "yes,? run[\\s*`'\"]*[0-9a-f]{6}"
+   }
+  },
+  {
+   "id": "r06",
+   "group": "run",
+   "prompt": "Use the harden-design skill to harden text_sentiment",
+   "args": {},
+   "note": "a skill order: any gated route is fine (ask_claude, or run_make flow); nothing may start",
+   "expect_any": [
+    "claude_task",
+    "ask_claude",
+    "run_make"
+   ]
+  },
+  {
+   "id": "k01",
+   "group": "confirm",
+   "prompt": "yes, run ffffff",
+   "args": {
+    "run_make": {
+     "confirm_id": "ffffff",
+     "target": "absent",
+     "design": "absent"
+    },
+    "confirm_run": {
+     "confirm_id": "ffffff"
+    }
+   },
+   "forbid_tools": [
+    "claude_task",
+    "run_experiment",
+    "search_docs"
+   ],
+   "answer": {
+    "not_regex": "(?i)job[_ ]id[\"': ]+\\d|has started|is now running"
+   },
+   "note": "bogus id: the server must answer unknown confirm_id; the model must still CALL run_make with only confirm_id",
+   "expect_any": [
+    "run_make",
+    "confirm_run"
+   ]
+  },
+  {
+   "id": "k02",
+   "group": "confirm",
+   "prompt": "Yes, run 123abc",
+   "args": {
+    "run_make": {
+     "confirm_id": "123abc",
+     "target": "absent",
+     "design": "absent"
+    },
+    "confirm_run": {
+     "confirm_id": "123abc"
+    }
+   },
+   "forbid_tools": [
+    "claude_task",
+    "run_experiment"
+   ],
+   "expect_any": [
+    "run_make",
+    "confirm_run"
+   ]
+  },
+  {
+   "id": "s01",
+   "group": "status",
+   "prompt": "What jobs are running right now?",
+   "expect_tools": [
+    "job_list"
+   ],
+   "forbid_tools": [
+    "run_make"
+   ]
+  },
+  {
+   "id": "s02",
+   "group": "status",
+   "prompt": "What is the status of job 20261007_001906-06?",
+   "expect_tools": [
+    "job_status"
+   ],
+   "args": {
+    "job_status": {
+     "job_id": "20261007_001906-06"
+    }
+   },
+   "forbid_tools": [
+    "run_make"
+   ]
+  },
+  {
+   "id": "s03",
+   "group": "status",
+   "prompt": "Is the tool server healthy? Are Ollama and Docker reachable?",
+   "expect_tools": [
+    "health"
+   ],
+   "forbid_tools": [
+    "run_make"
+   ]
+  },
+  {
+   "id": "d01",
+   "group": "summary_diag",
+   "prompt": "Summarize the last run of kv_attn_n8",
+   "expect_tools": [
+    "run_summary"
+   ],
+   "args": {
+    "run_summary": {
+     "design": "kv_attn_n8"
+    }
+   },
+   "forbid_tools": [
+    "run_make"
+   ]
+  },
+  {
+   "id": "d02",
+   "group": "summary_diag",
+   "prompt": "Why did the check stage fail for prec_fp16?",
+   "expect_tools": [
+    "diagnose"
+   ],
+   "args": {
+    "diagnose": {
+     "design": "prec_fp16"
+    }
+   },
+   "forbid_tools": [
+    "run_make"
+   ]
+  },
+  {
+   "id": "d03",
+   "group": "summary_diag",
+   "prompt": "What should I improve in vision_block?",
+   "expect_tools": [
+    "suggest"
+   ],
+   "args": {
+    "suggest": {
+     "design": "vision_block"
+    }
+   },
+   "forbid_tools": [
+    "run_make",
+    "claude_task"
+   ]
+  },
+  {
+   "id": "d04",
+   "group": "summary_diag",
+   "prompt": "Use the suggest tool for kv_attn_n8 and list the suggestions.",
+   "expect_tools": [
+    "suggest"
+   ],
+   "args": {
+    "suggest": {
+     "design": "kv_attn_n8"
+    }
+   },
+   "forbid_tools": [
+    "claude_task",
+    "run_make"
+   ],
+   "note": "'Use the X tool' must call X, not claude_task"
+  },
+  {
+   "id": "l01",
+   "group": "logs",
+   "prompt": "Show the log of the last kv_attn_n8 run",
+   "expect_tools": [
+    "read_log"
+   ],
+   "args": {
+    "read_log": {
+     "design": "kv_attn_n8"
+    }
+   },
+   "forbid_tools": [
+    "run_make",
+    "claude_task"
+   ],
+   "needs_tools": [
+    "read_log"
+   ]
+  },
+  {
+   "id": "l02",
+   "group": "logs",
+   "prompt": "Were there any errors in the audio_pitch flow log?",
+   "expect_tools": [
+    "read_log"
+   ],
+   "args": {
+    "read_log": {
+     "design": "audio_pitch"
+    }
+   },
+   "forbid_tools": [
+    "run_make"
+   ],
+   "needs_tools": [
+    "read_log"
+   ]
+  },
+  {
+   "id": "g01",
+   "group": "gui",
+   "prompt": "Open kv_attn_n8 in klayout",
+   "expect_any": [
+    "gui_command",
+    "gui_start",
+    "klayout_live"
+   ],
+   "forbid_tools": [
+    "run_make",
+    "run_experiment",
+    "claude_task",
+    "render_png"
+   ],
+   "side_effect": "gui"
+  },
+  {
+   "id": "g02",
+   "group": "gui",
+   "prompt": "Open vision_block in magic",
+   "expect_any": [
+    "gui_command",
+    "gui_start",
+    "magic_live"
+   ],
+   "forbid_tools": [
+    "run_make",
+    "run_experiment",
+    "claude_task"
+   ],
+   "side_effect": "gui"
+  },
+  {
+   "id": "g03",
+   "group": "gui",
+   "prompt": "Show only met1 and met2 in the layout window",
+   "expect_any": [
+    "gui_command",
+    "klayout_live"
+   ],
+   "forbid_tools": [
+    "run_make",
+    "run_experiment",
+    "claude_task"
+   ],
+   "side_effect": "gui"
+  },
+  {
+   "id": "g04",
+   "group": "gui",
+   "prompt": "Zoom to the lower-left 50 um",
+   "expect_any": [
+    "gui_command",
+    "klayout_live"
+   ],
+   "forbid_tools": [
+    "run_make",
+    "run_experiment",
+    "claude_task"
+   ],
+   "side_effect": "gui"
+  },
+  {
+   "id": "g05",
+   "group": "gui",
+   "prompt": "Close the KLayout window",
+   "expect_any": [
+    "gui_command",
+    "gui_stop"
+   ],
+   "forbid_tools": [
+    "run_make",
+    "run_experiment",
+    "claude_task"
+   ],
+   "side_effect": "gui"
+  },
+  {
+   "id": "g06",
+   "group": "gui",
+   "prompt": "Open the GDS of text_sentiment",
+   "expect_any": [
+    "open_gds",
+    "gui_command"
+   ],
+   "forbid_tools": [
+    "run_make",
+    "run_experiment",
+    "claude_task"
+   ],
+   "side_effect": "gui",
+   "needs_tools": [
+    "open_gds"
+   ]
+  },
+  {
+   "id": "g07",
+   "group": "gui",
+   "prompt": "Show kv_attn_n8 met1 lower-left 50 um",
+   "expect_tools": [
+    "klayout_view"
+   ],
+   "args": {
+    "klayout_view": {
+     "design": "kv_attn_n8",
+     "layers": {
+      "contains": [
+       "met1"
+      ]
+     }
+    }
+   },
+   "forbid_tools": [
+    "run_make",
+    "run_experiment",
+    "claude_task"
+   ],
+   "answer": {
+    "must_contain_regex": "!\\[[^\\]]*\\]\\(\\S+\\)"
+   },
+   "note": "a picture request (offscreen PNG), not the live window"
+  },
+  {
+   "id": "g08",
+   "group": "gui",
+   "prompt": "What can I say to control the KLayout window?",
+   "expect_any": [
+    "gui_examples"
+   ],
+   "forbid_tools": [
+    "run_make",
+    "run_experiment",
+    "claude_task"
+   ]
+  },
+  {
+   "id": "s11",
+   "group": "skills",
+   "prompt": "Which skills are available?",
+   "forbid_tools": [
+    "run_make",
+    "claude_task"
+   ],
+   "expect_any": [
+    "list_skills",
+    "skills_list"
+   ]
+  },
+  {
+   "id": "s12",
+   "group": "skills",
+   "prompt": "Show me the harden-design skill",
+   "forbid_tools": [
+    "claude_task",
+    "run_make"
+   ],
+   "expect_any": [
+    "get_skill",
+    "skill_view"
+   ]
+  },
+  {
+   "id": "s13",
+   "group": "skills",
+   "prompt": "Give me the plan for hardening vision_block",
+   "forbid_tools": [
+    "run_make",
+    "claude_task"
+   ],
+   "expect_any": [
+    "skill_plan",
+    "skill_view"
+   ]
+  },
+  {
+   "id": "y01",
+   "group": "memory",
+   "prompt": "Remember that I prefer kv_attn_n8 for demos (eval-case)",
+   "expect_tools": [
+    "remember"
+   ],
+   "args": {
+    "remember": {
+     "note": {
+      "contains": [
+       "kv_attn_n8"
+      ]
+     }
+    }
+   },
+   "forbid_tools": [
+    "run_make"
+   ],
+   "side_effect": "memory"
+  },
+  {
+   "id": "y02",
+   "group": "memory",
+   "prompt": "What did I tell you about my demo preferences?",
+   "expect_any": [
+    "recall",
+    "memory_digest"
+   ],
+   "forbid_tools": [
+    "run_make"
+   ]
+  },
+  {
+   "id": "e01",
+   "group": "experiments",
+   "prompt": "What can I run? List the experiments.",
+   "expect_tools": [
+    "list_experiments"
+   ],
+   "forbid_tools": [
+    "run_make",
+    "run_experiment"
+   ]
+  },
+  {
+   "id": "e02",
+   "group": "experiments",
+   "prompt": "Show the soc-kv results",
+   "expect_tools": [
+    "experiment_result"
+   ],
+   "args": {
+    "experiment_result": {
+     "id": "soc-kv"
+    }
+   },
+   "forbid_tools": [
+    "run_make",
+    "run_experiment"
+   ]
+  },
+  {
+   "id": "e03",
+   "group": "experiments",
+   "prompt": "Show the precision table",
+   "expect_tools": [
+    "experiment_result"
+   ],
+   "args": {
+    "experiment_result": {
+     "id": "precision"
+    }
+   },
+   "forbid_tools": [
+    "run_make",
+    "run_experiment"
+   ]
+  },
+  {
+   "id": "e04",
+   "group": "experiments",
+   "prompt": "Show the congestion heat map of kv_attn_n8",
+   "expect_tools": [
+    "engine_pictures"
+   ],
+   "args": {
+    "engine_pictures": {
+     "design": "kv_attn_n8",
+     "view": "re:(?i)congest"
+    }
+   },
+   "forbid_tools": [
+    "run_make",
+    "klayout_view"
+   ]
+  },
+  {
+   "id": "e06",
+   "group": "experiments",
+   "prompt": "Run demo kv",
+   "expect_tools": [
+    "demo_steps"
+   ],
+   "args": {
+    "demo_steps": {
+     "name": "re:^(kv|2)$"
+    }
+   },
+   "forbid_tools": [
+    "run_make",
+    "run_experiment"
+   ],
+   "note": "'run demo' is demo_steps, not run_make"
+  },
+  {
+   "id": "p01",
+   "group": "proof_context",
+   "prompt": "Is this running locally? Does it send any data anywhere?",
+   "expect_tools": [
+    "proof_local"
+   ],
+   "forbid_tools": [
+    "run_make",
+    "search_docs"
+   ]
+  },
+  {
+   "id": "p02",
+   "group": "proof_context",
+   "prompt": "What context did you get for the last turn?",
+   "expect_tools": [
+    "show_context"
+   ],
+   "forbid_tools": [
+    "run_make"
+   ]
+  },
+  {
+   "id": "p03",
+   "group": "proof_context",
+   "prompt": "Which files did you read to answer?",
+   "forbid_tools": [
+    "run_make"
+   ],
+   "expect_any": [
+    "call_log",
+    "show_context"
+   ]
+  },
+  {
+   "id": "p04",
+   "group": "proof_context",
+   "prompt": "What do you know about this repo and my notes?",
+   "expect_tools": [
+    "context_brief"
+   ],
+   "forbid_tools": [
+    "run_make"
+   ]
+  },
+  {
+   "id": "p05",
+   "group": "proof_context",
+   "prompt": "What can you do? Which tools do you have?",
+   "expect_tools": [
+    "capability_map"
+   ],
+   "forbid_tools": [
+    "run_make"
+   ],
+   "needs_tools": [
+    "capability_map"
+   ]
+  },
+  {
+   "id": "o01",
+   "group": "off_topic",
+   "prompt": "Write me a poem about silicon",
+   "no_tools": true,
+   "forbid_tools": [
+    "run_make",
+    "search_docs"
+   ],
+   "answer": {
+    "must_contain_regex": "(?i)only answer|open-ai-chip"
+   }
+  },
+  {
+   "id": "o02",
+   "group": "off_topic",
+   "prompt": "Who is the president of France?",
+   "no_tools": true,
+   "answer": {
+    "must_contain_regex": "(?i)only answer|open-ai-chip"
+   }
+  },
+  {
+   "id": "o03",
+   "group": "off_topic",
+   "prompt": "What will the tapeout yield be and how much will the chips cost?",
+   "no_tools": true,
+   "forbid_tools": [
+    "run_make"
+   ],
+   "answer": {
+    "must_contain_regex": "(?i)unknown|no tool|not available|cannot|don't know|do not know"
+   }
+  },
+  {
+   "id": "o04",
+   "group": "off_topic",
+   "prompt": "How many standard cells does design flux_capacitor have?",
+   "no_tools": false,
+   "forbid_tools": [
+    "run_make"
+   ],
+   "note": "made-up design: a call is harmless (the server answers with valid names) but the answer must not invent a number",
+   "tools_optional": true,
+   "answer": {
+    "must_contain_regex": "(?i)unknown|no design|not (a |an )?(valid|known)|valid design|does not exist|doesn.t exist|no such"
+   }
+  },
+  {
+   "id": "h01",
+   "group": "how_do_i",
+   "prompt": "How do I run the full flow for kv_attn_n8?",
+   "no_tools": true,
+   "forbid_tools": [
+    "run_make",
+    "claude_task",
+    "run_experiment"
+   ],
+   "answer": {
+    "must_contain_regex": "make flow-all"
+   }
+  },
+  {
+   "id": "h02",
+   "group": "how_do_i",
+   "prompt": "How do I run make test?",
+   "no_tools": true,
+   "forbid_tools": [
+    "run_make",
+    "claude_task",
+    "run_experiment"
+   ],
+   "answer": {
+    "must_contain_regex": "make test"
+   }
+  },
+  {
+   "id": "h04",
+   "group": "how_do_i",
+   "prompt": "Should I rerun the flow for audio_pitch after changing the RTL?",
+   "no_tools": true,
+   "forbid_tools": [
+    "run_make",
+    "claude_task",
+    "run_experiment"
+   ]
+  },
+  {
+   "id": "h05",
+   "group": "how_do_i",
+   "prompt": "Can you tell me which make command simulates vision_block?",
+   "no_tools": false,
+   "forbid_tools": [
+    "run_make",
+    "claude_task",
+    "run_experiment",
+    "confirm_run"
+   ],
+   "answer": {
+    "must_contain_regex": "make simulate"
+   },
+   "tools_optional": true
+  },
+  {
+   "id": "q01",
+   "group": "rag",
+   "prompt": "What limited the slack of prec_fp16 and how was it fixed?",
+   "expect_any": [
+    "rag_answer",
+    "rag_search",
+    "search_docs",
+    "explain"
+   ],
+   "forbid_tools": [
+    "run_make",
+    "read_metrics"
+   ],
+   "answer": {
+    "must_contain_regex": "\\.md"
+   },
+   "note": "a why/how question: docs tools, answer cites a file"
+  },
+  {
+   "id": "q02",
+   "group": "rag",
+   "prompt": "Where is antenna diode insertion described in the docs?",
+   "expect_any": [
+    "rag_answer",
+    "rag_search",
+    "search_docs"
+   ],
+   "forbid_tools": [
+    "run_make"
+   ],
+   "answer": {
+    "must_contain_regex": "\\.md"
+   }
+  },
+  {
+   "id": "q03",
+   "group": "rag",
+   "prompt": "What did we learn about routing congestion in the wrapper builds?",
+   "expect_any": [
+    "rag_answer",
+    "rag_search",
+    "search_docs"
+   ],
+   "forbid_tools": [
+    "run_make",
+    "read_metrics"
+   ],
+   "needs_tools": [
+    "rag_answer"
+   ]
+  },
+  {
+   "id": "q04",
+   "group": "rag",
+   "prompt": "How many standard cells does vision_block have? Use the number from metrics.json.",
+   "expect_tools": [
+    "read_metrics"
+   ],
+   "args": {
+    "read_metrics": {
+     "design": "vision_block"
+    }
+   },
+   "forbid_tools": [
+    "run_make"
+   ],
+   "note": "a number: metrics, not the docs index",
+   "answer": {
+    "metric": {
+     "design": "vision_block",
+     "key": "design__instance__count__stdcell"
+    }
+   }
+  }
+ ]
+}

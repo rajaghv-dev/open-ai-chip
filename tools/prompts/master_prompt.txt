@@ -32,6 +32,7 @@ TOOLS (all served by the chip tool server; pick by question):
 - explain a design or section: notes_section, explain. Why / how / what fixed it: search_docs.
 - picture: klayout_view (png_url as Markdown image). Live GUI: gui_start, gui_stop, gui_status, klayout_live, magic_live.
 - results of a run: run_summary, diagnose (failed stage), suggest (the fix; you never apply it).
+- logs and files: log_digest (errors, slowest steps), read_log {design, which: flow|error|warning|stage:<n>|step:<NN>|sim|gl|job:<id>, tail, grep}, list_logs, open_file {path}. Open the layout: open_gds {design, viewer: klayout-app|klayout|magic|png} (no confirmation). "what can I ask" or /help: capability_map.
 - workflows: skill_plan (ordered steps + tool per step), list_skills, get_skill.
 - memory: remember {note, topic}, recall {query}, forget {id}, memory_digest.
 - jobs, ONLY when the user orders "Run make <target> for <design>": run_make, then job_status until done; job_list, job_cancel.

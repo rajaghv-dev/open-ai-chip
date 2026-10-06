@@ -1,7 +1,7 @@
 # Skills for this repository: what they encode and why
 
 This page is for a reader who can program but is new to chip design and to Claude Code "skills". It explains
-what a skill is, then walks through the six project skills in `.claude/skills/`. For each one it teaches the
+what a skill is, then walks through the ten project skills in `.claude/skills/`. For each one it teaches the
 engineering ideas behind the steps (so the checklist makes sense), summarises the workflow, and lists the
 non-obvious lessons with the evidence numbers from this repository. Every number names the file it comes from.
 The skills themselves are the authority on the steps; this page explains the reasons.
@@ -94,12 +94,23 @@ flowchart TD
     WN["write-design-notes"]
     WB["wrapper-build"]
     SR["soc-run"]
+    TS["tune-synthesis"]
+    TT["tune-timing-sdc"]
+    TE["tune-openroad-engines"]
+    WI["whatif-experiment"]
     CM -->|"names, load matching skill"| HD
     CM --> AE
     CM --> PV
     CM --> WN
     CM --> WB
     CM --> SR
+    CM --> TS
+    CM --> TT
+    CM --> TE
+    TS -->|"try on a copy"| WI
+    TT -->|"try on a copy"| WI
+    TE -->|"try on a copy"| WI
+    WI -->|"same container setup as"| HD
     PV -->|"uses recipe of"| AE
     AE -->|"then"| HD
     HD -->|"then"| WN
@@ -110,7 +121,7 @@ flowchart TD
 
 ---
 
-## 2. The six skills
+## 2. The ten skills
 
 ### 2.1 harden-design
 
@@ -494,6 +505,88 @@ full-Caravel RTL / hybrid / full-chip gate-level sims (make caravel-rtl, caravel
   (`designs/soc_image_text_match/NOTES.md`). Flip-flop storage is the expensive primitive: 21.0 um2 per
   `dfxtp_2`, 45.55 % of synthesised area.
 
+### 2.7 tune-synthesis
+
+**Purpose and triggers.** Description (from `.claude/skills/tune-synthesis/SKILL.md`): change and judge the synthesis settings (`SYNTH_*` variables of LibreLane 3.0.2:
+`SYNTH_STRATEGY` AREA 0..3, flatten or keep hierarchy, ABC buffering and sizing, `MAX_FANOUT_CONSTRAINT`, adder and multiplier mapping, synthesis checks), read `synth_stat.rpt` and
+`synth_checks.rpt`, and handle "logic lost" and `signoff_allowances.json`. Use it to shrink or speed up the synthesised netlist, compare strategies, see which block uses the area, or understand a flip-flop count below the RTL.
+
+**Fundamentals you need first.**
+
+- **ABC.** The logic optimiser inside Yosys. It rewrites the logic network (balance, rewrite, refactor, choice) and maps it to library cells. `SYNTH_STRATEGY` selects one of nine scripts the image builds
+  (`librelane/scripts/pyosys/construct_abc_script.py`): `AREA 0..3` and `DELAY 0..4`. DELAY scripts favour speed and are forbidden here (`CLAUDE.md`).
+- **Flatten.** Yosys dissolves module boundaries so ABC sees the whole design; `SYNTH_HIERARCHY_MODE keep` gives per-module area tables at the price of cross-module optimisation.
+- **Fanout and buffering.** `MAX_FANOUT_CONSTRAINT` (8 in 21 designs) bounds how many gates one output drives; `SYNTH_ABC_BUFFERING` and `SYNTH_SIZING` let ABC add buffers or upsize drivers. Later steps repair what is left.
+- **Synthesis checks and "logic lost".** Steps 07 to 09 fail on unmapped cells, multiple drivers, latches and `assign` statements; `check_signoff.py` fails when fewer flip-flops survive than the RTL elaborates to.
+
+**Workflow in brief.** Read `config.json` and its `//KEY` comments, the committed `synth_stat.rpt`, then `param_info`; change one key via `propose_change` and `whatif_run`; judge the final metrics (a synthesis change moves everything downstream).
+
+**Insights.**
+- Every committed design uses the defaults (`AREA 0`, flatten): only `user_proj_example` sets `SYNTH_ABC_BUFFERING` false. No strategy comparison has been measured in this repo yet; the skill says so and points to `whatif_sweep` instead of inventing a ranking.
+- A tighter clock does not change an AREA netlist: `vision_block` has 297 cells at 25 ns and at 20 ns (`whatif` run 2026-10-07, `docs/HERMES_DESKTOP.md`), because the generated ABC scripts do not use the period placeholder (`abc -D` is passed, the scripts contain no `{D}`).
+- `SYNTH_ABC_DFF` true can merge identical flip-flops and trip the register-count check; an allowance needs a reason that can be verified in the RTL (`scripts/flow/signoff_allowances.json`, `kv_attn_n8_int4`).
+- Files: `.claude/skills/tune-synthesis/SKILL.md`, `reference.md` (strategy table, 25 `SYNTH_*` keys with defaults, repo value, symptom, how to verify).
+
+### 2.8 tune-timing-sdc
+
+**Purpose and triggers.** Description (from `.claude/skills/tune-timing-sdc/SKILL.md`): change and judge timing constraints (`CLOCK_PERIOD` and its rule, the Caravel macro SDC `base_*.sdc`, `PNR_SDC_FILE` versus `SIGNOFF_SDC_FILE`,
+setup and hold slack margins, the nine corners) and read `timing_summary.rpt` and the path reports. Use it to try a faster clock, explain thin slack, compare corners or understand why a macro uses the Caravel template SDC.
+
+**Fundamentals you need first.**
+
+- **SDC.** Synopsys Design Constraints: the Tcl file that tells the timer the clock, the input and output delays, the loads and the limits. Without it nothing is checked.
+- **Setup and hold slack.** Setup: data must arrive before the next edge (slack = required - arrival; larger is better). Hold: data must stay after the edge; hold slack does not depend on the clock period.
+- **Corners.** Process, voltage, temperature and interconnect combinations; sign-off checks nine (`nom/min/max` x `tt/ss/ff`). Setup is worst at `ss` (slow), hold at `ff` (fast).
+- **Slack margin.** How far past zero the resizer repairs (`PL_RESIZER_SETUP_SLACK_MARGIN` 0.05 ns, hold 0.1 ns). A negative margin is a weaker target and is blocked.
+
+**Workflow in brief.** Read `timing_summary.rpt` and the worst path files, choose one question (a faster clock? more margin?), `whatif_run`, then read the limiting path in the copy.
+
+**Insights.**
+- The rule is asymmetric on purpose: a shorter `CLOCK_PERIOD` or a lower `MAX_TRANSITION_CONSTRAINT` is an experiment, a longer or higher one is a way to cheat a gate (`CLAUDE.md`). The tools allow 20 ns for `vision_block` and refuse 30 ns (rule R1).
+- Measured: `vision_block` at 20 ns instead of 25 ns loses exactly 4.00 ns of setup slack (13.53 to 9.53 ns at max_ss) and none of hold (0.1103 ns); the worst setup path is an input port (`s_data[2]`) whose external delay is 20 percent of the period, so 5 ns less period costs 0.8 x 5 = 4 ns. Power rose from 0.127 to 0.158 mW.
+- Hold is the thin one on every committed design (0.10 to 0.9 ns). The Caravel macro SDC (clock latency 4.65 to 5.57 ns, input transitions 0.84 and 0.92 ns on `wbs_dat_i` / `wbs_adr_i`) is environment, not a knob: harden with it or the wrapper fails hold by -0.894 ns.
+- Files: `.claude/skills/tune-timing-sdc/SKILL.md`, `reference.md` (constraint variables and the SDC statement each one drives, the Caravel SDC table, margins, corners, how to read each report).
+
+### 2.9 tune-openroad-engines
+
+**Purpose and triggers.** Description (from `.claude/skills/tune-openroad-engines/SKILL.md`): change and judge the parameters of the OpenROAD engines LibreLane runs: floorplan, IO pins, PDN, global placement, the resizer, clock tree synthesis,
+global and detailed routing, antenna and diodes, fill. Use it for congestion, slew or cap violations, thin slack after routing, an out-of-memory repair step, utilisation, clock skew, antenna violations or post-route DRC.
+
+**Fundamentals you need first.** The engines are in `docs/OPENROAD_ENGINES.md`: ifp (floorplan), ppl (pins), pdn, gpl (RePlAce placement), dpl, rsz (resizer), cts (TritonCTS), grt (FastRoute), drt (TritonRoute), ant (antenna), fin (fill).
+Each step reads some variables; the skill's tables name the variable, the default, the repo's value and the reason, a safe range, the symptom it fixes and the file that proves it.
+
+- **Target density.** `PL_TARGET_DENSITY_PCT`, unset means `FP_CORE_UTIL + 5 * GPL_CELL_PADDING + 10`. It tells the placer how tightly to pack; below the real utilisation it cannot be met.
+- **Slew and cap margins.** `DESIGN_REPAIR_MAX_SLEW_PCT` (post-placement, alias `PL_RESIZER_MAX_SLEW_MARGIN`) and `GRT_DESIGN_REPAIR_MAX_SLEW_PCT` (post-routing) tighten the limit by a percentage while repair runs.
+
+**Workflow in brief.** Name the symptom, find the evidence in the reports, read the key's `//KEY` comment and `param_info`, change one key, `whatif_run` or `whatif_sweep`, judge by numbers.
+
+**Insights.**
+- The 70 percent slew margin lesson in one sentence: the Caravel SDC makes two input ports arrive above the slew limit, repair cannot fix them, and a large margin makes it try until the 8 GB container dies; 20 percent gave 195 violations, 40 percent 247 (`designs/tiny_ai_core/config.json` `//SLEW`). The tools warn above 40.
+- Congestion is a placement and pin problem: the wrapper's GRT-0116 was cured by 109 ordered pins, never by `GRT_ALLOW_CONGESTION`, which stays false.
+- Measured: `PL_TARGET_DENSITY_PCT` 70 on `vision_block` changed utilisation by 0.13 points, setup slack by +0.06 ns and hold by +0.003 ns, with the same 297 cells: on a die that is 40 percent empty, the density target is a weak lever.
+- 157 keys carry notes in `examples/hermes_desktop/tool_server/whatif_notes.json`; all key names were checked against the 411 variables of the pinned image (`tests/tools/test_whatif.py` re-checks every key named in the four skills).
+- Files: `.claude/skills/tune-openroad-engines/SKILL.md`, `reference.md` (11 engine tables, 122 keys).
+
+### 2.10 whatif-experiment
+
+**Purpose and triggers.** Description (from `.claude/skills/whatif-experiment/SKILL.md`): safely try a changed synthesis, timing-constraint or OpenROAD-engine setting on a COPY of a design and compare with the committed metrics,
+without touching `designs/<d>/` or its committed run. Use it for "what if we set X", "try a tighter clock", "sweep this parameter".
+
+**Fundamentals you need first.**
+
+- **Staleness.** Any non-markdown edit in a design directory makes its committed run stale (`scripts/flow/find_reusable_run.py`), so the next `make gds` reruns the flow. An agent that edits a config to "try something" silently destroys the committed evidence. The copy avoids that.
+- **`dir::` paths.** LibreLane resolves `dir::<relative path>` against the config's directory; after a copy to another directory every `..` means something else, so the copy's paths are rewritten (the same trick as `scripts/flow/gl_sim.sh prepare`).
+- **Confirm gate.** The tool server never starts a flow on the first call; it returns a `confirm_id` and the exact plan and starts only after the user writes `yes, run <id>`. The same rule and the same lock cover `run_make`.
+
+**Workflow in brief.** `param_info`, `propose_change` (rules and patch text), `whatif_run` (gate), `job_status`, `whatif_result` (table and verdict, committed run still current), cleanup. Terminal route: `whatif_tools.py prepare` then `whatif_flow.sh`.
+
+**Insights.**
+- The rules are code, not advice: `check_key` blocks the loosening of `CLOCK_PERIOD` and `MAX_TRANSITION_CONSTRAINT`, DISABLE_LVS, DELAY, `ERROR_ON_SYNTH_CHECKS` false, weaker signoff settings, fixed wrapper geometry and unknown keys; 25 blocked and 16 allowed combinations are pinned by tests.
+- Unknown keys are refused because LibreLane would ignore a typo silently: a "fix" that changes nothing looks like a result.
+- Two real runs (2026-10-07) took 86 s and 66 s against 51 s for the committed flow; after them `designs/vision_block/` had no changed file and `find_reusable_run.py` still exited 0.
+- A patch is only text. The owner applies it by hand; this keeps "no agent edits committed design files" true.
+- Files: `.claude/skills/whatif-experiment/SKILL.md`, `reference.md` (tool arguments, rule table, files, the measured example, failure table), `examples/hermes_desktop/tool_server/whatif_tools.py`, `scripts/flow/whatif_flow.sh`.
+
 ---
 
 ## 3. How the skills fit together
@@ -513,6 +606,7 @@ flowchart TD
     S8["Caravel sim: RTL and hybrid GL"]
     S9["Full-chip GL and SDF"]
     S10["ChipFoundry precheck"]
+    S11["Tune: what-if on a copy"]
     S1 --> S2
     S2 -->|"add-tiny-engine"| S3
     S2 -->|"precision-variant"| S3b
@@ -524,6 +618,7 @@ flowchart TD
     S7 -->|"soc-run"| S8
     S8 -->|"soc-run"| S9
     S9 -->|"soc-run"| S10
+    S4 -.->|"tune-synthesis, tune-timing-sdc, tune-openroad-engines via whatif-experiment"| S11
     S9 -.->|"details"| NY["docs/CARAVEL_SIM.md"]
     S10 -.->|"details"| NP["docs/PRECHECK.md"]
 ```
@@ -533,6 +628,7 @@ flowchart TD
 | model and engine | `add-tiny-engine` | `make generate`, `make simulate DESIGN=<e>` | `weights.json`, ROM, `vectors.hex`, PASS line |
 | number format | `precision-variant` | `python3 model/precision_hw/gen.py` | `designs/prec_<fmt>/`, study tables |
 | harden | `harden-design` | `make flow-all DESIGN=<d>` | `output/metrics.json`, GDS, reports |
+| tune a setting | `tune-synthesis`, `tune-timing-sdc`, `tune-openroad-engines`, `whatif-experiment` | `param_info`, `propose_change`, `whatif_run`, `whatif_result` (or `whatif_tools.py prepare` + `whatif_flow.sh`) | `build/whatif/<d>__<tag>/` comparison table and patch text; `designs/<d>/` untouched |
 | notes | `write-design-notes` | `check_notes.py` | `designs/<d>/NOTES.md` |
 | wrapper | `wrapper-build` | `make views`, `make flow-all DESIGN=user_project_wrapper_<tag>` | wrapper `output/` |
 | firmware and Caravel | `soc-run` | `make soc-sim`, `make soc-kv`, `make caravel-rtl`, `make caravel-gl` | `soc_sim/build/sim.log`, `soc_sim/kv/build/sim.log`, `build/caravel/work/` |
@@ -567,8 +663,13 @@ increments by 2; `SPEC.md` Intuitions) show that a PASS means something; generat
 | Placement utilisation | Cell area divided by core area; aim for about 40 % here. |
 | Progressive disclosure | Loading only the name, then `SKILL.md`, then references as needed. |
 | RTL | Register-transfer-level Verilog source. |
+| SDC | Synopsys Design Constraints: the Tcl file with the clock, I/O delays, loads and limits the timer checks against. |
+| Corner | One process/voltage/temperature (and interconnect) combination for timing; sign-off uses nine. |
+| Slack margin | How far past zero slack the resizer keeps repairing (`PL_RESIZER_*_SLACK_MARGIN`). |
+| What-if | An experiment on a copy of a design under `build/whatif/`, never on the committed files. |
 | SDF | Standard Delay Format: delays back-annotated onto a netlist. |
 | Setup | Requirement that data arrives before the next clock edge. |
+| Slew | Transition time of a signal edge; limited by `MAX_TRANSITION_CONSTRAINT` (0.75 ns). |
 | Skill | A folder `.claude/skills/<name>/SKILL.md` with name and description, loaded on demand. |
 | Valid/ready | Handshake: a beat moves when both signals are high on a clock edge. |
 | Wishbone | Simple bus used between the CPU and the macros. |

@@ -826,6 +826,8 @@ def _mount_extensions() -> List[str]:
         spec.loader.exec_module(mod)
         if hasattr(mod, "router"):
             app.include_router(mod.router)
+            if hasattr(mod, "install"):         # optional hook (proof_tools: call-log middleware); needs the app before it starts
+                mod.install(app)
             mounted.append(fn)
     return mounted
 

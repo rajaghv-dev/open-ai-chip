@@ -31,7 +31,7 @@ client.app.include_router(gt.router)
 
 def test_router_operations():
     ops = {r.operation_id for r in gt.router.routes}
-    assert ops == {"gui_start", "gui_stop", "gui_status", "klayout_live", "magic_live"}
+    assert ops >= {"gui_start", "gui_stop", "gui_status", "klayout_live", "magic_live", "gui_command", "gui_examples"}
 
 
 def test_mounted_in_tool_server():
@@ -39,7 +39,7 @@ def test_mounted_in_tool_server():
     assert "gui_tools.py" in ts.EXTENSIONS
     spec = TestClient(ts.app).get("/openapi.json").json()
     ops = {v["post"]["operationId"] for v in spec["paths"].values() if "post" in v}
-    assert {"gui_start", "gui_stop", "gui_status", "klayout_live", "magic_live"} <= ops
+    assert {"gui_start", "gui_stop", "gui_status", "klayout_live", "magic_live", "gui_command", "gui_examples"} <= ops
 
 
 # ------------------------------------------------------------------ protocol
@@ -155,6 +155,155 @@ def test_images_under_img_dir():
     assert gt.IMG_DIR.endswith(os.path.join("build", "agent", "klayout_gui"))
     r = gt._img_reply(os.path.join(gt.IMG_DIR, "x.png"), "alt")
     assert r["markdown"] == "![alt](%s)" % r["png_url"] and r["png_url"].endswith("/img/x.png")
+
+
+# ------------------------------------------------------------------ gui_command parser (no model, no window)
+def P(text, **kw):
+    return gt.parse_text(text, kw.get("tool"), kw.get("running", []), designs=gt._designs_list())
+
+
+def ops(text, **kw):
+    p = P(text, **kw)
+    assert not p["unparsed"], (text, p)
+    return [(a["op"], a["tool"]) for a in p["actions"]]
+
+
+@pytest.mark.parametrize("text,expect", [
+    ("open kv_attn_n8", [("open", "klayout")]),
+    ("open kv_attn_n8 in magic", [("open", "magic")]),
+    ("Open kv_attn_n8 in KLayout please", [("open", "klayout")]),
+    ("open kv_attn_n8 and show only met1 and met2", [("open", "klayout"), ("layers", "klayout")]),
+    ("show met4 and met5", [("layers", "klayout")]),
+    ("show only li1", [("layers", "klayout")]),
+    ("show all", [("layers", "klayout")]),
+    ("hide met5", [("layers", "klayout")]),
+    ("hide met4 and met5", [("layers", "klayout")]),
+    ("zoom to the lower-left 50 um", [("zoom", "klayout")]),
+    ("zoom to the upper-right 80 microns", [("zoom", "klayout")]),
+    ("zoom to the center 100 um", [("zoom", "klayout")]),
+    ("zoom to 0 0 100 100", [("zoom", "klayout")]),
+    ("zoom to the macro mprj", [("zoom", "klayout")]),
+    ("zoom out", [("zoom", "klayout")]),
+    ("zoom to fit", [("zoom", "klayout")]),
+    ("run drc", [("drc", "klayout")]),
+    ("run drc in magic", [("drc", "magic")]),
+    ("measure from 0,0 to 100,0", [("measure", "klayout")]),
+    ("find clk", [("find", "magic")]),
+    ("take a snapshot", [("snapshot", "klayout")]),
+    ("status", [("status", "klayout")]),
+    ("close klayout", [("close", "klayout")]),
+    ("close all", [("close", "klayout"), ("close", "magic")]),
+    ("open kv_attn_n8 in magic, then run drc", [("open", "magic"), ("drc", "magic")]),
+    ("open user_project_wrapper_soc_kv in klayout and zoom to the macro mprj", [("open", "klayout"), ("zoom", "klayout")]),
+])
+def test_parser_sentences(text, expect):
+    assert ops(text) == expect
+
+
+def test_parser_details():
+    a = P("open kv_attn_n8 and show only met1 and met2")["actions"]
+    assert a[0]["design"] == "kv_attn_n8" and a[1]["layers"] == ["met1", "met2"] and a[1]["only"] is True
+    assert P("zoom to the lower-left 50 um")["actions"][0] == {"op": "zoom", "tool": "klayout", "corner": "lower-left", "size": 50.0}
+    assert P("zoom to 100 100 0 0")["actions"][0]["bbox"] == [0.0, 0.0, 100.0, 100.0]
+    assert P("zoom to the macro mprj")["actions"][0]["cell"] == "mprj"
+    m = P("measure from 0,0 to 100,0")["actions"][0]
+    assert m["a"] == [0.0, 0.0] and m["b"] == [100.0, 0.0]
+    assert P("show met4 and also met5")["actions"][0]["only"] is False
+    assert P("hide met5")["actions"][0]["hide"] == ["met5"]
+    assert P("show all")["actions"][0]["layers"] == gt.ALL_LAYERS
+
+
+def test_parser_default_tool():
+    assert ops("run drc", running=["magic"]) == [("drc", "magic")]
+    assert ops("zoom out", running=["klayout", "magic"], tool=None) in ([("zoom", "klayout")], [("zoom", "magic")])
+    assert ops("zoom out", tool="magic") == [("zoom", "magic")]          # /magic prompt
+    assert ops("open kv_attn_n8 in klayout", tool="magic") == [("open", "klayout")]   # the sentence wins
+
+
+def test_corner_bbox():
+    die = [0, 0, 260, 260]
+    assert gt._corner_bbox("lower-left", 50, die) == [0, 0, 50, 50]
+    assert gt._corner_bbox("upper-right", 50, die) == [210, 210, 260, 260]
+    assert gt._corner_bbox("center", 100, die) == [80, 80, 180, 180]
+    assert gt._die_bbox("kv_attn_n8") == [0.0, 0.0, 260.0, 260.0]
+
+
+@pytest.mark.parametrize("text", ["save the layout", "write gds", "export gds to /tmp/x", "delete everything", "make me a sandwich",
+                                   "open kv_attn_n8 and save it", "rm -rf /", ""])
+def test_unknown_gives_hint_and_runs_nothing(text, monkeypatch):
+    monkeypatch.setattr(gt, "_exec", lambda *a, **k: pytest.fail("must not run"))
+    r = client.post("/gui_command", json={"text": text}).json()
+    assert r["understood"] is False and r["ok"] is False and "open kv_attn_n8" in r["hint"] and r["did"] == []
+
+
+def test_no_write_action_possible():
+    for t in ("save", "write gds", "export", "gds write x", "writeall", "cif write"):
+        assert not [a for a in P(t)["actions"] if a["op"] not in ("open", "zoom", "layers", "drc", "measure", "find", "snapshot", "status", "close")]
+    assert not P("save the layout")["actions"] and not P("write gds")["actions"]
+    src = open(os.path.join(TS, "gui_tools.py")).read().split("tool: gui_command")[1]
+    assert not re.search(r"""request\(["'](?:SAVE|WRITE|GDS|EXEC)""", src, re.I)
+
+
+def test_gui_command_runs_actions_in_order(monkeypatch):
+    calls = []
+    monkeypatch.setattr(gt, "_running", lambda: [])
+    monkeypatch.setattr(gt, "_exec", lambda a, ctx, final: (calls.append((a["op"], final)), {"ok": True, "markdown": "![x](u)" if final else ""})[1])
+    r = client.post("/gui_command", json={"text": "open kv_attn_n8 in klayout and show only met1 and zoom to the lower-left 50 um"}).json()
+    assert r["ok"] and r["understood"] and [d["op"] for d in r["did"]] == ["open", "layers", "zoom"]
+    assert calls == [("open", False), ("layers", False), ("zoom", True)] and r["markdown"] == "![x](u)"
+
+
+def test_gui_command_stops_on_failure(monkeypatch):
+    monkeypatch.setattr(gt, "_running", lambda: [])
+    n = []
+    monkeypatch.setattr(gt, "_exec", lambda a, ctx, final: (n.append(1), {"ok": False, "error": "boom"})[1])
+    r = client.post("/gui_command", json={"text": "open kv_attn_n8 and run drc"}).json()
+    assert r["ok"] is False and r["error"] == "boom" and len(n) == 1
+
+
+def test_gui_command_bad_tool():
+    assert client.post("/gui_command", json={"text": "status", "tool": "vim"}).json()["ok"] is False
+
+
+def test_gui_examples():
+    r = client.post("/gui_examples", json={}).json()
+    assert r["ok"] and len(r["examples"]) >= 12 and "| what you type |" in r["markdown"]
+    for e in r["examples"]:
+        if e["say"] != "status":
+            assert not P(e["say"])["unparsed"] and P(e["say"])["actions"], e
+
+
+# ------------------------------------------------------------------ Layout tools panel (GET /gui)
+PANEL_IDS = ["design", "open_klayout", "open_magic", "tool_klayout", "tool_magic", "close_klayout", "close_magic", "close_all",
+             "layers", "zoom_full", "zoom_ll50", "zoom_center", "macro", "zoom_macro", "drc", "mx1", "my1", "mx2", "my2", "measure",
+             "snapshot", "cmd", "run_cmd", "img", "log"]
+
+
+def test_panel_served_with_every_control():
+    r = client.get("/gui")
+    assert r.status_code == 200 and "text/html" in r.headers["content-type"]
+    for i in PANEL_IDS:
+        assert 'id="%s"' % i in r.text, i
+    for layer in ("li1", "met1", "met2", "met3", "met4", "met5", "all"):
+        assert layer in r.text
+    assert "http://" not in r.text.replace("http://www.w3.org", "") and "https://" not in r.text      # no external assets
+
+
+def test_panel_endpoints_exist():
+    import tool_server as ts
+    spec = TestClient(ts.app).get("/openapi.json").json()
+    have = {p.strip("/") for p in spec["paths"]}
+    called = set(re.findall(r'call\("([a-z_]+)"', TestClient(ts.app).get("/gui").text))
+    called |= {"klayout_live", "magic_live"}
+    assert {"gui_start", "gui_stop", "gui_status", "gui_command", "gui_examples", "list_designs"} <= called
+    assert called <= have, called - have
+    assert "/gui" not in spec["paths"]            # include_in_schema=False
+
+
+def test_app_has_layout_menu_and_window():
+    src = open(os.path.join(REPO, "examples", "hermes_desktop", "desktop", "app.py")).read()
+    for t in ('"Layout tools"', "Open in KLayout...", "Open in Magic...", "Close layout windows", "HERMES_LAYOUT_PANEL", "/gui"):
+        assert t in src, t
 
 
 # ------------------------------------------------------------------ live (opt-in)

@@ -6,6 +6,8 @@ steps. A step is one act: `say` is the narration a presenter reads, `tool` + `ar
 `ask` is the chat message that makes the model call it, `look` is what to point at in the answer. A step with
 `confirm: True` is a run: the tool answers with a confirm_id and nothing starts until the user writes "yes, run <id>".
 Demo 7 (gui) is run by demos/gui_demo.py (owned by the GUI work); it is listed here so the menu is complete.
+Demo 8 (proof) has steps (the chat version: /demo-proof) and a runner, demos/proof_demo.py, that also prints and runs the terminal
+verification commands (shasum -a 256, git rev-parse HEAD); `make demo-proof` runs the runner.
 Docs: docs/HERMES_DESKTOP.md (section "Experiments and demos")
 Tests: tests/tools/test_experiments.py
 """
@@ -118,6 +120,31 @@ DEMOS = [
     {"num": 7, "name": "gui", "title": "Magic and KLayout side by side", "minutes": 2.0, "physical": False,
      "blurb": "A paced tour that opens the real KLayout and Magic windows (needs XQuartz on a Mac). Run by demos/gui_demo.py.",
      "docs": "docs/GUI_AND_LOGS.md", "runner": "examples/hermes_desktop/demos/gui_demo.py", "steps": []},
+    {"num": 8, "name": "proof", "title": "Proof: local, repo, context", "minutes": 2.0, "physical": False,
+     "blurb": "Show that it runs locally, that answers are tied to this repo (file, sha256, commit) and what context the model was given.",
+     "docs": "docs/HERMES_DESKTOP.md", "runner": "examples/hermes_desktop/demos/proof_demo.py",
+     "steps": [
+         {"say": "First the claim: everything runs on this machine. The tool measures it now: sockets, ollama ps, offline settings, outbound connections.",
+          "tool": "proof_local", "args": {},
+          "ask": "Call the proof_local tool and quote the VERDICT line and the listening sockets.",
+          "look": "VERDICT: LOCAL, every socket on 127.0.0.1, ollama ps shows the model on the GPU, outbound connections: none."},
+         {"say": "Now a repo question. Under the answer is a receipt: model digest, repo commit, the file the tool read and its sha256.",
+          "tool": "read_metrics", "args": {"design": D_KV, "keys": ["design__instance__count__class:sequential_cell"]},
+          "ask": "Call the read_metrics tool for design kv_attn_n8 with keys design__instance__count__class:sequential_cell and tell me the flip-flop count.",
+          "look": "the receipt lists designs/kv_attn_n8/output/metrics.json with a short sha256; shasum -a 256 on that file matches."},
+         {"say": "Memory is read live: save a note, then ask what you remember.",
+          "tool": "remember", "args": {"note": "proof demo marker", "topic": "proof"},
+          "ask": "Call the remember tool with note proof demo marker and topic proof.",
+          "look": "a note id; the next receipt counts one more memory entry."},
+         {"say": "Ask again: the memory filter now injects the new note, and the receipt shows one more entry.",
+          "tool": "recall", "args": {"query": "proof demo marker"},
+          "ask": "Call the recall tool with query proof demo marker and tell me what it returns.",
+          "look": "the note you just saved; memory digest entries in the receipt went up by one."},
+         {"say": "Finally exactly what the last turn was sent.",
+          "tool": "show_context", "args": {},
+          "ask": "Call the show_context tool and show me its text.",
+          "look": "system prompt sha and length, tools prompt sha, memory digest entries, retrieved passages and files with line ranges."},
+     ]},
 ]
 
 

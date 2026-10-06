@@ -16,33 +16,26 @@ bash scripts/setup_linux.sh && bash scripts/run_all.sh   # Linux: set up, then t
 
 One design end to end: `make flow-all DESIGN=kv_attn_n8`. Fast gate: `make test`. All targets: `make help`.
 
-## Hermes agent and demos
+## Hermes Agent desktop app
+
+The front end is Nous Research's **Hermes Agent** desktop app (Hermes.app), connected to this repo over MCP with a
+`chip` profile (local Ollama `qwen3.5-64k:9b`, no file edits, gated runs, Claude only via `ask_claude` when needed).
 
 ```bash
-make hermes          # set up what is missing, start, open the Mac app (or http://127.0.0.1:8080)
-make demo            # numbered demo menu
-make demo-kv         # run a demo by name (or: bash scripts/hermes.sh demo 2)
-make hermes-stop     # stop everything
+bash scripts/hermes_agent_setup.sh            # dry run: shows the diff it would make in ~/.hermes (review it)
+bash scripts/hermes_agent_setup.sh --apply    # backup ~/.hermes, create the chip profile, MCP bridge, skills, hook, cron
+open -a Hermes                                 # then pick the "chip" profile / "open-ai-chip" project
 ```
 
-In the app or browser: ask about any design ("How many cells does kv_attn_n8 have?"), run things ("Run flow-all for
-vision_block": it asks you to reply `yes, run <id>` first), "Summarize the last run of kv_attn_n8", "What should I
-improve in prec_bf16?", `/harden kv_attn_n8`, `/demo`, or "Open kv_attn_n8 in Magic". Only the local `hermes3:8b`
-model is used; Claude is called only when you ask for `claude_task`.
+Ask in Hermes: "How many cells does kv_attn_n8 have?", "Why does kv_attn_n8_int4 have more flip-flops than kv_attn_n8?",
+"Show the errors in kv_attn_n8's logs", "Open kv_attn_n8 in KLayout and show met1", "Run flow-all for vision_block" (asks
+for approval, then `yes, run <id>`), "Summarize the last run", "What should I improve in prec_bf16?", "What if the clock
+were 20 ns for vision_block?", "Ask Claude to ...". How it works, safety and status:
+[docs/HERMES_AGENT_INTEGRATION.md](docs/HERMES_AGENT_INTEGRATION.md). Eleven narrated demos to run in the app ("run demo 4"): [docs/HERMES_DEMOS.md](docs/HERMES_DEMOS.md). Undo: `bash scripts/hermes_agent_setup.sh --uninstall --apply`.
 
-| # | Demo | What you see | Time |
-|---|---|---|---|
-| 1 | `precision` | the 7 number formats compared: why ternary and int4 win | ~1.5 min |
-| 2 | `kv` | KV cache on the RISC-V SoC: prefill cost per token falls, decode pays a full bus round trip | ~1.5 min |
-| 3 | `rtl2gds` | `vision_block` hardened from the chat, then run summary, suggestions, layout picture | ~1-3 min (runs a flow) |
-| 4 | `int4` | why the int4 cache has more flip-flops than int8, quoted from the design notes | ~40 s |
-| 5 | `heatmaps` | OpenROAD placement, congestion and IR-drop pictures of `kv_attn_n8`, each explained | ~35 s |
-| 6 | `soc` | firmware cycle table: the bus, not the accelerator, dominates | ~1 min |
-| 7 | `gui` | a narrated tour in the live KLayout and Magic windows (layers, rows, power straps, DRC) | ~2 min |
-
-Every demo prints a numbered narration line and pauses before each step (`--pace` seconds) so you can explain it; each
-is saved as an Open WebUI chat and a transcript. Details: [Hermes desktop](docs/HERMES_DESKTOP.md),
-[GUI demo walkthrough](examples/hermes_desktop/demos/GUI_DEMO.md).
+Older front ends (Open WebUI with `make hermes` / `make demo*`, the repo's wrapper app, terminal agent loops) remain in
+the repo unmaintained; what is incomplete is listed in [SPEC.md](SPEC.md#agent-front-ends-decision-2026-10-07) and
+[docs/HERMES_DESKTOP.md](docs/HERMES_DESKTOP.md).
 
 ## Open by hand
 
@@ -50,6 +43,7 @@ is saved as an Open WebUI chat and a transcript. Details: [Hermes desktop](docs/
 |---|---|
 | Hermes agent in the browser / Mac app | `make hermes` (or `bash scripts/hermes.sh`) |
 | Hermes in the terminal | `build/agent/venv/bin/python tools/hermes_agent.py "How many standard cells does vision_block have?"` |
+| Hermes Agent (Nous, `chip` profile) | `bash scripts/hermes_agent_setup.sh`, review the diff, then `--apply` ([guide](docs/HERMES_AGENT_INTEGRATION.md)) |
 | KLayout driven by Hermes | `bash examples/hermes_klayout_gui/start_live.sh`, then `build/agent/venv/bin/python examples/hermes_klayout_gui/agent.py --backend live "open kv_attn_n8, show met1"` |
 | OpenROAD GUI, live heat maps | `bash scripts/gui/open_gui.sh heatmaps kv_attn_n8` |
 | Magic | `bash scripts/gui/open_gui.sh magic kv_attn_n8` |
@@ -57,7 +51,8 @@ is saved as an Open WebUI chat and a transcript. Details: [Hermes desktop](docs/
 
 Step-by-step guides: [macOS](docs/RUN_ON_MAC.md), [Linux](docs/RUN_ON_LINUX.md),
 [Hermes from the terminal](docs/HERMES_FROM_TERMINAL.md), [Hermes desktop and browser UI](docs/HERMES_DESKTOP.md),
-[every GUI and log](docs/GUI_AND_LOGS.md).
+[every GUI and log](docs/GUI_AND_LOGS.md),
+[Hermes Agent integration and workflow](docs/HERMES_AGENT_INTEGRATION.md).
 
 ## The designs
 

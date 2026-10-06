@@ -93,6 +93,31 @@ What is next, in order (items 3 and 4 were done locally later, see the 2026-10-0
 5. Phase 9: local `cf precheck` with LVS and Magic DRC enabled; `release/manifest.json`.
 6. Phase 10: independent fresh-clone reproduction. Phase 11 stays human-only.
 
+## Agent front ends (decision 2026-10-07)
+
+The supported front end is **Nous Research's Hermes Agent desktop app** (Hermes.app / `hermes` CLI), connected to this
+repo through the `chip` profile: local Ollama `qwen3.5-64k:9b`, the MCP bridge `tools/hermes_mcp_bridge.py` to the repo
+tool server (`examples/hermes_desktop/tool_server/`), the repo skills (`.claude/skills/`), approvals and the
+`pre_tool_call` hook (`scripts/hermes/hooks/pre_tool_call.py`), set up by `scripts/hermes_agent_setup.sh` (review the diff,
+then `--apply`). Hermes sessions read and run through gated tools only; they never edit repo files; Claude pitches in
+through the `ask_claude` tool when needed. All new agent work targets this integration: see
+[docs/HERMES_AGENT_INTEGRATION.md](docs/HERMES_AGENT_INTEGRATION.md).
+
+The other front ends stay in the repo as they are, **not maintained and partly incomplete** (owner decision: keep, do not
+extend):
+
+| Front end | Where | Known incompleteness |
+|---|---|---|
+| Open WebUI + "Hermes chip agent" preset | `examples/hermes_desktop/{setup_webui.sh,start.sh,stop.sh,preset.json,install_prompts.py,*_filter.py,audit_config.py}`, `scripts/hermes.sh`, `make hermes`/`make demo*` | Legacy prompt-based tool calling: the ~60 tool specs (~18.5k tokens) exceed hermes3:8b's 8k context, so most tools are invisible to the model (measured: 34/56 = 61 % on the tool-calling eval); free-form GUI routing unreliable; no further tuning planned |
+| Repo wrapper app "Hermes Chip Agent.app" | `examples/hermes_desktop/desktop/` | Wraps Open WebUI; superseded by Hermes.app; Layout tools window depends on a running tool server and shows nothing when it is down |
+| Terminal agent loops | `tools/hermes_agent.py`, `examples/hermes_harness/`, `examples/hermes_rag/rag_agent.py`, `examples/hermes_klayout_gui/agent.py`, `examples/hermes_klayout_demo/` | Educational; hermes3:8b prompt mode; results recorded in their READMEs; not wired to Hermes.app |
+| Demo runner through Open WebUI | `examples/hermes_desktop/demos.py`, `demo_defs.py` | Demos run through Open WebUI; Hermes.app equivalents are not built yet |
+
+What is shared and maintained because Hermes.app uses it: the tool server and its modules, the MCP bridge and its tool
+curation (`tools/hermes_tools.json`), the skills, the mini RAG (`rag_tools.py` on `examples/hermes_rag/rag.py`), the GUI
+backends (`examples/hermes_klayout_gui/{view_api,offscreen_backend,live_backend}.py`, KLayout bridge, Magic bridge), the
+freeze guard, and the tool-calling eval (`examples/hermes_desktop/eval_tools/`, Hermes backend).
+
 ## Project decision
 
 | Item | Decision |

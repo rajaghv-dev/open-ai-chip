@@ -44,6 +44,14 @@ def corpus_files():
 
 # Chunk = one markdown section (split further every MAX_CHUNK_LINES). Heading path is tracked so a hit can say
 # 'NOTES.md > Intuitions > ...'. Lines inside ``` fences are not headings ('# comment' in a shell block).
+def corpus_fingerprint():
+    """sha256 over (path, content sha) of every corpus file: retrieval numbers are reproducible only for the same corpus."""
+    h = hashlib.sha256()
+    for rel in corpus_files():
+        h.update(rel.encode()); h.update(_sha(rel).encode())
+    return h.hexdigest()[:16]
+
+
 def chunk_file(rel):
     lines = open(os.path.join(ROOT, rel), encoding="utf-8", errors="replace").read().split("\n")
     chunks, path, start, fence = [], [], 1, False

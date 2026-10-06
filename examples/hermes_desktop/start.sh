@@ -64,6 +64,9 @@ else
   export TOOLS_FUNCTION_CALLING_PROMPT_TEMPLATE="$(cat "$REPO/examples/hermes_desktop/tools_prompt.txt")"
   export DEFAULT_PROMPT_SUGGESTIONS="$(cat "$REPO/examples/hermes_desktop/prompt_suggestions.json")"
   export USER_AGENT=hermes-chip-agent
+  # Proof (docs/HERMES_DESKTOP.md): Open WebUI sends X-OpenWebUI-Chat-Id / -Message-Id (and the local user name) to the tool server
+  # on every tool call, so the call log (tool_server/proof_tools.py) can tie each call to its chat turn. Local tool server only.
+  export ENABLE_FORWARD_USER_INFO_HEADERS=true
   start webui "$L/webui.log" "$WEBUI" serve --host 127.0.0.1 --port 8080
   wait_for http://127.0.0.1:8080/health "open webui" 240 || exit 1
 fi

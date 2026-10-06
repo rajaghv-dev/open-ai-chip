@@ -180,3 +180,39 @@ Reading it:
   it reason. Retrieved text is untrusted data; the model cannot execute anything it contains.
 - The corpus is the committed markdown at the time of the run (root `README.md` is in it, so editing it can move recall);
   it excludes the Hermes docs on purpose.
+
+## Hybrid mini RAG for Hermes Agent
+
+Added 2026-10-07 for the Hermes desktop app. The BM25 search above is unchanged (`search_docs`). A second, wider retriever now ships as
+three tool-server tools, `rag_search`, `rag_answer`, `rag_index` (`examples/hermes_desktop/tool_server/rag_tools.py`; how Hermes uses it is in
+`docs/HERMES_AGENT_INTEGRATION.md`, "Mini RAG"). It indexes the markdown (notes, docs, specs, example READMEs, skills), the `Docs:` header of every
+script and one rendered key-facts chunk per `metrics.json`, and ranks with BM25 (the v2 scoring in `rag.py`) fused with cosine similarity of local
+Ollama embeddings (`qwen3-embedding:0.6b`, `/api/embed`) by reciprocal rank. `rag_answer` builds the answer in code: sentences quoted verbatim with `file:line`.
+If Ollama is down the reply says `bm25-fallback`. The index cache is `build/agent/rag/` (git-ignored).
+
+Measured by `build/agent/venv/bin/python examples/hermes_rag/eval_hybrid.py --cold --write` (retrieval only, no chat model; summary in
+`hybrid_results.json`, which also holds the per-question ranks). Recall is by source file, as in `eval_rag.py`: an expected file among the top k hits.
+
+| method | main @1 | main @4 | held-out @1 | held-out @4 |
+|---|---|---|---|---|
+| BM25 v2 (`rag.py`, its markdown-only corpus) | 7/10 | 9/10 | 4/5 | 5/5 |
+| BM25 v2 scoring on the hybrid corpus | 7/10 | 9/10 | 4/5 | 5/5 |
+| dense only (qwen3-embedding:0.6b) | 4/10 | 10/10 | 2/5 | 5/5 |
+| hybrid (RRF) | 7/10 | 10/10 | 2/5 | 5/5 |
+| hybrid (RRF) + design filter (the default of `rag_search`) | 7/10 | 9/10 | 3/5 | 5/5 |
+
+"Main" is the 10 answerable questions of `questions_rag.json`, "held-out" the 5 marked `heldout`. Index and timing (`hybrid_results.json`, `index`
+and `methods`): 199 files, 1563 chunks (109 markdown files, 65 code headers, 25 metrics chunks); cold build 252 s on this machine (re-chunk 0.1 s, the
+rest is embedding 1563 chunks in batches of 16; an earlier cold build took 351 s while other Ollama models were busy); a rebuild with nothing
+changed takes 0.2 s and an edited file re-embeds only its own chunks. Median time per query, 15 questions: BM25 13 ms, dense 98 to 250 ms and
+hybrid 108 to 255 ms across runs (one query embedding through Ollama dominates and varies with its load), `rag_answer` 0.15 s.
+Answer level (`rag_answer`, same file): a quoted sentence came from an expected source file for 10 of 15 answerable questions (13 of 15 returned a
+quote, 2 returned "not found"), and both unanswerable controls were answered "not found".
+
+Reading it honestly: the wider corpus and the embeddings do not beat BM25 v2 at rank 1 on this small set (hybrid ties it on the main questions and is 2/5
+against 4/5 on held-out; example READMEs and demo pages that restate a design compete with its NOTES.md); hybrid and dense reach the expected file in the top 4 for
+all 15 questions, and the design filter trades one main top-4 miss (r03, whose expected file is not named in the question) for one more held-out top-1 hit. 15 questions
+are too few to rank the variants with confidence: the differences are 1 or 2 questions. Two fixes came from the first run and are kept: why/fix/limit questions drop
+the metrics chunks from the candidates (before this, `metrics.json` chunks took rank 1 for 7 of 15 questions and BM25 @1 fell to 3/10), and sentence mining reads
+paragraphs, not wrapped lines. The extractive answer is a relay aid, not a judge: it can pick a sentence that is on topic but not the cause (r02, "what limits the setup slack of soc_kv_attn_n8", returns
+sentences from the right design but not the `wb_rst_i` explanation); the passages are returned too so the model can read around the quote.

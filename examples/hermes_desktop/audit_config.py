@@ -47,9 +47,10 @@ def flatten(d, p=""):
 
 SLASH = ["/harden", "/soc-run", "/wrapper", "/notes", "/precision", "/add-engine"]
 FILTER_ID = "chip_memory_digest"
+RECEIPT_ID = "chip_receipt"
 
 
-def compare(flat, models, tool_conns, prompts=None, filt=None):
+def compare(flat, models, tool_conns, prompts=None, filt=None, receipt=None):
     """Pure function: returns [(setting, expected, actual, ok)]."""
     rows = [(k, v, flat.get(k, "<missing>"), flat.get(k, "<missing>") == v) for k, v in EXPECTED.items()]
     ids = sorted(c.get("info", {}).get("id") for c in tool_conns)
@@ -65,6 +66,9 @@ def compare(flat, models, tool_conns, prompts=None, filt=None):
     if filt is not None:
         st = [bool(filt.get("is_active")), bool(filt.get("is_global"))]
         rows.append(("memory filter active, global", [True, True], st, st == [True, True]))
+    if receipt is not None:
+        st = [bool(receipt.get("is_active")), bool(receipt.get("is_global"))]
+        rows.append(("receipt filter active, global", [True, True], st, st == [True, True]))
     return rows
 
 
@@ -87,10 +91,14 @@ def main():
             filt = api("/api/v1/functions/id/" + FILTER_ID, tok) or {}
         except OSError:
             filt = {}
+        try:
+            receipt = api("/api/v1/functions/id/" + RECEIPT_ID, tok) or {}
+        except OSError:
+            receipt = {}
     except OSError as e:
         print("Open WebUI not reachable at %s (%s): run scripts/hermes.sh first" % (BASE, e), file=sys.stderr)
         return 2
-    rows = compare(flat, models, flat.get("tool_server.connections", []), prompts, filt)
+    rows = compare(flat, models, flat.get("tool_server.connections", []), prompts, filt, receipt)
     w = max(len(r[0]) for r in rows)
     print("%-*s  %-30s  %-30s  %s" % (w, "setting", "expected", "actual", "ok"))
     for k, e, a, ok in rows:

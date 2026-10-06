@@ -3,6 +3,7 @@
 #   scripts/hermes.sh          set up what is missing, start, open the desktop app (if built) or the browser
 #   scripts/hermes.sh demo     numbered menu of demos (examples/hermes_desktop/demos.py)
 #   scripts/hermes.sh demo 2   start everything if needed, run demo 2 (or a short name: kv, precision, ...)
+#   scripts/hermes.sh demo proof      demo 8: proof that it is local, tied to this repo, and what context it got (make demo-proof)
 #   scripts/hermes.sh demo showcase   the scripted showcase (demo.py): saved as an Open WebUI chat + demo_transcript.md
 #   scripts/hermes.sh stop     stop what start.sh started
 #   scripts/hermes.sh status   what is running and whether the config audit passes
@@ -62,6 +63,7 @@ case "${1:-up}" in
     done
     ollama list 2>/dev/null | awk 'NR>1{print $1}' | grep -qx "$MODEL" && say "$MODEL: installed" || say "$MODEL: missing"
     [ -d "$APP" ] && say "app: $APP" || say "app: not built"
-    up http://127.0.0.1:8080/health && "$PY" "$HD/audit_config.py" | tail -1 ;;
+    up http://127.0.0.1:8080/health && "$PY" "$HD/audit_config.py" | tail -1
+    up http://127.0.0.1:8770/health && say "proof: $(curl -fsS -m 20 -X POST -H 'Content-Type: application/json' -d '{}' http://127.0.0.1:8770/proof_local | python3 -c 'import sys,json; print(json.load(sys.stdin)["status_line"])' 2>/dev/null)" ;;
   *) echo "usage: scripts/hermes.sh [demo|stop|status]" >&2; exit 2 ;;
 esac

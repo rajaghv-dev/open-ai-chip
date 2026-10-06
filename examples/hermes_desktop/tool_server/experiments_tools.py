@@ -818,7 +818,11 @@ def demo_steps(req: DemoReq) -> dict:
               "needs_confirmation": bool(s.get("confirm"))} for i, s in enumerate(d["steps"])]
     out = {"number": d["num"], "name": d["name"], "title": d["title"], "minutes": d["minutes"], "physical_flow": d["physical"],
            "docs": d["docs"], "steps": steps}
-    if d.get("runner"):
+    if d.get("runner") and steps:       # chat steps and a terminal runner (demo 8, proof)
+        out["run_in_terminal"] = "python3 " + d["runner"]
+        out["say"] = ("Do step 1 now: say its narration, call its tool, show the result. Then continue with the next step. "
+                      "The terminal version, which also prints and runs the shasum and git commands that verify the receipt, is run_in_terminal.")
+    elif d.get("runner"):
         out["run_in_terminal"] = "python3 " + d["runner"]
         out["say"] = "This demo opens real windows: it is run from a terminal with the command in run_in_terminal."
     else:

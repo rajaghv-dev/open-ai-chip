@@ -3,7 +3,7 @@
   python3 examples/hermes_desktop/demos.py              numbered menu
   python3 examples/hermes_desktop/demos.py 2            the same as: demos.py kv
   python3 examples/hermes_desktop/demos.py kv [--pace 6] [--yes] [--direct]
-Numbers and names: 1 precision, 2 kv, 3 rtl2gds, 4 int4, 5 heatmaps, 6 soc, 7 gui (definitions: demo_defs.py).
+Numbers and names: 1 precision, 2 kv, 3 rtl2gds, 4 int4, 5 heatmaps, 6 soc, 7 gui, 8 proof (definitions: demo_defs.py).
 Each act prints a numbered narration line, waits --pace seconds (default 6) so a presenter can explain, then runs the act:
  - chat mode (Open WebUI is up and serves the experiment tools): each act is one chat turn to the preset "Hermes chip agent"
    (legacy function calling, as docs/HERMES_DESKTOP.md); the conversation is saved as an Open WebUI chat and a transcript
@@ -12,7 +12,7 @@ Each act prints a numbered narration line, waits --pace seconds (default 6) so a
    127.0.0.1 if it is not running, stopped again at the end); transcript written the same way. For the chat version run
    one command: bash examples/hermes_desktop/start.sh
 Runs need confirmation: a run act shows the confirm step, then asks "Start it? [y/N]" (or pass --yes). A physical flow
-(only demo 3, rtl2gds) says so first. Demo 7 (gui) is run by demos/gui_demo.py (the --pace value is passed on).
+(only demo 3, rtl2gds) says so first. Demo 7 (gui) is run by demos/gui_demo.py and demo 8 (proof) by demos/proof_demo.py (the --pace value is passed on).
 Exit: 0 all acts ok, 1 an act failed, 2 services unreachable. Standard library only.
 Docs: docs/HERMES_DESKTOP.md (section "Experiments and demos"), examples/hermes_desktop/README.md
 Tests: tests/tools/test_experiments.py

@@ -176,7 +176,7 @@ Source: `examples/hermes_harness/results_summary.json`; method in [the harness R
 |---|---|---|---|---|---|
 | v1 | 10 | 5/10 | 8/10 | 10/10 | 4/10 |
 | v1_heldout | 5 | 3/5 | 5/5 | 5/5 | 5/5 |
-| v2 | 10 | 7/10 | 9/10 | 10/10 | 5/10 |
+| v2 | 10 | 7/10 | 9/10 | 10/10 | 4/10 |
 | v2_heldout | 5 | 4/5 | 5/5 | 5/5 | 4/5 |
 
 | configuration | main passed | held-out passed | main hand-checked | main median s |

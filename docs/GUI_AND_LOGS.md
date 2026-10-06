@@ -269,6 +269,12 @@ Transcripts of the demos are plain text and replayable by reading: `examples/her
 `transcript_dry_run.txt`, `examples/hermes_klayout_demo/transcript_*.txt`. To re-run a scripted one:
 `build/agent/venv/bin/python examples/hermes_klayout_gui/demo.py --dry-run --save-img` (no Ollama).
 
+### From the Hermes chat
+
+The same logs and viewers are reachable by prompt (docs/HERMES_DESKTOP.md "Everything you can ask"): `/log kv_attn_n8 error`, `/log-errors kv_attn_n8` (errors and slowest steps),
+`/open <file>`, `/open-gds kv_attn_n8 klayout-app` (the KLayout application with the sky130 layer file, as in section 2.2). Tools: `list_logs`, `read_log`, `log_digest`, `open_gds`, `open_file`
+(`examples/hermes_desktop/tool_server/logs_tools.py`).
+
 ### Docker and Colima
 
 ```bash

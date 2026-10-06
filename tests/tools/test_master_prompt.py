@@ -61,7 +61,7 @@ def test_preset_uses_master_prompt():
         assert p["params"]["system"].startswith(master)
         assert "png_url" in p["params"]["system"]          # the tool-use details follow
     sugg = json.load(open(os.path.join(REPO, "examples", "hermes_desktop", "prompt_suggestions.json")))
-    assert 4 <= len(sugg) <= 6 and all(s["content"] for s in sugg)
+    assert 4 <= len(sugg) <= 8 and all(s["content"] for s in sugg)
     assert "DEFAULT_PROMPT_SUGGESTIONS" in open(os.path.join(REPO, "examples", "hermes_desktop", "start.sh")).read()
 
 

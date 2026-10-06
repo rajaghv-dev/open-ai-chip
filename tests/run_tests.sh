@@ -18,6 +18,7 @@
 #   tools         pytest of tests/tools (agent, KLayout/OpenROAD tools, RAG, MCP) with build/agent/venv; NOTE when the venv is missing
 #   docs          tests/check_docs.py: markdown links, make targets in docs, design inventory, README Status numbers vs metrics.json
 #                 (self-tested by tests/lib/check_docs_selftest.sh); the test matrix is tests/TEST_MATRIX.md
+#   frozen        scripts/flow/freeze.py check: sha256 of every frozen design input, model source and committed evidence file (designs/FROZEN.json)
 #   negative      (also: one corrupted expected value each for audio_pitch, audio_onset, image_text_match, prec_int8)
 #                 the testbenches and the model FAIL on deliberately broken input (they can catch a bug): the counter with
 #                 +2 increments; per tiny engine a corrupted expected value in vectors.hex and a broken RTL copy; a mutated
@@ -403,9 +404,14 @@ else note "build/agent/venv missing: tests/tools pytest skipped (docs/HERMES_AGE
 echo "== tables"
 if python3 scripts/docs/tables.py --check >"$TMP/tables.log" 2>&1; then pass "docs/RESULTS.md results tables up to date"; else fail "tables.py --check: $(cat "$TMP/tables.log")"; fi
 
-# == master prompt: Guards against: a stale generated tools/prompts/master_prompt.txt (scripts/docs/make_master_prompt.py --check). Docs: docs/HERMES_AGENT.md, tests/TEST_MATRIX.md
+# == master prompt: Guards against: a stale generated tools/prompts/master_prompt.txt (scripts/docs/make_master_prompt.py --check) or .hermes.md (scripts/docs/make_hermes_context.py --check). Docs: docs/HERMES_AGENT.md, tests/TEST_MATRIX.md
 echo "== master prompt"
 if python3 scripts/docs/make_master_prompt.py --check >"$TMP/mp.log" 2>&1; then pass "tools/prompts/master_prompt.txt up to date ($(cat "$TMP/mp.log"))"; else fail "make_master_prompt.py --check: $(cat "$TMP/mp.log")"; fi
+if python3 scripts/docs/make_hermes_context.py --check >"$TMP/hc.log" 2>&1; then pass ".hermes.md up to date ($(cat "$TMP/hc.log"))"; else fail "make_hermes_context.py --check: $(cat "$TMP/hc.log")"; fi
+
+# == frozen: Guards against: any change to a frozen design (run inputs, tb, model sources, committed metrics.json / layout.png) after the validation freeze (designs/FROZEN.json). No Docker. Docs: designs/FROZEN.md, tests/TEST_MATRIX.md
+echo "== frozen"
+if python3 scripts/flow/freeze.py check >"$TMP/frozen.log" 2>&1; then pass "$(head -1 "$TMP/frozen.log")"; else fail "check-frozen: $(head -12 "$TMP/frozen.log" | tr '\n' ';')"; fi
 
 echo
 [ "$FAILS" = 0 ] && { echo "test: ALL PASSED"; exit 0; } || { echo "test: $FAILS FAILED"; exit 1; }

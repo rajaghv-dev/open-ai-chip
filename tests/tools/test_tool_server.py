@@ -76,7 +76,7 @@ def test_skills():
     """Pins down: skills."""
     r = client.post("/list_skills", json={}).json()
     names = {s["name"] for s in r["skills"]}
-    assert {"harden-design", "soc-run", "add-tiny-engine"} <= names and len(names) == 6
+    assert {"harden-design", "soc-run", "add-tiny-engine"} <= names and {"tune-synthesis", "tune-timing-sdc", "tune-openroad-engines", "whatif-experiment"} <= names and len(names) == 11
     r = client.post("/get_skill", json={"name": "harden-design"}).json()
     assert r["body"].startswith("# ") and "description" in r
     assert "error" in client.post("/get_skill", json={"name": "../../CLAUDE"}).json()
@@ -129,9 +129,12 @@ def test_run_make_allow_list():
 
 def test_run_make_design_validation():
     """Pins down: run make design validation."""
-    for d in ["nope", "vision_block; rm -rf /", "../x", "vision_block DESIGN=x", ""]:
+    for d in ["nope", "vision_block; rm -rf /", "../x", "vision_block DESIGN=x"]:
         r = client.post("/run_make", json={"target": "simulate", "design": d}).json()
         assert "unknown design" in r["error"], d
+    for d in ["", "-", "none"]:          # placeholders are dropped by normalize_tools: the design is simply omitted (still gated)
+        r = client.post("/run_make", json={"target": "simulate", "design": d}).json()
+        assert r["needs_confirmation"] and "DESIGN=" not in r["will_run"], d
     assert "vision_block" in ts.valid_designs() and len(ts.valid_designs()) >= 25
 
 
@@ -224,7 +227,7 @@ def test_claude_task_validation_and_job(monkeypatch):
 def test_health():
     """Pins down: health."""
     r = client.post("/health", json={}).json()
-    assert r["ok"] and r["skills"] == 6 and "ollama" in r and "docker" in r and "claude" in r
+    assert r["ok"] and r["skills"] == 11 and "ollama" in r and "docker" in r and "claude" in r
 
 
 def test_cors():

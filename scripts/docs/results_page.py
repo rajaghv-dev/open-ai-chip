@@ -89,7 +89,7 @@ def rag():
         return None
     rh = ["retrieval", "questions", "recall@1", "recall@4", "recall@8", "evidence in top 4"]
     rb = [[k, v["questions"], v["recall_at_k"]["@1"], v["recall_at_k"]["@4"], v["recall_at_k"]["@8"], v["evidence_in_top4_text"]]
-          for k, v in d.get("retrieval", {}).items()]
+          for k, v in d.get("retrieval", {}).items() if isinstance(v, dict) and "recall_at_k" in v]   # skips corpus_fingerprint etc.
     eh = ["configuration", "main passed", "held-out passed", "main hand-checked", "main median s"]
     eb = []
     for k, v in d.get("end_to_end", {}).items():

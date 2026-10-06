@@ -88,7 +88,7 @@ VIEWS_OF := $(if $(filter file,$(origin DESIGN)),tiny_ai_core,$(DESIGN))
 SIM_PLUS := $(if $(SIM_VEC),+VEC=$(abspath $(SIM_VEC)))
 GL_DESC  := $(if $(SIM_VEC),every case of tb/vectors.hex,committed tb)
 
-.PHONY: help doctor test test-full views macro-views wrapper simulate gds flow check gl gl-final collect view flow-all tiny all-designs designs table results generate check-generated model-check clean soc-sim adapter-test caravel-rtl caravel-gl precheck caravel-fullgl caravel-sdf-wrapper soc-kv code-map hermes hermes-stop demo demo-precision demo-kv demo-rtl2gds demo-int4 demo-heatmaps demo-soc demo-gui demo-showcase
+.PHONY: help doctor test test-full freeze check-frozen views macro-views wrapper simulate gds flow check gl gl-final collect view flow-all tiny all-designs designs table results generate check-generated model-check clean soc-sim adapter-test caravel-rtl caravel-gl precheck caravel-fullgl caravel-sdf-wrapper soc-kv code-map hermes hermes-stop demo demo-precision demo-kv demo-rtl2gds demo-int4 demo-heatmaps demo-soc demo-gui demo-proof demo-showcase grafana-db
 .DEFAULT_GOAL := help
 
 help:
@@ -96,13 +96,16 @@ help:
 	@echo ""
 	@echo "  generate         re-fit and regenerate ROMs, vectors, weights.json of every model dir: $(MODELS)"
 	@echo "  check-generated  fail if regenerating changes any generated file of any model dir"
+	@echo "  grafana-db       build build/grafana/chip.db (SQLite of the committed evidence) for the local Grafana dashboards (docs/GRAFANA.md)"
 	@echo "  model-check      golden.py --check of tiny_ai, image_text_match, precision_hw, kv_attention (audio_* have no --check; the testbench is the check)"
-	@echo "  master-prompt  regenerate tools/prompts/master_prompt.txt, the repo context prompt for Hermes / Open WebUI (scripts/docs/make_master_prompt.py)"
+	@echo "  master-prompt  regenerate tools/prompts/master_prompt.txt (scripts/docs/make_master_prompt.py) and .hermes.md (scripts/docs/make_hermes_context.py), the repo context for Hermes / Open WebUI"
 	@echo "  hermes / hermes-stop   one command: set up if needed, start the Hermes chip agent and open it / stop it (docs/HERMES_DESKTOP.md)"
-	@echo "  demo   numbered menu of Hermes demos; demo-precision demo-kv demo-rtl2gds demo-int4 demo-heatmaps demo-soc demo-gui demo-showcase run one"
+	@echo "  demo   numbered menu of Hermes demos; demo-precision demo-kv demo-rtl2gds demo-int4 demo-heatmaps demo-soc demo-gui demo-proof demo-showcase run one"
 	@echo "  code-map   regenerate docs/CODE_MAP.md (file -> purpose -> parent doc) from the Docs: header lines"
 	@echo "  doctor     host tools, Docker daemon, LibreLane image, PDK"
 	@echo "  test       fast repository checks (structure, configs, RTL lint), no Docker"
+	@echo "  freeze        owner only: write designs/FROZEN.json + FROZEN.md (refuses unless all designs are current and clean)"
+	@echo "  check-frozen  verify every frozen hash (fast, no Docker); exit 1 lists each changed file/design"
 	@echo "  test-full  heavy local checks, no physical flow: simulate/check/gl-final of all designs, soc, caravel (tests/test_full.sh; FLAGS=--precheck --synth-gl --fullgl --sdf --quick)"
 	@echo "  simulate   RTL simulation, self-checking testbench (iverilog)"
 	@echo "  views      export the hardened macro's views to build/macros/<macro>/ (DESIGN=<macro>, default tiny_ai_core)"
@@ -144,6 +147,13 @@ $(SIM_DIR)/tb.vvp: $(SIM_RTL) $(SIM_TB) $(wildcard shared/tb/*.vh)
 
 test-full:
 	@bash tests/test_full.sh $(FLAGS)
+
+# freeze / check-frozen: designs/FROZEN.json pins the validated designs by sha256 (scripts/flow/freeze.py, designs/FROZEN.md)
+freeze:
+	@python3 scripts/flow/freeze.py write
+
+check-frozen:
+	@python3 scripts/flow/freeze.py check
 
 simulate: $(SIM_DIR)/tb.vvp
 	cd $(SIM_DIR) && set -o pipefail && vvp -n tb.vvp $(SIM_PLUS) | tee sim.log
@@ -309,11 +319,12 @@ hermes-stop:
 	@bash scripts/hermes.sh stop
 demo:
 	@bash scripts/hermes.sh demo
-demo-precision demo-kv demo-rtl2gds demo-int4 demo-heatmaps demo-soc demo-gui demo-showcase:
+demo-precision demo-kv demo-rtl2gds demo-int4 demo-heatmaps demo-soc demo-gui demo-proof demo-showcase:
 	@bash scripts/hermes.sh demo $(subst demo-,,$@)
 
 master-prompt:
 	@python3 scripts/docs/make_master_prompt.py
+	@python3 scripts/docs/make_hermes_context.py
 
 table:
 	@bash scripts/docs/make_thumbs.sh
@@ -327,3 +338,6 @@ check-generated:
 
 clean:
 	rm -rf $(DDIR)/runs build
+
+grafana-db:
+	@python3 scripts/grafana/export_db.py

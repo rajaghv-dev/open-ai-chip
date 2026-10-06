@@ -51,6 +51,9 @@ Sibling `../open-ai-silicon` is reference material only: never edit it.
 - `write-design-notes`: `designs/<d>/NOTES.md` with the required headings and sourced numbers.
 - `wrapper-build`: macro views, `user_project_wrapper*` builds around a macro (`make views`, `make wrapper`).
 - `soc-run`: `make soc-sim`, `adapter-test`, `caravel-rtl`, `caravel-gl`.
+- `tune-synthesis`, `tune-timing-sdc`, `tune-openroad-engines`: change and judge SYNTH_*, clock/SDC/margins, and OpenROAD
+  engine settings (HARD RULES apply: never loosen CLOCK_PERIOD or MAX_TRANSITION_CONSTRAINT, never DELAY, never DISABLE_LVS).
+- `whatif-experiment`: try such a change on a copy (`build/whatif/<d>__<tag>/`), compare with the committed run; never edits `designs/<d>/`.
 Load the matching skill before starting that kind of task.
 A learner's guide to these skills (fundamentals, insights, how they fit together) is in `docs/SKILLS.md`.
 
@@ -83,6 +86,7 @@ Evidence and hygiene
   `make gds` runs the flow again (`scripts/flow/find_reusable_run.py`). Do not touch a design's files casually
   if its committed evidence must stay current.
 - Upstream template RTL (`user_proj_example`) must stay byte-identical (`tests/upstream.sha256`).
+- FROZEN: all 25 validated designs are pinned by sha256 in `designs/FROZEN.json` (`make check-frozen`, part of `make test`; guard API `scripts/flow/frozen.py` `is_frozen(path)`). Agents never edit frozen paths or run `make freeze`; unfreeze is owner-only: change deliberately, re-harden, `make freeze`, commit (`designs/FROZEN.md`).
 
 ## Conventions
 - Clock 25 ns (40 MHz) on `wb_clk_i`; sky130_fd_sc_hd; `PROFILE=tight` container (2 CPUs, 8 GB).
@@ -93,3 +97,10 @@ Evidence and hygiene
 - Other agents may work in the same tree: change only files you own for the task and say what you touched.
 
 Hermes in Open WebUI and as a Mac app (`examples/hermes_desktop/`): `docs/HERMES_DESKTOP.md`. Running every Hermes example from the terminal: `docs/HERMES_FROM_TERMINAL.md`. Read-only EDA/KLayout tools for agents: `tools/eda_tools.py` (also `tools/mcp_server.py`); local Hermes agent and its evaluation: `docs/HERMES_AGENT.md` (venv at `build/agent/venv`, tests in `tests/tools/`).
+Hermes Agent (Nous, installed on this Mac) mapped to this repo, with the desktop-app workflow and safety plan (statuses in the page; setup: `bash scripts/hermes_agent_setup.sh`, review the diff, then `--apply`): `docs/HERMES_AGENT_INTEGRATION.md`.
+
+## For Hermes (Nous Hermes Agent, profile `chip`; ignore if you are Claude Code)
+- This session is read plus gated runs. You have no terminal and cannot edit files: a hook blocks `write_file`/`patch`. Do not try; say what change is needed and who should make it.
+- Use the `mcp_chip_*` tools: read tools freely; `run_make` and `whatif_run` start nothing until the user answers "yes, run <confirm_id>", and the hook asks for approval on physical flows. One physical flow at a time.
+- Frozen designs (`designs/FROZEN.json`) get no flows; use `whatif_run` on a copy instead. Never suggest loosening `CLOCK_PERIOD` / `MAX_TRANSITION_CONSTRAINT`.
+- Use `ask_claude` only when the user asks for Claude or a local tool was tried and is inconclusive; it costs the owner's Claude plan. Cite the file for every number.

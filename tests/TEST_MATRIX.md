@@ -52,6 +52,7 @@ C = config.json guard checks; N = NOTES.md required headings; D = inventory and 
 | Precheck | `make precheck` opt-in in `test-full` (`--precheck`, Docker) | not run when Docker is down |
 | Signoff evidence | `make check` in `test-full` (`scripts/flow/check_signoff.py`); `make test` compares README Status numbers with `output/metrics.json` (`tests/check_docs.py evidence`) | only numbers written in a recognisable form (N std cells, N flip-flops, W x H um, setup/hold slack ns, max_ss/nom_ss/min_ss WNS) are compared |
 | README tables | `scripts/docs/tables.py --check` (`== tables`) | none |
+| Frozen designs | `scripts/flow/freeze.py check` / `make check-frozen` (`== frozen`): sha256 of run inputs, tb, model sources, committed metrics.json and layout.png vs `designs/FROZEN.json` | any change to a validated design after the freeze |
 | Hermes master prompt | `scripts/docs/make_master_prompt.py --check` (`== master prompt`) | none |
 | Docs | `check_docs.py links` (relative links of every tracked `*.md`, anchors not checked), `targets` (every `make <t>` in a code span or code block exists; SPEC.md, LOCAL_RUN_PLAN.md, docs/SOC_PLAN.md and docs/slides/README.md are skipped: historic plans and other repositories' targets), `inventory`, self-test `tests/lib/check_docs_selftest.sh` | prose mentions of make targets outside code spans are not checked |
 | Tools (agents, MCP, KLayout/OpenROAD) | `== tools`: `build/agent/venv/bin/python -m pytest -q tests/tools`; details in tools/TEST_MATRIX_TOOLS.md | needs the venv; NOTE when it is missing |

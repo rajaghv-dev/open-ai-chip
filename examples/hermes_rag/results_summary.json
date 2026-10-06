@@ -16,20 +16,20 @@
   "main": 12,
   "heldout": 5
  },
- "history": "results_summary_v1.json is the first measurement (rag/tools-only/rag+grounding, v1 retrieval, 12 questions, run build/agent/rag_eval_20261006_144926.json) 2026-10-07: retrieval re-measured after new markdown pages entered the BM25 corpus (deterministic, no model): v2 recall@1 8/10 -> 7/10; @2/@4/@8, v1, held-out and router (16/17) unchanged. End-to-end scores are from 2026-10-06.",
+ "history": "results_summary_v1.json is the first measurement (rag/tools-only/rag+grounding, v1 retrieval, 12 questions, run build/agent/rag_eval_20261006_144926.json) 2026-10-07: retrieval re-measured after new markdown pages entered the BM25 corpus (deterministic, no model): v2 recall@1 8/10 -> 7/10; @2/@4/@8, v1, held-out and router (16/17) unchanged. End-to-end scores are from 2026-10-06. 2026-10-07 (later): retrieval re-measured on the grown docs corpus and the corpus fingerprint recorded; the reproduce test compares exact numbers only for the same corpus and otherwise checks floors.",
  "retrieval": {
   "v1": {
    "mode": "v1",
    "questions": 10,
    "recall_at_k": {
     "@1": "5/10",
-    "@2": "5/10",
+    "@2": "6/10",
     "@4": "8/10",
     "@8": "10/10"
    },
    "recall_at_k_value": {
     "@1": 0.5,
-    "@2": 0.5,
+    "@2": 0.6,
     "@4": 0.8,
     "@8": 1.0
    },
@@ -238,8 +238,8 @@
     "@4": 0.9,
     "@8": 1.0
    },
-   "evidence_in_top4_text": "5/10",
-   "evidence_value": 0.5,
+   "evidence_in_top4_text": "4/10",
+   "evidence_value": 0.4,
    "rows": [
     {
      "id": "r01",
@@ -427,7 +427,9 @@
      ]
     }
    ]
-  }
+  },
+  "corpus_fingerprint": "c5fbe33f81fe8fd5",
+  "measured_on": "2026-10-07"
  },
  "router": {
   "rag_questions": "16/17",

@@ -1,0 +1,94 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Layout tools</title>
+<!-- Layout tools panel: served by gui_tools.py at GET /gui. Self-contained, same-origin fetch to the tool server, no model needed.
+     Docs: docs/HERMES_DESKTOP.md ("Layout tools window") -->
+<style>
+:root{--bg:#f6f7f9;--fg:#1c2128;--card:#fff;--line:#d0d7de;--acc:#0969da;--mut:#656d76}
+@media (prefers-color-scheme:dark){:root{--bg:#161b22;--fg:#e6edf3;--card:#0d1117;--line:#30363d;--acc:#4493f8;--mut:#8b949e}}
+body{margin:0;background:var(--bg);color:var(--fg);font:13px -apple-system,Helvetica,sans-serif}
+main{padding:10px 12px;max-width:1100px;margin:auto}
+h1{font-size:15px;margin:0 0 8px}
+fieldset{background:var(--card);border:1px solid var(--line);border-radius:6px;margin:0 0 8px;padding:6px 10px}
+legend{font-weight:600;color:var(--mut);padding:0 4px}
+button,select,input{font:inherit;padding:4px 8px;border:1px solid var(--line);border-radius:5px;background:var(--card);color:var(--fg)}
+button{cursor:pointer}button:hover{border-color:var(--acc)}
+button.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+input[type=text]{width:22em}input.n{width:5em}
+.row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:3px 0}
+#img{max-width:100%;border:1px solid var(--line);border-radius:6px;display:none;background:#000}
+#log{font:11px Menlo,monospace;white-space:pre-wrap;max-height:180px;overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:6px;padding:6px}
+#busy{color:var(--acc);font-weight:600}
+</style></head><body><main>
+<h1>Layout tools <span id="busy"></span></h1>
+<fieldset><legend>Design and windows</legend><div class="row">
+<select id="design"></select>
+<button id="open_klayout">Open in KLayout</button><button id="open_magic">Open in Magic</button>
+<span>Operate:</span><button id="tool_klayout" class="on">KLayout</button><button id="tool_magic">Magic</button>
+<button id="close_klayout">Close KLayout</button><button id="close_magic">Close Magic</button><button id="close_all">Close all</button>
+</div></fieldset>
+<fieldset><legend>Layers (shown only)</legend><div class="row" id="layers"></div></fieldset>
+<fieldset><legend>Zoom</legend><div class="row">
+<button id="zoom_full">Full</button><button id="zoom_ll50">Lower-left 50 um</button><button id="zoom_center">Center 100 um</button>
+<input type="text" id="macro" class="n" style="width:8em" placeholder="macro name"><button id="zoom_macro">Zoom to macro</button>
+</div></fieldset>
+<fieldset><legend>Check and measure</legend><div class="row">
+<button id="drc">Run DRC</button>
+from x,y <input id="mx1" class="n" value="0"><input id="my1" class="n" value="0"> to <input id="mx2" class="n" value="100"><input id="my2" class="n" value="0"> um
+<button id="measure">Measure</button><button id="snapshot">Snapshot</button>
+</div></fieldset>
+<fieldset><legend>Type a command</legend><div class="row">
+<input type="text" id="cmd" placeholder="open kv_attn_n8 in klayout and show only met1 and met2"><button id="run_cmd">Run</button>
+<button id="examples">Examples</button></div></fieldset>
+<img id="img" alt="latest snapshot">
+<fieldset><legend>Log</legend><div id="log"></div></fieldset>
+</main>
+<script>
+var tool="klayout",LAYERS=["li1","met1","met2","met3","met4","met5"],vis={},busy=0;
+function $(i){return document.getElementById(i)}
+function log(s){var l=$("log");l.textContent=s+"\n"+l.textContent}
+function setBusy(d){busy+=d;$("busy").textContent=busy>0?"working...":""}
+async function call(name,body){
+  var t0=performance.now();setBusy(1);
+  try{var r=await fetch("/"+name,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body||{})});
+    var j=await r.json();var dt=((performance.now()-t0)/1000).toFixed(1);
+    var keys=["error","design","drc_errors","reasons","distance_um","dx_um","dy_um","view_bbox_um","understood","hint","started_window"];
+    var sum=[];keys.forEach(function(k){if(j[k]!==undefined)sum.push(k+"="+JSON.stringify(j[k]))});
+    log((j.ok?"ok  ":"FAIL")+" "+name+" "+JSON.stringify(body||{}).slice(0,90)+"  "+dt+" s  "+sum.join(" "));
+    var url=j.png_url||(j.markdown&&(j.markdown.match(/\((.*?)\)/)||[])[1]);
+    if(url){$("img").src=url+"?t="+Date.now();$("img").style.display="block"}
+    return j}
+  catch(e){log("FAIL "+name+": "+e);return {ok:false}}
+  finally{setBusy(-1)}}
+function sel(t){tool=t;$("tool_klayout").className=t=="klayout"?"on":"";$("tool_magic").className=t=="magic"?"on":""}
+function live(a){var b={action:a.action};for(var k in a)b[k]=a[k];return call(tool+"_live",b)}
+async function openIn(t){sel(t);vis={};drawLayers();await call("gui_start",{tool:t,design:$("design").value});
+  await call(t+"_live",{action:t=="klayout"?"zoom":"snapshot",full:true})}
+function drawLayers(){var d=$("layers");d.innerHTML="";
+  LAYERS.concat(["all"]).forEach(function(n){var b=document.createElement("button");b.textContent=n;b.id="layer_"+n;
+    b.className=(n!="all"&&vis[n])?"on":"";b.onclick=function(){toggle(n)};d.appendChild(b)})}
+async function toggle(n){if(n=="all"){vis={};LAYERS.forEach(function(x){vis[x]=1});drawLayers();
+    return live({action:"layers",layers:["diff","poly"].concat(LAYERS,["mcon","via","via2","via3"]),only:true})}
+  if(vis[n])delete vis[n];else vis[n]=1;drawLayers();var ls=Object.keys(vis);
+  if(!ls.length)return;return live({action:"layers",layers:ls,only:true})}
+$("open_klayout").onclick=function(){openIn("klayout")};$("open_magic").onclick=function(){openIn("magic")};
+$("tool_klayout").onclick=function(){sel("klayout")};$("tool_magic").onclick=function(){sel("magic")};
+$("close_klayout").onclick=function(){call("gui_stop",{tool:"klayout"})};$("close_magic").onclick=function(){call("gui_stop",{tool:"magic"})};
+$("close_all").onclick=function(){call("gui_stop",{tool:"magic"});call("gui_stop",{tool:"klayout"})};
+$("zoom_full").onclick=function(){live({action:"zoom",full:true})};
+$("zoom_ll50").onclick=function(){live({action:"zoom",bbox:[0,0,50,50]})};
+$("zoom_center").onclick=function(){call("gui_command",{text:"zoom to the center 100 um",tool:tool})};
+$("zoom_macro").onclick=function(){var m=$("macro").value.trim();if(m)call("gui_command",{text:"zoom to the macro "+m,tool:tool})};
+$("drc").onclick=function(){live(tool=="klayout"?{action:"markers",design:$("design").value}:{action:"drc"})};
+$("measure").onclick=function(){live({action:"measure",a:[+$("mx1").value,+$("my1").value],b:[+$("mx2").value,+$("my2").value]})};
+$("snapshot").onclick=function(){live({action:"snapshot"})};
+$("run_cmd").onclick=function(){var t=$("cmd").value.trim();if(t)call("gui_command",{text:t})};
+$("cmd").onkeydown=function(e){if(e.key=="Enter")$("run_cmd").click()};
+$("examples").onclick=async function(){var j=await call("gui_examples",{});(j.examples||[]).forEach(function(e){log("  "+e.say+"  ->  "+e.does)})};
+(async function(){drawLayers();
+  var j=await call("list_designs",{});var names=[];
+  var L=j.designs||j.result||j;if(Array.isArray(L))L.forEach(function(x){names.push(typeof x=="string"?x:(x.design||x.name))});
+  else if(L&&typeof L=="object")names=Object.keys(L);
+  names=names.filter(Boolean).sort();var s=$("design");
+  names.forEach(function(n){var o=document.createElement("option");o.value=o.textContent=n;if(n=="kv_attn_n8")o.selected=true;s.appendChild(o)});
+  var st=await call("gui_status",{});if(st.klayout&&st.klayout.running)sel("klayout");else if(st.magic&&st.magic.running)sel("magic")})();
+</script></body></html>

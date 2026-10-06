@@ -4,8 +4,10 @@
 Each step prints a numbered narration line BEFORE it acts, acts (gui_start / klayout_live / magic_live / gui_stop), saves
 the snapshot to build/agent/gui_demo/NN_<name>.png, prints its path and the seconds the act took, then pauses --pace seconds
 so a presenter can talk. Read-only: nothing is saved or written to any layout.
-  python3 examples/hermes_desktop/demos/gui_demo.py [--pace 6] [--server URL] [--chat] [--only N[,N]]
+  python3 examples/hermes_desktop/demos/gui_demo.py [--pace 6] [--server URL] [--chat] [--text] [--only N[,N]]
   --server URL  tool server to use (default http://127.0.0.1:8770 if it serves klayout_live, else a private one on 8783)
+  --text        the same tour as plain-English SENTENCES sent to the gui_command tool (the text interface, no model: a regex parser);
+                each step prints the sentence, what it did and the seconds; snapshots go to build/agent/gui_demo/NN_text.png
   --chat        the same steps as ONE Open WebUI conversation with the "Hermes chip agent" preset (narration + inline
                 snapshots appear in the chat; needs Open WebUI on 8080 and Ollama); saved as a chat, as demo.py does
 Needs: XQuartz running with `DISPLAY=:0 /opt/X11/bin/xhost +localhost` done once (see scripts/gui/open_gui.sh), the KLayout app,
@@ -115,6 +117,58 @@ def steps():
     ]
 
 
+def text_steps():
+    """(narration, sentence) pairs for --text: the whole tour through gui_command."""
+    g = macro_geometry()
+    ms = ("measure from %.2f,%.2f to %.2f,%.2f" % (g[0], g[1] + g[3] / 2, g[0] + g[2], g[1] + g[3] / 2)) if g else "snapshot"
+    return [
+        ("Step 1: open the whole engine in KLayout", "open %s in klayout" % SMALL),
+        ("Step 2: the lower-left corner: standard-cell rows", "zoom to the lower-left 50 um"),
+        ("Step 3: only the cell wiring and power rails", "show only li1 and met1"),
+        ("Step 4: only the signal routing", "show only met2 and met3"),
+        ("Step 5: hide met3, then all layers again", "hide met3"),
+        ("Step 6: everything stacked", "show all"),
+        ("Step 7: the Caravel user area, then its power grid", "open %s in klayout and show only met4 and met5" % WRAP),
+        ("Step 8: our engine, the macro mprj", "zoom to the macro mprj"),
+        ("Step 9: the ruler across the macro", ms),
+        ("Step 10: the same engine in Magic, then its DRC", "open %s in magic and run drc" % SMALL),
+        ("Step 11: Magic: lower-left corner, rails and routing", "zoom to the lower-left 50 um and show only met1 and met2"),
+        ("Step 12: one standard-cell row height", "measure from 10,10.88 to 10,13.6"),
+        ("Step 13: which windows are open", "status"),
+        ("Step 14: close everything", "close all"),
+    ]
+
+
+def run_text(server, a, only):
+    results, ok_all = [], True
+    steps_ = text_steps()
+    for n, (say, sentence) in enumerate(steps_, 1):
+        if only and n not in only:
+            continue
+        print("\n" + say + "\n   you type: " + sentence, flush=True)
+        t0 = time.time()
+        r = post(server, "gui_command", {"text": sentence})
+        dt = time.time() - t0
+        mu = re.search(r"\((http[^)]*)\)", r.get("markdown") or "")
+        path = keep_png({"png_url": mu.group(1)} if mu else None, n, "text")
+        ok = bool(r.get("ok")) and r.get("understood")
+        ok_all &= bool(ok)
+        did = ", ".join("%s%s" % (d["op"], ("(%s)" % d.get("design") if d["op"] == "open" else "")) for d in r.get("did", []))
+        res = "; ".join("%s=%s" % (x["action"], summary(x) or ("ok" if x["ok"] else "FAILED")) for x in r.get("results", []))
+        print("   %s  %.1f s  did: %s\n   results: %s" % ("ok" if ok else "FAILED", dt, did or "-", res[:400]))
+        if path:
+            print("   snapshot: " + path)
+        results.append({"step": n, "sentence": sentence, "ok": bool(ok), "seconds": round(dt, 2), "did": r.get("did"), "snapshot": path,
+                        "error": r.get("error")})
+        if not ok:
+            print("   stopping the tour here; closing the windows")
+            break
+        if n < len(steps_) and a.pace:
+            print("   (pause %.0f s: talk now)" % a.pace, flush=True)
+            time.sleep(a.pace)
+    return results, ok_all
+
+
 def post(server, tool, args, timeout=300):
     req = urllib.request.Request("%s/%s" % (server, tool), data=json.dumps(args).encode(), headers={"Content-Type": "application/json"})
     with urllib.request.urlopen(req, timeout=timeout) as r:
@@ -216,6 +270,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--pace", type=float, default=6.0, help="seconds to pause after each step (default 6)")
     ap.add_argument("--server", default=os.environ.get("TOOLS_URL", "http://127.0.0.1:8770"))
+    ap.add_argument("--text", action="store_true", help="drive everything through gui_command sentences (no model)")
     ap.add_argument("--chat", action="store_true", help="run the steps as one Open WebUI conversation")
     ap.add_argument("--only", default="", help="comma list of step numbers")
     a = ap.parse_args()
@@ -238,8 +293,8 @@ def main():
         print("started a private tool server on %s (pid %d)" % (server, private.pid))
     t0 = time.time()
     try:
-        print("GUI demo: %s mode, %.0f s pause per step, tool server %s" % ("chat" if a.chat else "direct", a.pace, server))
-        results, ok = (run_chat if a.chat else run_direct)(server, a, only)
+        print("GUI demo: %s mode, %.0f s pause per step, tool server %s" % ("chat" if a.chat else "text" if a.text else "direct", a.pace, server))
+        results, ok = (run_chat if a.chat else run_text if a.text else run_direct)(server, a, only)
     except urllib.error.URLError as e:
         print("tool server error: %s" % e, file=sys.stderr)
         results, ok = [], False
@@ -253,10 +308,10 @@ def main():
             private.terminate()
     total = time.time() - t0
     os.makedirs(OUT, exist_ok=True)
-    with open(os.path.join(OUT, "run%s.json" % ("_chat" if a.chat else "")), "w") as f:
+    with open(os.path.join(OUT, "run%s.json" % ("_chat" if a.chat else "_text" if a.text else "")), "w") as f:
         json.dump({"pace_s": a.pace, "total_s": round(total, 1), "ok": ok, "steps": results}, f, indent=1)
     print("\nTotal %.0f s (pace %.0f s), %s. Timings: %s" % (total, a.pace, "all steps ok" if ok else "SOME STEP FAILED",
-                                                            os.path.relpath(os.path.join(OUT, "run.json"), REPO)))
+                                                            os.path.relpath(os.path.join(OUT, "run%s.json" % ("_chat" if a.chat else "_text" if a.text else "")), REPO)))
     return 0 if ok else 1
 
 

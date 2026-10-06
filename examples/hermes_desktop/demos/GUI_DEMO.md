@@ -57,6 +57,25 @@ Snapshot files: `build/agent/gui_demo/01_klayout_open.png` ... `14_magic_row.png
 
 Magic pictures are `plot pnm` renders of the same region and layers, not pixel copies of the window (xwd of XQuartz windows is blank here).
 
+## Try it
+
+Type these in the chat (or send them to the `gui_command` tool; `/klayout <sentence>` and `/magic <sentence>` call it directly). Full table:
+docs/HERMES_DESKTOP.md "Operate KLayout and Magic by text"; the list itself: tool `gui_examples`.
+
+```
+/klayout open kv_attn_n8 and show only met1 and met2
+/klayout zoom to the lower-left 50 um
+/klayout hide met2 and zoom out
+/magic open kv_attn_n8
+/magic run drc
+/magic measure from 0,0 to 100,0
+open user_project_wrapper_soc_kv in klayout and zoom to the macro mprj
+close all
+```
+
+Or without any model: `python3 examples/hermes_desktop/demos/gui_demo.py --text --pace 2` runs the whole tour as sentences, and
+`http://127.0.0.1:8770/gui` is a click panel for the same actions.
+
 ## How the control path works
 
 ```mermaid

@@ -1,0 +1,1280 @@
+{
+ "CLOCK_PERIOD": {
+  "engine": "constraints",
+  "meaning": "Clock period in ns; sets create_clock in every SDC (and is passed to ABC as -D).",
+  "safe": "Tighten only (lower than the config value). Repo rule: 25 ns is the committed value and may never be raised.",
+  "symptom": "Lower it to find the speed margin: setup slack shrinks one for one. A negative setup slack at a tighter period only means the experiment does not fit; the committed 25 ns stays.",
+  "verify": "build/whatif/<d>__<tag>/runs/<tag>/final/metrics.json (whatif_result), designs/<d>/output/reports/timing_summary.rpt for the committed run: timing__setup__ws per corner",
+  "doc": "docs/OPENROAD_ENGINES.md section 'sta at signoff: stapostpnr'; .claude/skills/tune-timing-sdc/reference.md",
+  "repo": "25 in every committed design (40 MHz on wb_clk_i)"
+ },
+ "MAX_TRANSITION_CONSTRAINT": {
+  "engine": "constraints",
+  "meaning": "Max slew (ns) set by set_max_transition in the SDC and used by synthesis buffering and CTS.",
+  "safe": "Tighten only (lower than the effective value, PDK default 0.75 ns). The wrapper configs carry 1.5 for the Caravel top; never raise a macro past 0.75.",
+  "symptom": "Lowering it makes repair work harder and raises cell count; it exposes which nets are near the limit. Raising it is how a slew gate is cheated: forbidden.",
+  "verify": "metrics.json design__max_slew_violation__count and timing_summary.rpt Max Slew column",
+  "doc": "docs/OPENROAD_ENGINES.md section 'sta at signoff: stapostpnr'; .claude/skills/tune-timing-sdc/reference.md",
+  "repo": "0.75 ns PDK default in the macros (not set in their config.json); 1.5 only in the three user_project_wrapper* configs"
+ },
+ "MAX_FANOUT_CONSTRAINT": {
+  "engine": "constraints",
+  "meaning": "Max fanout set by set_max_fanout; drives synthesis buffering (ABC buffer -N) and repair_design.",
+  "safe": "Tighten only (lower). Repo uses 8 (user_proj_example 16 from the template); the PDK default is 10.",
+  "symptom": "High-fanout nets with large slew or cap violations; lowering adds buffers.",
+  "verify": "metrics.json design__max_fanout_violation__count",
+  "doc": "docs/OPENROAD_ENGINES.md section 'sta at signoff: stapostpnr'; .claude/skills/tune-timing-sdc/reference.md"
+ },
+ "MAX_CAPACITANCE_CONSTRAINT": {
+  "engine": "constraints",
+  "meaning": "Max capacitance (pF) set by set_max_capacitance when provided; unset means the library limit applies.",
+  "safe": "Tighten only. Leave unset unless a cap violation list points at it.",
+  "symptom": "Max-cap violations on large nets.",
+  "verify": "metrics.json design__max_cap_violation__count",
+  "doc": "docs/OPENROAD_ENGINES.md section 'sta at signoff: stapostpnr'; .claude/skills/tune-timing-sdc/reference.md"
+ },
+ "CLOCK_UNCERTAINTY_CONSTRAINT": {
+  "engine": "constraints",
+  "meaning": "Clock uncertainty (ns) in LibreLane's base.sdc and in the template SDCs (via the SYNTH_CLOCK_UNCERTAINTY alias). Only used by designs that load base.sdc or a SDC reading it.",
+  "safe": "Increase only (more margin = tighter). PDK default 0.25 ns.",
+  "symptom": "Used to test how much setup/hold margin a path really has.",
+  "verify": "build/whatif/<d>__<tag>/runs/<tag>/final/metrics.json (whatif_result), designs/<d>/output/reports/timing_summary.rpt for the committed run",
+  "doc": "docs/OPENROAD_ENGINES.md section 'sta at signoff: stapostpnr'; .claude/skills/tune-timing-sdc/reference.md"
+ },
+ "CLOCK_TRANSITION_CONSTRAINT": {
+  "engine": "constraints",
+  "meaning": "Clock input transition (ns) in base.sdc (set_clock_transition).",
+  "safe": "Increase only; PDK default 0.15 ns.",
+  "symptom": "Pessimistic clock slew experiments.",
+  "verify": "build/whatif/<d>__<tag>/runs/<tag>/final/metrics.json (whatif_result), designs/<d>/output/reports/timing_summary.rpt for the committed run",
+  "doc": "docs/OPENROAD_ENGINES.md section 'sta at signoff: stapostpnr'; .claude/skills/tune-timing-sdc/reference.md"
+ },
+ "TIME_DERATING_CONSTRAINT": {
+  "engine": "constraints",
+  "meaning": "Early/late derating in percent applied to all path delays by base.sdc (set_timing_derate).",
+  "safe": "Increase only (default 5).",
+  "symptom": "Margin experiment on setup and hold together.",
+  "verify": "build/whatif/<d>__<tag>/runs/<tag>/final/metrics.json (whatif_result), designs/<d>/output/reports/timing_summary.rpt for the committed run",
+  "doc": "docs/OPENROAD_ENGINES.md section 'sta at signoff: stapostpnr'; .claude/skills/tune-timing-sdc/reference.md"
+ },
+ "IO_DELAY_CONSTRAINT": {
+  "engine": "constraints",
+  "meaning": "Input and output delay as a percentage of CLOCK_PERIOD in base.sdc (default 20). Ignored when a design supplies its own SDC (soc_*, tiny_ai_core, user_proj_example, wrappers).",
+  "safe": "Increase only (less time left inside the block).",
+  "symptom": "Setup slack on in-to-reg and reg-to-out paths.",
+  "verify": "build/whatif/<d>__<tag>/runs/<tag>/final/metrics.json (whatif_result), designs/<d>/output/reports/timing_summary.rpt for the committed run",
+  "doc": "docs/OPENROAD_ENGINES.md section 'sta at signoff: stapostpnr'; .claude/skills/tune-timing-sdc/reference.md"
+ },
+ "OUTPUT_CAP_LOAD": {
+  "engine": "constraints",
+  "meaning": "Capacitive load (fF) on every output port in base.sdc (set_load).",
+  "safe": "Increase only (default about 33 fF).",
+  "symptom": "Output-driver slew and timing under a heavier load.",
+  "verify": "build/whatif/<d>__<tag>/runs/<tag>/final/metrics.json (whatif_result), designs/<d>/output/reports/timing_summary.rpt for the committed run",
+  "doc": "docs/OPENROAD_ENGINES.md section 'sta at signoff: stapostpnr'; .claude/skills/tune-timing-sdc/reference.md"
+ },
+ "SYNTH_STRATEGY": {
+  "engine": "synth",
+  "meaning": "ABC script for logic synthesis and mapping. AREA 0: resyn2 then amap. AREA 1: adds a choice2 area-recovery pass. AREA 2: choice2 twice. AREA 3: the OpenROAD-flow-scripts area script (map -B 0.9, buffer/upsize/dnsize with MAX_FANOUT_CONSTRAINT). DELAY 0..4 are speed-oriented and FORBIDDEN here.",
+  "safe": "AREA 0, AREA 1, AREA 2, AREA 3. Never any DELAY value.",
+  "symptom": "Cell count / area too high, or a path too long: try the next AREA value and compare cells, area and slack. AREA 3 often bigger (LibreLane's own explore table: 11620 vs about 6700 cells on its sample).",
+  "verify": "synth_stat.rpt in the run dir (06-yosys-synthesis/reports/stat.rpt) and metrics.json design__instance__count__stdcell",
+  "doc": "LibreLane step -> engine table (Yosys + ABC are outside OpenROAD); .claude/skills/tune-synthesis/reference.md",
+  "repo": "AREA 0 everywhere (the default)"
+ },
+ "SYNTH_SIZING": {
+  "engine": "synth",
+  "meaning": "ABC upsize/dnsize pass after mapping (instead of buffering).",
+  "safe": "true or false",
+  "symptom": "Weak drivers on slow paths; costs area.",
+  "verify": "synth_stat.rpt cell mix; timing_summary.rpt",
+  "doc": "LibreLane step -> engine table (Yosys + ABC are outside OpenROAD); .claude/skills/tune-synthesis/reference.md"
+ },
+ "SYNTH_ABC_BUFFERING": {
+  "engine": "synth",
+  "meaning": "ABC buffer -N <max fanout> [-S max slew] + upsize + dnsize (alias SYNTH_BUFFERING).",
+  "safe": "true or false",
+  "symptom": "Fanout/slew violations already present at synthesis.",
+  "verify": "metrics.json max_fanout / max_slew counts",
+  "doc": "LibreLane step -> engine table (Yosys + ABC are outside OpenROAD); .claude/skills/tune-synthesis/reference.md",
+  "repo": "false for user_proj_example (explicit), default elsewhere"
+ },
+ "SYNTH_DIRECT_WIRE_BUFFERING": {
+  "engine": "synth",
+  "meaning": "Inserts a buffer on wires that connect an input directly to an output (feed-throughs).",
+  "safe": "Leave true; false can give assign statements, which the netlist check rejects.",
+  "symptom": "Netlist 'assign' errors from checker-netlistassignstatements.",
+  "verify": "09-checker-netlistassignstatements result",
+  "doc": "LibreLane step -> engine table (Yosys + ABC are outside OpenROAD); .claude/skills/tune-synthesis/reference.md"
+ },
+ "SYNTH_HIERARCHY_MODE": {
+  "engine": "synth",
+  "meaning": "flatten (default), deferred_flatten, keep. Flattening lets ABC optimise across modules.",
+  "safe": "flatten or deferred_flatten for the committed style; keep only to study a block.",
+  "symptom": "Cannot see which block dominates area: keep (with SYNTH_KEEP_HIERARCHY_*) shows per-module cells in synth_stat.rpt.",
+  "verify": "synth_stat.rpt per-module sections",
+  "doc": "LibreLane step -> engine table (Yosys + ABC are outside OpenROAD); .claude/skills/tune-synthesis/reference.md"
+ },
+ "SYNTH_KEEP_HIERARCHY_MODULES": {
+  "engine": "synth",
+  "meaning": "Modules whose hierarchy is kept when flattening.",
+  "safe": "Module names that exist in the RTL",
+  "symptom": "Per-module area report.",
+  "verify": "synth_stat.rpt",
+  "doc": "LibreLane step -> engine table (Yosys + ABC are outside OpenROAD); .claude/skills/tune-synthesis/reference.md"
+ },
+ "SYNTH_KEEP_HIERARCHY_INSTANCES": {
+  "engine": "synth",
+  "meaning": "Instances whose hierarchy is kept when flattening.",
+  "safe": "Instance names that exist",
+  "symptom": "Per-instance area report.",
+  "verify": "synth_stat.rpt",
+  "doc": "LibreLane step -> engine table (Yosys + ABC are outside OpenROAD); .claude/skills/tune-synthesis/reference.md"
+ },
+ "SYNTH_KEEP_HIERARCHY_MIN_COST": {
+  "engine": "synth",
+  "meaning": "Keep hierarchy of modules estimated above this gate count.",
+  "safe": "Positive integer",
+  "symptom": "Very large flattened netlists that ABC handles slowly.",
+  "verify": "synth_stat.rpt",
+  "doc": "LibreLane step -> engine table (Yosys + ABC are outside OpenROAD); .claude/skills/tune-synthesis/reference.md"
+ },
+ "SYNTH_ABC_AREA_USE_NF": {
+  "engine": "synth",
+  "meaning": "Experimental: use &nf with a high value instead of amap for area mapping.",
+  "safe": "true or false",
+  "symptom": "Area recovery experiments.",
+  "verify": "synth_stat.rpt design area",
+  "doc": "LibreLane step -> engine table (Yosys + ABC are outside OpenROAD); .claude/skills/tune-synthesis/reference.md"
+ },
+ "SYNTH_ABC_USE_MFS3": {
+  "engine": "synth",
+  "meaning": "Experimental SAT-based remapping before retime.",
+  "safe": "true or false",
+  "symptom": "Small QoR change; slower synthesis.",
+  "verify": "synth_stat.rpt",
+  "doc": "LibreLane step -> engine table (Yosys + ABC are outside OpenROAD); .claude/skills/tune-synthesis/reference.md"
+ },
+ "SYNTH_ABC_DFF": {
+  "engine": "synth",
+  "meaning": "Pass flip-flops through ABC (can merge identical flops).",
+  "safe": "false for committed designs: merged flops change the register count and trip the 'logic lost' check unless allowed with a verifiable reason.",
+  "symptom": "Never use to hide a failing check.",
+  "verify": "check_signoff.py register count",
+  "doc": "LibreLane step -> engine table (Yosys + ABC are outside OpenROAD); .claude/skills/tune-synthesis/reference.md"
+ },
+ "SYNTH_ABC_LEGACY_REFACTOR": {
+  "engine": "synth",
+  "meaning": "Use the older refactor command in ABC scripts.",
+  "safe": "true or false",
+  "symptom": "Reproducing older results.",
+  "verify": "synth_stat.rpt",
+  "doc": "LibreLane step -> engine table (Yosys + ABC are outside OpenROAD); .claude/skills/tune-synthesis/reference.md"
+ },
+ "SYNTH_ABC_LEGACY_REWRITE": {
+  "engine": "synth",
+  "meaning": "Use the older rewrite command in ABC scripts.",
+  "safe": "true or false",
+  "symptom": "Reproducing older results.",
+  "verify": "synth_stat.rpt",
+  "doc": "LibreLane step -> engine table (Yosys + ABC are outside OpenROAD); .claude/skills/tune-synthesis/reference.md"
+ },
+ "SYNTH_ADDER_TYPE": {
+  "engine": "synth",
+  "meaning": "Adder mapping for $add/$sub: YOSYS, FA, RCA, CSA.",
+  "safe": "YOSYS (default), RCA, CSA, FA",
+  "symptom": "Long adder carry chains in float and accumulator designs (prec_*).",
+  "verify": "timing path through the adder in timing_paths_max_ss.rpt",
+  "doc": "LibreLane step -> engine table (Yosys + ABC are outside OpenROAD); .claude/skills/tune-synthesis/reference.md"
+ },
+ "SYNTH_MUL_BOOTH": {
+  "engine": "synth",
+  "meaning": "Run Yosys booth pass for multipliers.",
+  "safe": "true or false",
+  "symptom": "Multiplier area/delay trade.",
+  "verify": "synth_stat.rpt",
+  "doc": "LibreLane step -> engine table (Yosys + ABC are outside OpenROAD); .claude/skills/tune-synthesis/reference.md"
+ },
+ "SYNTH_SHARE_RESOURCES": {
+  "engine": "synth",
+  "meaning": "Yosys resource sharing (merge shareable operators).",
+  "safe": "true (default)",
+  "symptom": "Area; rarely changed.",
+  "verify": "synth_stat.rpt",
+  "doc": "LibreLane step -> engine table (Yosys + ABC are outside OpenROAD); .claude/skills/tune-synthesis/reference.md"
+ },
+ "SYNTH_SPLITNETS": {
+  "engine": "synth",
+  "meaning": "Split multi-bit nets into single-bit nets.",
+  "safe": "true (default)",
+  "symptom": "Readability of netlist only.",
+  "verify": null,
+  "doc": "LibreLane step -> engine table (Yosys + ABC are outside OpenROAD); .claude/skills/tune-synthesis/reference.md"
+ },
+ "SYNTH_TIE_UNDEFINED": {
+  "engine": "synth",
+  "meaning": "Tie undefined values low/high, or null to leave undriven.",
+  "safe": "low (default) or high",
+  "symptom": "Undriven-net synthesis checks.",
+  "verify": "08-checker-yosyssynthchecks; synth_checks.rpt",
+  "doc": "LibreLane step -> engine table (Yosys + ABC are outside OpenROAD); .claude/skills/tune-synthesis/reference.md"
+ },
+ "SYNTH_NORMALIZE_SINGLE_BIT_VECTORS": {
+  "engine": "synth",
+  "meaning": "Convert [0:0] vectors to plain wires.",
+  "safe": "true (default)",
+  "symptom": "Pin-name mismatches at LEF/pin level.",
+  "verify": null,
+  "doc": "LibreLane step -> engine table (Yosys + ABC are outside OpenROAD); .claude/skills/tune-synthesis/reference.md"
+ },
+ "SYNTH_AUTONAME": {
+  "engine": "synth",
+  "meaning": "Readable generated instance names (very long).",
+  "safe": "false (default)",
+  "symptom": "Debugging only.",
+  "verify": null,
+  "doc": "LibreLane step -> engine table (Yosys + ABC are outside OpenROAD); .claude/skills/tune-synthesis/reference.md"
+ },
+ "SYNTH_CLOCKGATE_MIN_WIDTH": {
+  "engine": "synth",
+  "meaning": "Clock-gate flop groups of at least this width that have an enable.",
+  "safe": "Needs the ICG cell variables; leave unset",
+  "symptom": "Power experiments only.",
+  "verify": "metrics.json power__total",
+  "doc": "LibreLane step -> engine table (Yosys + ABC are outside OpenROAD); .claude/skills/tune-synthesis/reference.md"
+ },
+ "SYNTH_CHECKS_ALLOW_TRISTATE": {
+  "engine": "synth",
+  "meaning": "Ignore multiple-driver warnings that are tri-state buffers.",
+  "safe": "true (default)",
+  "symptom": "Tri-state designs only.",
+  "verify": "synth_checks.rpt",
+  "doc": "LibreLane step -> engine table (Yosys + ABC are outside OpenROAD); .claude/skills/tune-synthesis/reference.md"
+ },
+ "SYNTH_PARAMETERS": {
+  "engine": "synth",
+  "meaning": "chparam key=value pairs for the top module.",
+  "safe": "Only parameters that exist in the RTL top",
+  "symptom": "Parameter sweeps on the elaborated design (not a way to change committed RTL).",
+  "verify": "synth_stat.rpt",
+  "doc": "LibreLane step -> engine table (Yosys + ABC are outside OpenROAD); .claude/skills/tune-synthesis/reference.md"
+ },
+ "SYNTH_CORNER": {
+  "engine": "synth",
+  "meaning": "IPVT corner used by synthesis.",
+  "safe": "Default corner",
+  "symptom": "Leave unset.",
+  "verify": null,
+  "doc": "LibreLane step -> engine table (Yosys + ABC are outside OpenROAD); .claude/skills/tune-synthesis/reference.md"
+ },
+ "SYNTH_ELABORATE_ONLY": {
+  "engine": "synth",
+  "meaning": "Elaborate only, no mapping. Allowed only for the Caravel wrappers.",
+  "safe": "Never set true on a macro or engine",
+  "symptom": "BLOCKED by the what-if tools: a netlist that is not mapped is no sign-off.",
+  "verify": null,
+  "doc": "LibreLane step -> engine table (Yosys + ABC are outside OpenROAD); .claude/skills/tune-synthesis/reference.md"
+ },
+ "FP_SIZING": {
+  "engine": "floorplan",
+  "meaning": "absolute: the die comes from DIE_AREA; relative: from FP_CORE_UTIL and FP_ASPECT_RATIO.",
+  "safe": "absolute (all 25 designs)",
+  "symptom": "Switching to relative lets the core follow the cell area.",
+  "verify": "metrics.json design__die__bbox, design__instance__utilization",
+  "doc": "docs/OPENROAD_ENGINES.md section 'ifp (initialize_floorplan, rows, tracks, cut_rows)'"
+ },
+ "DIE_AREA": {
+  "engine": "floorplan",
+  "meaning": "Die rectangle x0 y0 x1 y1 in um (absolute sizing).",
+  "safe": "Size for 40 percent utilisation; 80 x 80 um is the smallest committed die (vision_block, 60 percent). Utilisation above about 80 percent failed (GPL / repair OOM). Wrapper DIE_AREA is fixed geometry: not editable.",
+  "symptom": "GPL-0301 'cannot place' or repair out of memory: the die is too small. Utilisation far under 30 percent wastes area.",
+  "verify": "metrics.json design__instance__utilization, design__die__bbox",
+  "doc": "docs/OPENROAD_ENGINES.md section 'ifp (initialize_floorplan, rows, tracks, cut_rows)'",
+  "repo": "80x80 for tiny engines, 120 (prec_int8, image_text_match), 170..340 for the larger ones; see each //DIE_AREA comment"
+ },
+ "FP_CORE_UTIL": {
+  "engine": "floorplan",
+  "meaning": "Core utilisation percent (relative sizing only); also the base of the default placement density.",
+  "safe": "30 to 60",
+  "symptom": "Default PL target density = FP_CORE_UTIL + 5 * GPL_CELL_PADDING + 10.",
+  "verify": "metrics.json design__instance__utilization",
+  "doc": "docs/OPENROAD_ENGINES.md section 'ifp (initialize_floorplan, rows, tracks, cut_rows)'"
+ },
+ "FP_ASPECT_RATIO": {
+  "engine": "floorplan",
+  "meaning": "Core height/width (relative sizing only).",
+  "safe": "0.5 to 2",
+  "symptom": "Pin-edge length vs core shape.",
+  "verify": "design__die__bbox",
+  "doc": "docs/OPENROAD_ENGINES.md section 'ifp (initialize_floorplan, rows, tracks, cut_rows)'"
+ },
+ "FP_PRUNE_THRESHOLD": {
+  "engine": "floorplan",
+  "meaning": "Remove rows narrower than this width (um).",
+  "safe": "Unset",
+  "symptom": "Islets of cells that are hard to connect.",
+  "verify": "floorplan.txt",
+  "doc": "docs/OPENROAD_ENGINES.md section 'ifp (initialize_floorplan, rows, tracks, cut_rows)'"
+ },
+ "FP_TAPCELL_DIST": {
+  "engine": "floorplan",
+  "meaning": "Distance between tap cell columns (um).",
+  "safe": "Leave the PDK value",
+  "symptom": "Latch-up / tap DRC.",
+  "verify": "design__instance__count__class:tap_cell",
+  "doc": "docs/OPENROAD_ENGINES.md section 'ifp (initialize_floorplan, rows, tracks, cut_rows)'"
+ },
+ "TOP_MARGIN_MULT": {
+  "engine": "floorplan",
+  "meaning": "Core-to-die margin as a multiple of the site (relative sizing only).",
+  "safe": "Defaults",
+  "symptom": "Only relevant when FP_SIZING is relative.",
+  "verify": null,
+  "doc": "docs/OPENROAD_ENGINES.md section 'ifp (initialize_floorplan, rows, tracks, cut_rows)'"
+ },
+ "BOTTOM_MARGIN_MULT": {
+  "engine": "floorplan",
+  "meaning": "Core-to-die margin as a multiple of the site (relative sizing only).",
+  "safe": "Defaults",
+  "symptom": "Only relevant when FP_SIZING is relative.",
+  "verify": null,
+  "doc": "docs/OPENROAD_ENGINES.md section 'ifp (initialize_floorplan, rows, tracks, cut_rows)'"
+ },
+ "LEFT_MARGIN_MULT": {
+  "engine": "floorplan",
+  "meaning": "Core-to-die margin as a multiple of the site (relative sizing only).",
+  "safe": "Defaults",
+  "symptom": "Only relevant when FP_SIZING is relative.",
+  "verify": null,
+  "doc": "docs/OPENROAD_ENGINES.md section 'ifp (initialize_floorplan, rows, tracks, cut_rows)'"
+ },
+ "RIGHT_MARGIN_MULT": {
+  "engine": "floorplan",
+  "meaning": "Core-to-die margin as a multiple of the site (relative sizing only).",
+  "safe": "Defaults",
+  "symptom": "Only relevant when FP_SIZING is relative.",
+  "verify": null,
+  "doc": "docs/OPENROAD_ENGINES.md section 'ifp (initialize_floorplan, rows, tracks, cut_rows)'"
+ },
+ "IO_PIN_PLACEMENT_MODE": {
+  "engine": "ioplace",
+  "meaning": "matching (default, Hungarian assignment), annealing, or random pin placement.",
+  "safe": "matching or annealing",
+  "symptom": "Long I/O wires or congested pin edge.",
+  "verify": "metrics.json route__wirelength__estimated; 25-openroad-ioplacement log",
+  "doc": "docs/OPENROAD_ENGINES.md section 'ppl (pin placement, place_pins; ...)'"
+ },
+ "IO_PIN_MIN_DISTANCE": {
+  "engine": "ioplace",
+  "meaning": "Minimum distance between pins (um or tracks, see IO_PIN_MIN_DISTANCE_IN_TRACKS).",
+  "safe": "At least 2 routing tracks",
+  "symptom": "109 Wishbone pins need about 2.3 um pitch on one 250 um edge.",
+  "verify": "25-openroad-ioplacement log",
+  "doc": "docs/OPENROAD_ENGINES.md section 'ppl (pin placement, place_pins; ...)'"
+ },
+ "IO_PIN_MIN_DISTANCE_IN_TRACKS": {
+  "engine": "ioplace",
+  "meaning": "Interpret IO_PIN_MIN_DISTANCE in routing tracks.",
+  "safe": "true or false",
+  "symptom": "Unit switch.",
+  "verify": null,
+  "doc": "docs/OPENROAD_ENGINES.md section 'ppl (pin placement, place_pins; ...)'"
+ },
+ "IO_PIN_CORNER_AVOIDANCE": {
+  "engine": "ioplace",
+  "meaning": "Keep pins this far (um) from die corners.",
+  "safe": "0 to 20",
+  "symptom": "Corner pin DRC / escape routing.",
+  "verify": "routing_global.txt",
+  "doc": "docs/OPENROAD_ENGINES.md section 'ppl (pin placement, place_pins; ...)'"
+ },
+ "IO_PIN_H_LAYER": {
+  "engine": "ioplace",
+  "meaning": "Metal layer of east/west pins.",
+  "safe": "met3 or met5 per PDK",
+  "symptom": "Do not change for macros going into the Caravel wrapper.",
+  "verify": "LEF pin layers",
+  "doc": "docs/OPENROAD_ENGINES.md section 'ppl (pin placement, place_pins; ...)'"
+ },
+ "IO_PIN_V_LAYER": {
+  "engine": "ioplace",
+  "meaning": "Metal layer of north/south pins.",
+  "safe": "met2 or met4 per PDK",
+  "symptom": "Do not change for macros going into the Caravel wrapper.",
+  "verify": "LEF pin layers",
+  "doc": "docs/OPENROAD_ENGINES.md section 'ppl (pin placement, place_pins; ...)'"
+ },
+ "IO_PIN_H_LENGTH": {
+  "engine": "ioplace",
+  "meaning": "Pin geometry (length, extension past the die, thickness multiple).",
+  "safe": "PDK defaults",
+  "symptom": "Pin geometry for the macro LEF; changes are visible in the exported LEF.",
+  "verify": "<top>.lef",
+  "doc": "docs/OPENROAD_ENGINES.md section 'ppl (pin placement, place_pins; ...)'"
+ },
+ "IO_PIN_V_LENGTH": {
+  "engine": "ioplace",
+  "meaning": "Pin geometry (length, extension past the die, thickness multiple).",
+  "safe": "PDK defaults",
+  "symptom": "Pin geometry for the macro LEF; changes are visible in the exported LEF.",
+  "verify": "<top>.lef",
+  "doc": "docs/OPENROAD_ENGINES.md section 'ppl (pin placement, place_pins; ...)'"
+ },
+ "IO_PIN_H_EXTENSION": {
+  "engine": "ioplace",
+  "meaning": "Pin geometry (length, extension past the die, thickness multiple).",
+  "safe": "PDK defaults",
+  "symptom": "Pin geometry for the macro LEF; changes are visible in the exported LEF.",
+  "verify": "<top>.lef",
+  "doc": "docs/OPENROAD_ENGINES.md section 'ppl (pin placement, place_pins; ...)'"
+ },
+ "IO_PIN_V_EXTENSION": {
+  "engine": "ioplace",
+  "meaning": "Pin geometry (length, extension past the die, thickness multiple).",
+  "safe": "PDK defaults",
+  "symptom": "Pin geometry for the macro LEF; changes are visible in the exported LEF.",
+  "verify": "<top>.lef",
+  "doc": "docs/OPENROAD_ENGINES.md section 'ppl (pin placement, place_pins; ...)'"
+ },
+ "IO_PIN_H_THICKNESS_MULT": {
+  "engine": "ioplace",
+  "meaning": "Pin geometry (length, extension past the die, thickness multiple).",
+  "safe": "PDK defaults",
+  "symptom": "Pin geometry for the macro LEF; changes are visible in the exported LEF.",
+  "verify": "<top>.lef",
+  "doc": "docs/OPENROAD_ENGINES.md section 'ppl (pin placement, place_pins; ...)'"
+ },
+ "IO_PIN_V_THICKNESS_MULT": {
+  "engine": "ioplace",
+  "meaning": "Pin geometry (length, extension past the die, thickness multiple).",
+  "safe": "PDK defaults",
+  "symptom": "Pin geometry for the macro LEF; changes are visible in the exported LEF.",
+  "verify": "<top>.lef",
+  "doc": "docs/OPENROAD_ENGINES.md section 'ppl (pin placement, place_pins; ...)'"
+ },
+ "PDN_MULTILAYER": {
+  "engine": "pdn",
+  "meaning": "Use met4/met5 power straps as well as the met1 rails.",
+  "safe": "false in the 22 macros (met4 is the top routing layer, RT_MAX_LAYER)",
+  "symptom": "Power-grid check failures (PDN violations).",
+  "verify": "30-checker-powergridviolations; irdrop.rpt",
+  "doc": "docs/OPENROAD_ENGINES.md section 'pdn (pdngen power grid)'",
+  "repo": "false in all macro configs"
+ },
+ "PDN_CORE_RING": {
+  "engine": "pdn",
+  "meaning": "Add a core power ring.",
+  "safe": "false for small macros; true only in the wrappers (fixed)",
+  "symptom": "IR drop at the core edge.",
+  "verify": "irdrop.rpt",
+  "doc": "docs/OPENROAD_ENGINES.md section 'pdn (pdngen power grid)'"
+ },
+ "PDN_ENABLE_RAILS": {
+  "engine": "pdn",
+  "meaning": "Standard-cell power rails on met1.",
+  "safe": "true",
+  "symptom": "Wrapper config only turns it off (fixed).",
+  "verify": "irdrop.rpt",
+  "doc": "docs/OPENROAD_ENGINES.md section 'pdn (pdngen power grid)'"
+ },
+ "PDN_VPITCH": {
+  "engine": "pdn",
+  "meaning": "Power-strap geometry (um). In the Caravel wrapper these are fixed template values.",
+  "safe": "Macros: PDK defaults. Wrapper: not editable.",
+  "symptom": "IR drop or strap DRC.",
+  "verify": "58-openroad-irdropreport / irdrop.rpt",
+  "doc": "docs/OPENROAD_ENGINES.md section 'pdn (pdngen power grid)'"
+ },
+ "PDN_HPITCH": {
+  "engine": "pdn",
+  "meaning": "Power-strap geometry (um). In the Caravel wrapper these are fixed template values.",
+  "safe": "Macros: PDK defaults. Wrapper: not editable.",
+  "symptom": "IR drop or strap DRC.",
+  "verify": "58-openroad-irdropreport / irdrop.rpt",
+  "doc": "docs/OPENROAD_ENGINES.md section 'pdn (pdngen power grid)'"
+ },
+ "PDN_VWIDTH": {
+  "engine": "pdn",
+  "meaning": "Power-strap geometry (um). In the Caravel wrapper these are fixed template values.",
+  "safe": "Macros: PDK defaults. Wrapper: not editable.",
+  "symptom": "IR drop or strap DRC.",
+  "verify": "58-openroad-irdropreport / irdrop.rpt",
+  "doc": "docs/OPENROAD_ENGINES.md section 'pdn (pdngen power grid)'"
+ },
+ "PDN_HWIDTH": {
+  "engine": "pdn",
+  "meaning": "Power-strap geometry (um). In the Caravel wrapper these are fixed template values.",
+  "safe": "Macros: PDK defaults. Wrapper: not editable.",
+  "symptom": "IR drop or strap DRC.",
+  "verify": "58-openroad-irdropreport / irdrop.rpt",
+  "doc": "docs/OPENROAD_ENGINES.md section 'pdn (pdngen power grid)'"
+ },
+ "PDN_VSPACING": {
+  "engine": "pdn",
+  "meaning": "Power-strap geometry (um). In the Caravel wrapper these are fixed template values.",
+  "safe": "Macros: PDK defaults. Wrapper: not editable.",
+  "symptom": "IR drop or strap DRC.",
+  "verify": "58-openroad-irdropreport / irdrop.rpt",
+  "doc": "docs/OPENROAD_ENGINES.md section 'pdn (pdngen power grid)'"
+ },
+ "PDN_HSPACING": {
+  "engine": "pdn",
+  "meaning": "Power-strap geometry (um). In the Caravel wrapper these are fixed template values.",
+  "safe": "Macros: PDK defaults. Wrapper: not editable.",
+  "symptom": "IR drop or strap DRC.",
+  "verify": "58-openroad-irdropreport / irdrop.rpt",
+  "doc": "docs/OPENROAD_ENGINES.md section 'pdn (pdngen power grid)'"
+ },
+ "PDN_VOFFSET": {
+  "engine": "pdn",
+  "meaning": "Power-strap geometry (um). In the Caravel wrapper these are fixed template values.",
+  "safe": "Macros: PDK defaults. Wrapper: not editable.",
+  "symptom": "IR drop or strap DRC.",
+  "verify": "58-openroad-irdropreport / irdrop.rpt",
+  "doc": "docs/OPENROAD_ENGINES.md section 'pdn (pdngen power grid)'"
+ },
+ "PDN_HOFFSET": {
+  "engine": "pdn",
+  "meaning": "Power-strap geometry (um). In the Caravel wrapper these are fixed template values.",
+  "safe": "Macros: PDK defaults. Wrapper: not editable.",
+  "symptom": "IR drop or strap DRC.",
+  "verify": "58-openroad-irdropreport / irdrop.rpt",
+  "doc": "docs/OPENROAD_ENGINES.md section 'pdn (pdngen power grid)'"
+ },
+ "PDN_RAIL_WIDTH": {
+  "engine": "pdn",
+  "meaning": "Power-strap geometry (um). In the Caravel wrapper these are fixed template values.",
+  "safe": "Macros: PDK defaults. Wrapper: not editable.",
+  "symptom": "IR drop or strap DRC.",
+  "verify": "58-openroad-irdropreport / irdrop.rpt",
+  "doc": "docs/OPENROAD_ENGINES.md section 'pdn (pdngen power grid)'"
+ },
+ "PDN_RAIL_OFFSET": {
+  "engine": "pdn",
+  "meaning": "Power-strap geometry (um). In the Caravel wrapper these are fixed template values.",
+  "safe": "Macros: PDK defaults. Wrapper: not editable.",
+  "symptom": "IR drop or strap DRC.",
+  "verify": "58-openroad-irdropreport / irdrop.rpt",
+  "doc": "docs/OPENROAD_ENGINES.md section 'pdn (pdngen power grid)'"
+ },
+ "PL_TARGET_DENSITY_PCT": {
+  "engine": "gpl",
+  "meaning": "Target cell density (percent) of global placement (alias PL_TARGET_DENSITY). Unset means FP_CORE_UTIL + 5 * GPL_CELL_PADDING + 10 (logged as -density in step 28).",
+  "safe": "Between the design's utilisation + 5 and 95. Below the real utilisation GPL cannot reach the target (GPL-0301).",
+  "symptom": "Higher: tighter packing, shorter wires, more congestion. Lower: cells spread, longer wires, fewer congestion hot spots. Congestion (GRT-0116) or long wires: try 10 points either way and compare.",
+  "verify": "28-openroad-globalplacement log (Placement target density), metrics.json route__wirelength__estimated, design__instance__utilization",
+  "doc": "docs/OPENROAD_ENGINES.md section 'gpl (RePlAce global placement)'",
+  "repo": "unset in all designs (about 0.56 for vision_block)"
+ },
+ "GPL_CELL_PADDING": {
+  "engine": "gpl",
+  "meaning": "Cell padding (sites) in global placement; also feeds the default density and the heuristic diode inserter.",
+  "safe": "0 to 4",
+  "symptom": "Congestion in dense logic; user_proj_example uses 2 with DPL_CELL_PADDING 2.",
+  "verify": "28-openroad-globalplacement log",
+  "doc": "docs/OPENROAD_ENGINES.md section 'gpl (RePlAce global placement)'",
+  "repo": "2 for user_proj_example only"
+ },
+ "DPL_CELL_PADDING": {
+  "engine": "dpl",
+  "meaning": "Cell padding (sites) in detailed placement; must be <= GPL_CELL_PADDING.",
+  "safe": "0 to GPL_CELL_PADDING",
+  "symptom": "Detailed-placement legalisation failures or DRC at cell abutments.",
+  "verify": "34-openroad-detailedplacement log",
+  "doc": "docs/OPENROAD_ENGINES.md section 'dpl (detailed placement, legalisation)'",
+  "repo": "2 for user_proj_example only"
+ },
+ "PL_ROUTABILITY_DRIVEN": {
+  "engine": "gpl",
+  "meaning": "Congestion-aware global placement (cell inflation in congested tiles).",
+  "safe": "true (default)",
+  "symptom": "Turning it off is faster but risks GRT congestion.",
+  "verify": "GPL-0090 'Routability finished' in step 28 log",
+  "doc": "docs/OPENROAD_ENGINES.md section 'gpl (RePlAce global placement)'"
+ },
+ "PL_TIMING_DRIVEN": {
+  "engine": "gpl",
+  "meaning": "Timing-driven global placement (net re-weighting).",
+  "safe": "false (default); true is an experiment",
+  "symptom": "Critical nets long after placement.",
+  "verify": "setup slack in metrics.json; slower flow",
+  "doc": "docs/OPENROAD_ENGINES.md section 'gpl (RePlAce global placement)'"
+ },
+ "PL_WIRE_LENGTH_COEF": {
+  "engine": "gpl",
+  "meaning": "Initial wirelength coefficient; lower tightens wirelength.",
+  "safe": "0.1 to 0.5",
+  "symptom": "Wirelength vs spread trade.",
+  "verify": "route__wirelength__estimated",
+  "doc": "docs/OPENROAD_ENGINES.md section 'gpl (RePlAce global placement)'"
+ },
+ "PL_SKIP_INITIAL_PLACEMENT": {
+  "engine": "gpl",
+  "meaning": "Skip the conjugate-gradient initial placement.",
+  "safe": "false",
+  "symptom": "Debug only.",
+  "verify": null,
+  "doc": "docs/OPENROAD_ENGINES.md section 'gpl (RePlAce global placement)'"
+ },
+ "PL_ROUTABILITY_OVERFLOW_THRESHOLD": {
+  "engine": "gpl",
+  "meaning": "Overflow at which the routability pass starts.",
+  "safe": "Unset",
+  "symptom": "Placer divergence in congested designs.",
+  "verify": "step 28 log",
+  "doc": "docs/OPENROAD_ENGINES.md section 'gpl (RePlAce global placement)'"
+ },
+ "PL_MIN_PHI_COEFFICIENT": {
+  "engine": "gpl",
+  "meaning": "Lower bound of the GPL mu_k coefficient.",
+  "safe": "Unset; use only if GPL diverges",
+  "symptom": "Placement divergence.",
+  "verify": "step 28 log",
+  "doc": "docs/OPENROAD_ENGINES.md section 'gpl (RePlAce global placement)'"
+ },
+ "PL_MAX_PHI_COEFFICIENT": {
+  "engine": "gpl",
+  "meaning": "Upper bound of the GPL mu_k coefficient.",
+  "safe": "Unset; use only if GPL diverges",
+  "symptom": "Placement divergence.",
+  "verify": "step 28 log",
+  "doc": "docs/OPENROAD_ENGINES.md section 'gpl (RePlAce global placement)'"
+ },
+ "PL_KEEP_RESIZE_BELOW_OVERFLOW": {
+  "engine": "gpl",
+  "meaning": "With PL_TIMING_DRIVEN: keep resizer changes below this overflow.",
+  "safe": "0 to 1",
+  "symptom": "Timing-driven placement only.",
+  "verify": null,
+  "doc": "docs/OPENROAD_ENGINES.md section 'gpl (RePlAce global placement)'"
+ },
+ "PL_OPTIMIZE_MIRRORING": {
+  "engine": "dpl",
+  "meaning": "Run optimize_mirroring after detailed placement.",
+  "safe": "true (default)",
+  "symptom": "Tiny wirelength gain.",
+  "verify": null,
+  "doc": "docs/OPENROAD_ENGINES.md section 'dpl (detailed placement, legalisation)'"
+ },
+ "PL_MAX_DISPLACEMENT_X": {
+  "engine": "dpl",
+  "meaning": "Max x displacement (um) of a cell in detailed placement.",
+  "safe": "Default 500",
+  "symptom": "'Cannot find a legal site' errors.",
+  "verify": "34-openroad-detailedplacement log",
+  "doc": "docs/OPENROAD_ENGINES.md section 'dpl (detailed placement, legalisation)'"
+ },
+ "PL_MAX_DISPLACEMENT_Y": {
+  "engine": "dpl",
+  "meaning": "Max y displacement (um) of a cell in detailed placement.",
+  "safe": "Default 100",
+  "symptom": "'Cannot find a legal site' errors.",
+  "verify": "34-openroad-detailedplacement log",
+  "doc": "docs/OPENROAD_ENGINES.md section 'dpl (detailed placement, legalisation)'"
+ },
+ "DESIGN_REPAIR_MAX_SLEW_PCT": {
+  "engine": "rsz-gpl",
+  "meaning": "Slew margin (percent) of repair_design after global placement (alias PL_RESIZER_MAX_SLEW_MARGIN): tightens the max-transition limit by this percent while repairing.",
+  "safe": "20 (default) to 40. The 70 percent used in early tiny_ai_core runs made the repair chase unfixable input-port slews and the 8 GB container ran out of memory; 40 percent also ran out for the 80 and 120 um designs.",
+  "symptom": "Max-slew violations after repair: raise in steps of 10 and watch memory (resources.json). Container killed in step 32: lower it.",
+  "verify": "step 32 log, metrics.json design__max_slew_violation__count, resources.json container_peak_mem_gb",
+  "doc": "docs/OPENROAD_ENGINES.md section 'rsz (Resizer: repair_design, repair_timing, buffering)' (step 32)",
+  "repo": "40 for 12 tiny designs, 20 for the 9 larger ones (//SLEW comments); alias spelling in the configs"
+ },
+ "DESIGN_REPAIR_MAX_CAP_PCT": {
+  "engine": "rsz-gpl",
+  "meaning": "Capacitance margin (percent) of the post-GPL repair_design (alias PL_RESIZER_MAX_CAP_MARGIN).",
+  "safe": "10 to 30",
+  "symptom": "Max-cap violations.",
+  "verify": "metrics.json design__max_cap_violation__count",
+  "doc": "docs/OPENROAD_ENGINES.md section 'rsz (Resizer: repair_design, repair_timing, buffering)' (step 32)"
+ },
+ "DESIGN_REPAIR_MAX_WIRE_LENGTH": {
+  "engine": "rsz-gpl",
+  "meaning": "Max wire length (um) for buffer insertion in repair_design; 0 means no length-based buffering.",
+  "safe": "0 or a few hundred um",
+  "symptom": "Very long nets.",
+  "verify": "step 32 log; route__wirelength",
+  "doc": "docs/OPENROAD_ENGINES.md section 'rsz (Resizer: repair_design, repair_timing, buffering)' (step 32)"
+ },
+ "DESIGN_REPAIR_BUFFER_INPUT_PORTS": {
+  "engine": "rsz-gpl",
+  "meaning": "Buffer every input port during repair.",
+  "safe": "true (false in the wrappers)",
+  "symptom": "Input slew from the environment.",
+  "verify": "cell_usage.rpt input buffers",
+  "doc": "docs/OPENROAD_ENGINES.md section 'rsz (Resizer: repair_design, repair_timing, buffering)' (step 32)"
+ },
+ "DESIGN_REPAIR_BUFFER_OUTPUT_PORTS": {
+  "engine": "rsz-gpl",
+  "meaning": "Buffer every output port during repair.",
+  "safe": "true",
+  "symptom": "Output load/slew.",
+  "verify": "cell_usage.rpt",
+  "doc": "docs/OPENROAD_ENGINES.md section 'rsz (Resizer: repair_design, repair_timing, buffering)' (step 32)"
+ },
+ "DESIGN_REPAIR_REMOVE_BUFFERS": {
+  "engine": "rsz-gpl",
+  "meaning": "Remove synthesis buffers before repair.",
+  "safe": "false",
+  "symptom": "Lets OpenROAD rebuffer freely.",
+  "verify": "cell count",
+  "doc": "docs/OPENROAD_ENGINES.md section 'rsz (Resizer: repair_design, repair_timing, buffering)' (step 32)"
+ },
+ "DESIGN_REPAIR_TIE_FANOUT": {
+  "engine": "rsz-gpl",
+  "meaning": "Repair tie-cell fanout.",
+  "safe": "true",
+  "symptom": "Tie cell DRC.",
+  "verify": null,
+  "doc": "docs/OPENROAD_ENGINES.md section 'rsz (Resizer: repair_design, repair_timing, buffering)' (step 32)"
+ },
+ "DESIGN_REPAIR_TIE_SEPARATION": {
+  "engine": "rsz-gpl",
+  "meaning": "Allow tie separation.",
+  "safe": "false",
+  "symptom": "Tie cells next to their loads.",
+  "verify": null,
+  "doc": "docs/OPENROAD_ENGINES.md section 'rsz (Resizer: repair_design, repair_timing, buffering)' (step 32)"
+ },
+ "PL_RESIZER_SETUP_SLACK_MARGIN": {
+  "engine": "rsz-cts",
+  "meaning": "Setup slack margin (ns) of repair_timing after CTS: repair until slack >= margin. Default 0.05.",
+  "safe": "0 to 0.5 (never negative). prec_* float designs use 0.5, user_proj_example 0.4.",
+  "symptom": "Setup slack thin after route: raise the margin to overfix, at the cost of cells.",
+  "verify": "37-openroad-resizertimingpostcts log; metrics.json timing__setup__ws",
+  "doc": "docs/OPENROAD_ENGINES.md section 'rsz (Resizer: ...)' (step 37)",
+  "repo": "0.5 for prec_fp8/fp16/bf16, 0.4 for user_proj_example"
+ },
+ "PL_RESIZER_HOLD_SLACK_MARGIN": {
+  "engine": "rsz-cts",
+  "meaning": "Hold slack margin (ns) of repair_timing after CTS. Default 0.1.",
+  "safe": "0.1 to 0.5 (never negative)",
+  "symptom": "Hold slack thin (vision_block min_ff hold is +0.11 ns): raise to overfix; costs delay buffers.",
+  "verify": "metrics.json timing__hold__ws; hold_vio__count",
+  "doc": "docs/OPENROAD_ENGINES.md section 'rsz (Resizer: ...)' (step 37)",
+  "repo": "0.4 for user_proj_example"
+ },
+ "PL_RESIZER_ALLOW_SETUP_VIOS": {
+  "engine": "rsz-cts",
+  "meaning": "Allow hold repair to create setup violations.",
+  "safe": "false (BLOCKED to true by the what-if tools: weakens timing)",
+  "symptom": "-",
+  "verify": "metrics.json setup",
+  "doc": "docs/OPENROAD_ENGINES.md section 'rsz (Resizer: ...)' (step 37)"
+ },
+ "PL_RESIZER_FIX_HOLD_FIRST": {
+  "engine": "rsz-cts",
+  "meaning": "Experimental: repair hold before setup.",
+  "safe": "false or true",
+  "symptom": "Different QoR order.",
+  "verify": "timing",
+  "doc": "docs/OPENROAD_ENGINES.md section 'rsz (Resizer: ...)' (step 37)"
+ },
+ "PL_RESIZER_SETUP_BUFFERING": {
+  "engine": "rsz-cts",
+  "meaning": "Rebuffering / load splitting during setup repair.",
+  "safe": "true",
+  "symptom": "Float designs use true explicitly.",
+  "verify": "37 log",
+  "doc": "docs/OPENROAD_ENGINES.md section 'rsz (Resizer: ...)' (step 37)"
+ },
+ "PL_RESIZER_SETUP_BUFFER_REMOVAL": {
+  "engine": "rsz-cts",
+  "meaning": "Buffer removal during setup repair.",
+  "safe": "true",
+  "symptom": "Fewer cells.",
+  "verify": "37 log",
+  "doc": "docs/OPENROAD_ENGINES.md section 'rsz (Resizer: ...)' (step 37)"
+ },
+ "PL_RESIZER_SETUP_GATE_CLONING": {
+  "engine": "rsz-cts",
+  "meaning": "Gate cloning during setup repair.",
+  "safe": "true",
+  "symptom": "High-fanout critical gates.",
+  "verify": "37 log",
+  "doc": "docs/OPENROAD_ENGINES.md section 'rsz (Resizer: ...)' (step 37)"
+ },
+ "PL_RESIZER_SETUP_MAX_BUFFER_PCT": {
+  "engine": "rsz-cts",
+  "meaning": "Max buffers inserted for setup, percent of instances.",
+  "safe": "10 to 50",
+  "symptom": "Buffer explosion.",
+  "verify": "design__instance__count__class:timing_repair_buffer",
+  "doc": "docs/OPENROAD_ENGINES.md section 'rsz (Resizer: ...)' (step 37)"
+ },
+ "PL_RESIZER_HOLD_MAX_BUFFER_PCT": {
+  "engine": "rsz-cts",
+  "meaning": "Max buffers inserted for hold, percent of instances.",
+  "safe": "10 to 50",
+  "symptom": "Hold fixing blows up area.",
+  "verify": "design__instance__count__class:timing_repair_buffer",
+  "doc": "docs/OPENROAD_ENGINES.md section 'rsz (Resizer: ...)' (step 37)"
+ },
+ "PL_RESIZER_SETUP_MAX_UTIL_PCT": {
+  "engine": "rsz-cts",
+  "meaning": "Core utilisation cap during setup repair.",
+  "safe": "Unset",
+  "symptom": "Repair stops on crowded cores.",
+  "verify": null,
+  "doc": "docs/OPENROAD_ENGINES.md section 'rsz (Resizer: ...)' (step 37)"
+ },
+ "PL_RESIZER_HOLD_MAX_UTIL_PCT": {
+  "engine": "rsz-cts",
+  "meaning": "Core utilisation cap during hold repair.",
+  "safe": "Unset",
+  "symptom": "Repair stops on crowded cores.",
+  "verify": null,
+  "doc": "docs/OPENROAD_ENGINES.md section 'rsz (Resizer: ...)' (step 37)"
+ },
+ "PL_RESIZER_SETUP_REPAIR_TNS_PCT": {
+  "engine": "rsz-cts",
+  "meaning": "Percent of violating endpoints to repair (setup).",
+  "safe": "Unset (100)",
+  "symptom": "Speed vs completeness.",
+  "verify": null,
+  "doc": "docs/OPENROAD_ENGINES.md section 'rsz (Resizer: ...)' (step 37)"
+ },
+ "PL_RESIZER_HOLD_REPAIR_TNS_PCT": {
+  "engine": "rsz-cts",
+  "meaning": "Percent of violating endpoints to repair (hold).",
+  "safe": "Unset (100)",
+  "symptom": "Speed vs completeness.",
+  "verify": null,
+  "doc": "docs/OPENROAD_ENGINES.md section 'rsz (Resizer: ...)' (step 37)"
+ },
+ "RUN_POST_CTS_RESIZER_TIMING": {
+  "engine": "rsz-cts",
+  "meaning": "Run the post-CTS timing repair step.",
+  "safe": "true. Switching it off is a way to weaken timing and is BLOCKED.",
+  "symptom": "-",
+  "verify": null,
+  "doc": "docs/OPENROAD_ENGINES.md section 'rsz (Resizer: ...)' (step 37)"
+ },
+ "GRT_DESIGN_REPAIR_MAX_SLEW_PCT": {
+  "engine": "rsz-grt",
+  "meaning": "Slew margin (percent) of repair_design after global routing (default 10).",
+  "safe": "10 to 40; same OOM caveat as the post-GPL margin",
+  "symptom": "Max-slew violations after routing.",
+  "verify": "step 41 log; metrics.json design__max_slew_violation__count; resources.json peak memory",
+  "doc": "docs/OPENROAD_ENGINES.md section 'rsz (Resizer: ...)' (step 41)",
+  "repo": "40 for 12 designs, 20 for 9 (//SLEW)"
+ },
+ "GRT_DESIGN_REPAIR_MAX_CAP_PCT": {
+  "engine": "rsz-grt",
+  "meaning": "Capacitance margin (percent) after global routing (default 10).",
+  "safe": "5 to 30",
+  "symptom": "Max-cap violations after routing.",
+  "verify": "metrics.json design__max_cap_violation__count",
+  "doc": "docs/OPENROAD_ENGINES.md section 'rsz (Resizer: ...)' (step 41)"
+ },
+ "GRT_DESIGN_REPAIR_MAX_WIRE_LENGTH": {
+  "engine": "rsz-grt",
+  "meaning": "Max wire length (um) after global routing; 0 means no length-based buffering.",
+  "safe": "0",
+  "symptom": "Long nets.",
+  "verify": null,
+  "doc": "docs/OPENROAD_ENGINES.md section 'rsz (Resizer: ...)' (step 41)"
+ },
+ "GRT_DESIGN_REPAIR_RUN_GRT": {
+  "engine": "rsz-grt",
+  "meaning": "Run global routing before and after the post-GRT repair.",
+  "safe": "true",
+  "symptom": "Stale congestion estimate if false.",
+  "verify": null,
+  "doc": "docs/OPENROAD_ENGINES.md section 'rsz (Resizer: ...)' (step 41)"
+ },
+ "RUN_POST_GRT_DESIGN_REPAIR": {
+  "engine": "rsz-grt",
+  "meaning": "Enable the post-GRT design repair step.",
+  "safe": "true in all 22 macros",
+  "symptom": "-",
+  "verify": null,
+  "doc": "docs/OPENROAD_ENGINES.md section 'rsz (Resizer: ...)' (step 41)"
+ },
+ "RUN_POST_GRT_RESIZER_TIMING": {
+  "engine": "rsz-grt",
+  "meaning": "Enable the post-GRT timing repair step (default off).",
+  "safe": "true for the float prec_* designs and user_proj_example",
+  "symptom": "Setup/hold still thin after CTS repair.",
+  "verify": "step 'resizertimingpostgrt' present in the run",
+  "doc": "docs/OPENROAD_ENGINES.md section 'rsz (Resizer: ...)' (step 41)"
+ },
+ "GRT_RESIZER_SETUP_SLACK_MARGIN": {
+  "engine": "rsz-grt",
+  "meaning": "Setup slack margin (ns) after global routing (default 0.025).",
+  "safe": "0 to 0.5 (never negative)",
+  "symptom": "Setup still thin after route.",
+  "verify": "metrics.json timing__setup__ws",
+  "doc": "docs/OPENROAD_ENGINES.md section 'rsz (Resizer: ...)' (step 41)",
+  "repo": "0.5 prec_*, 0.2 user_proj_example"
+ },
+ "GRT_RESIZER_HOLD_SLACK_MARGIN": {
+  "engine": "rsz-grt",
+  "meaning": "Hold slack margin (ns) after global routing (default 0.05).",
+  "safe": "0 to 0.5 (never negative)",
+  "symptom": "Hold thin after route.",
+  "verify": "metrics.json timing__hold__ws",
+  "doc": "docs/OPENROAD_ENGINES.md section 'rsz (Resizer: ...)' (step 41)",
+  "repo": "0.2 for user_proj_example"
+ },
+ "GRT_RESIZER_ALLOW_SETUP_VIOS": {
+  "engine": "rsz-grt",
+  "meaning": "Allow hold repair to create setup violations after routing.",
+  "safe": "false (BLOCKED to true)",
+  "symptom": "-",
+  "verify": null,
+  "doc": "docs/OPENROAD_ENGINES.md section 'rsz (Resizer: ...)' (step 41)"
+ },
+ "GRT_RESIZER_SETUP_BUFFERING": {
+  "engine": "rsz-grt",
+  "meaning": "Rebuffering during post-GRT setup repair.",
+  "safe": "true",
+  "symptom": "-",
+  "verify": null,
+  "doc": "docs/OPENROAD_ENGINES.md section 'rsz (Resizer: ...)' (step 41)"
+ },
+ "GRT_RESIZER_SETUP_GATE_CLONING": {
+  "engine": "rsz-grt",
+  "meaning": "Gate cloning during post-GRT setup repair.",
+  "safe": "true",
+  "symptom": "-",
+  "verify": null,
+  "doc": "docs/OPENROAD_ENGINES.md section 'rsz (Resizer: ...)' (step 41)"
+ },
+ "CTS_SINK_CLUSTERING_SIZE": {
+  "engine": "cts",
+  "meaning": "Max flip-flops per sink cluster (one buffer per cluster).",
+  "safe": "4 to 30",
+  "symptom": "Clock skew or too many clock buffers.",
+  "verify": "cts.rpt; clock buffer count",
+  "doc": "docs/OPENROAD_ENGINES.md section 'cts: clock tree synthesis (TritonCTS)'",
+  "repo": "8 for tiny_ai_core and the soc_* macros (about 420 flops)"
+ },
+ "CTS_SINK_CLUSTERING_MAX_DIAMETER": {
+  "engine": "cts",
+  "meaning": "Max diameter (um) of a sink cluster.",
+  "safe": "10 to 100",
+  "symptom": "Skew on spread-out sinks.",
+  "verify": "cts.rpt",
+  "doc": "docs/OPENROAD_ENGINES.md section 'cts: clock tree synthesis (TritonCTS)'",
+  "repo": "20 um (same three designs)"
+ },
+ "CTS_DISTANCE_BETWEEN_BUFFERS": {
+  "engine": "cts",
+  "meaning": "Distance between clock buffers on a clock wire (um).",
+  "safe": "10 to 100",
+  "symptom": "Clock slew along long trunks.",
+  "verify": "cts.rpt",
+  "doc": "docs/OPENROAD_ENGINES.md section 'cts: clock tree synthesis (TritonCTS)'",
+  "repo": "30 um for tiny_ai_core and soc_*"
+ },
+ "CTS_CLK_MAX_WIRE_LENGTH": {
+  "engine": "cts",
+  "meaning": "Max wire length on the clock net (um).",
+  "safe": "0 (off) to a few hundred",
+  "symptom": "Long clock wire slew.",
+  "verify": "cts.rpt",
+  "doc": "docs/OPENROAD_ENGINES.md section 'cts: clock tree synthesis (TritonCTS)'",
+  "repo": "500 for user_proj_example"
+ },
+ "CTS_SINK_CLUSTERING_ENABLE": {
+  "engine": "cts",
+  "meaning": "Pre-cluster sinks into sub-trees.",
+  "safe": "true",
+  "symptom": "Skew on large flop counts.",
+  "verify": "cts.rpt",
+  "doc": "docs/OPENROAD_ENGINES.md section 'cts: clock tree synthesis (TritonCTS)'"
+ },
+ "CTS_BALANCE_LEVELS": {
+  "engine": "cts",
+  "meaning": "Keep similar tree depth across non-register cells.",
+  "safe": "unset or true",
+  "symptom": "Skew with clock gates.",
+  "verify": "cts.rpt",
+  "doc": "docs/OPENROAD_ENGINES.md section 'cts: clock tree synthesis (TritonCTS)'"
+ },
+ "CTS_APPLY_NDR": {
+  "engine": "cts",
+  "meaning": "Non-default routing rule on clock nets: none, root_only, half, full.",
+  "safe": "half (default), none",
+  "symptom": "Clock wire resistance vs routing resource.",
+  "verify": "cts.rpt; routing DRC",
+  "doc": "docs/OPENROAD_ENGINES.md section 'cts: clock tree synthesis (TritonCTS)'"
+ },
+ "CTS_CLK_BUFFERS": {
+  "engine": "cts",
+  "meaning": "Clock buffer cell list.",
+  "safe": "PDK default list",
+  "symptom": "Clock buffer selection.",
+  "verify": "cts.rpt",
+  "doc": "docs/OPENROAD_ENGINES.md section 'cts: clock tree synthesis (TritonCTS)'"
+ },
+ "CTS_ROOT_BUFFER": {
+  "engine": "cts",
+  "meaning": "Cell inserted at the clock root.",
+  "safe": "PDK default",
+  "symptom": "Clock root drive.",
+  "verify": "cts.rpt",
+  "doc": "docs/OPENROAD_ENGINES.md section 'cts: clock tree synthesis (TritonCTS)'"
+ },
+ "CTS_MAX_SLEW": {
+  "engine": "cts",
+  "meaning": "Max slew (ns) CTS characterisation tests.",
+  "safe": "Unset (library)",
+  "symptom": "Clock slew limits.",
+  "verify": "cts.rpt",
+  "doc": "docs/OPENROAD_ENGINES.md section 'cts: clock tree synthesis (TritonCTS)'"
+ },
+ "CTS_MAX_CAP": {
+  "engine": "cts",
+  "meaning": "Max capacitance (pF) CTS characterisation tests.",
+  "safe": "Unset (library)",
+  "symptom": "Clock cap limits.",
+  "verify": "cts.rpt",
+  "doc": "docs/OPENROAD_ENGINES.md section 'cts: clock tree synthesis (TritonCTS)'"
+ },
+ "CTS_DISABLE_POST_PROCESSING": {
+  "engine": "cts",
+  "meaning": "Skip outlier-sink post-processing.",
+  "safe": "false",
+  "symptom": "Skew from outlier sinks.",
+  "verify": "cts.rpt",
+  "doc": "docs/OPENROAD_ENGINES.md section 'cts: clock tree synthesis (TritonCTS)'"
+ },
+ "CTS_OBSTRUCTION_AWARE": {
+  "engine": "cts",
+  "meaning": "Do not place clock buffers on blockages or macros.",
+  "safe": "unset or true",
+  "symptom": "Legaliser displacement near macros.",
+  "verify": "cts.rpt",
+  "doc": "docs/OPENROAD_ENGINES.md section 'cts: clock tree synthesis (TritonCTS)'"
+ },
+ "RUN_CTS": {
+  "engine": "cts",
+  "meaning": "Run clock tree synthesis.",
+  "safe": "true. False only in the elaborate-only wrappers (fixed); BLOCKED for macros.",
+  "symptom": "-",
+  "verify": null,
+  "doc": "docs/OPENROAD_ENGINES.md section 'cts: clock tree synthesis (TritonCTS)'"
+ },
+ "GRT_ADJUSTMENT": {
+  "engine": "grt",
+  "meaning": "Fraction (0..1) of routing tracks reserved on every layer (default 0.3).",
+  "safe": "0.1 to 0.5. Raising reserves more space and reduces congestion at the price of longer wires; lowering it to chase a pass is not a fix.",
+  "symptom": "GRT-0116 congestion: raise slightly, but the repo lesson is that congestion is a placement/pin problem (fewer ordered pins, lower density).",
+  "verify": "39-openroad-globalrouting log; routing_global.txt overflow",
+  "doc": "docs/OPENROAD_ENGINES.md section 'grt: global routing (FastRoute)'"
+ },
+ "GRT_LAYER_ADJUSTMENTS": {
+  "engine": "grt",
+  "meaning": "Per-layer track reduction list.",
+  "safe": "Comma list 0..1 per layer",
+  "symptom": "Hot layer.",
+  "verify": "routing_global.txt per-layer usage",
+  "doc": "docs/OPENROAD_ENGINES.md section 'grt: global routing (FastRoute)'"
+ },
+ "GRT_OVERFLOW_ITERS": {
+  "engine": "grt",
+  "meaning": "Max global-router iterations while overflow remains (default 50).",
+  "safe": "30 to 100",
+  "symptom": "GRT stops with overflow.",
+  "verify": "39 log",
+  "doc": "docs/OPENROAD_ENGINES.md section 'grt: global routing (FastRoute)'"
+ },
+ "GRT_ALLOW_CONGESTION": {
+  "engine": "grt",
+  "meaning": "Continue past congestion. Hides a placement problem; GRT-0116 fixes in this repo were never done with it (kept false).",
+  "safe": "false",
+  "symptom": "-",
+  "verify": "39 log",
+  "doc": "docs/OPENROAD_ENGINES.md section 'grt: global routing (FastRoute)'"
+ },
+ "GRT_MACRO_EXTENSION": {
+  "engine": "grt",
+  "meaning": "GCells added around macro blockages.",
+  "safe": "0 to 4",
+  "symptom": "Routes hugging macros.",
+  "verify": "routing_global.txt",
+  "doc": "docs/OPENROAD_ENGINES.md section 'grt: global routing (FastRoute)'"
+ },
+ "RT_MAX_LAYER": {
+  "engine": "grt",
+  "meaning": "Highest routing layer. Macros use met4 so the wrapper can route over them on met5.",
+  "safe": "met4 for macros. Wrapper: not editable.",
+  "symptom": "Routing capacity; met5 would block the wrapper's PDN.",
+  "verify": "routing_global.txt; macro LEF obstructions",
+  "doc": "docs/OPENROAD_ENGINES.md section 'grt: global routing (FastRoute)'",
+  "repo": "met4 in 22 designs"
+ },
+ "RT_MIN_LAYER": {
+  "engine": "grt",
+  "meaning": "Lowest routing layer.",
+  "safe": "PDK default",
+  "symptom": "-",
+  "verify": null,
+  "doc": "docs/OPENROAD_ENGINES.md section 'grt: global routing (FastRoute)'"
+ },
+ "RT_CLOCK_MAX_LAYER": {
+  "engine": "grt",
+  "meaning": "Highest layer for clock nets.",
+  "safe": "Unset",
+  "symptom": "-",
+  "verify": null,
+  "doc": "docs/OPENROAD_ENGINES.md section 'grt: global routing (FastRoute)'"
+ },
+ "RT_CLOCK_MIN_LAYER": {
+  "engine": "grt",
+  "meaning": "Lowest layer for clock nets.",
+  "safe": "Unset",
+  "symptom": "-",
+  "verify": null,
+  "doc": "docs/OPENROAD_ENGINES.md section 'grt: global routing (FastRoute)'"
+ },
+ "RUN_ANTENNA_REPAIR": {
+  "engine": "ant",
+  "meaning": "Antenna repair after global routing.",
+  "safe": "true in macros. Turning it off is BLOCKED (weakens a check); wrappers turn it off (fixed) because a router diode there is unpowered.",
+  "symptom": "-",
+  "verify": "antenna__violating__nets must be 0",
+  "doc": "docs/OPENROAD_ENGINES.md section 'ant: antenna checker and repair'"
+ },
+ "DIODE_ON_PORTS": {
+  "engine": "ant",
+  "meaning": "Always insert diodes on ports of this polarity (none, in, out, both).",
+  "safe": "in for tiny_ai_core and soc_* macros; none otherwise",
+  "symptom": "Antenna violations on long macro pin wires in the wrapper.",
+  "verify": "metrics.json antenna__violating__nets; design__instance__count__class:antenna_cell",
+  "doc": "docs/OPENROAD_ENGINES.md section 'ant: antenna checker and repair'",
+  "repo": "in for 3 macros (tiny_ai_core, soc_image_text_match, soc_kv_attn_n8)"
+ },
+ "RUN_HEURISTIC_DIODE_INSERTION": {
+  "engine": "ant",
+  "meaning": "Heuristic diode insertion before routing (needs GPL_CELL_PADDING > 0).",
+  "safe": "true in 19 designs, false for the three macros with DIODE_ON_PORTS",
+  "symptom": "Antenna violations.",
+  "verify": "antenna count",
+  "doc": "docs/OPENROAD_ENGINES.md section 'ant: antenna checker and repair'"
+ },
+ "HEURISTIC_ANTENNA_THRESHOLD": {
+  "engine": "ant",
+  "meaning": "Manhattan distance (um) above which the heuristic inserter adds a diode.",
+  "safe": "Lower inserts more diodes",
+  "symptom": "Antenna violations.",
+  "verify": "antenna count",
+  "doc": "docs/OPENROAD_ENGINES.md section 'ant: antenna checker and repair'",
+  "repo": "110 for user_proj_example"
+ },
+ "GRT_ANTENNA_REPAIR_ITERS": {
+  "engine": "ant",
+  "meaning": "Max global antenna repair iterations.",
+  "safe": "1 to 10",
+  "symptom": "Antenna violations left after GRT.",
+  "verify": "44-openroad-repairantennas log",
+  "doc": "docs/OPENROAD_ENGINES.md section 'ant: antenna checker and repair'"
+ },
+ "GRT_ANTENNA_REPAIR_MARGIN": {
+  "engine": "ant",
+  "meaning": "Percent to over-fix antenna violations.",
+  "safe": "10 to 30",
+  "symptom": "Antenna violations remaining.",
+  "verify": "antenna count",
+  "doc": "docs/OPENROAD_ENGINES.md section 'ant: antenna checker and repair'"
+ },
+ "DRT_ANTENNA_REPAIR_ITERS": {
+  "engine": "ant",
+  "meaning": "Max antenna repair iterations in detailed routing.",
+  "safe": "1 to 10",
+  "symptom": "Antenna violations left after DRT.",
+  "verify": "48-openroad-checkantennas-1",
+  "doc": "docs/OPENROAD_ENGINES.md section 'ant: antenna checker and repair'"
+ },
+ "DRT_ANTENNA_REPAIR_MARGIN": {
+  "engine": "ant",
+  "meaning": "Percent to over-fix antenna violations in DRT.",
+  "safe": "10 to 30",
+  "symptom": "Antenna violations remaining.",
+  "verify": "antenna count",
+  "doc": "docs/OPENROAD_ENGINES.md section 'ant: antenna checker and repair'"
+ },
+ "DIODE_PADDING": {
+  "engine": "ant",
+  "meaning": "Diode cell padding (sites) during placement checks.",
+  "safe": "0 to 2",
+  "symptom": "Diode legalisation.",
+  "verify": null,
+  "doc": "docs/OPENROAD_ENGINES.md section 'ant: antenna checker and repair'"
+ },
+ "DRT_OPT_ITERS": {
+  "engine": "drt",
+  "meaning": "Max optimisation iterations of TritonRoute (default 64).",
+  "safe": "32 to 128",
+  "symptom": "DRC left after routing: more iterations; time grows.",
+  "verify": "46-openroad-detailedrouting log; metrics.json route__drc_errors",
+  "doc": "docs/OPENROAD_ENGINES.md section 'drt: detailed routing (TritonRoute)'"
+ },
+ "DRT_THREADS": {
+  "engine": "drt",
+  "meaning": "Threads for detailed routing.",
+  "safe": "1 to 2 under PROFILE=tight",
+  "symptom": "Speed. The runner sets 2.",
+  "verify": "step 46 log",
+  "doc": "docs/OPENROAD_ENGINES.md section 'drt: detailed routing (TritonRoute)'"
+ },
+ "DRT_SAVE_SNAPSHOTS": {
+  "engine": "drt",
+  "meaning": "Save an odb snapshot every routing iteration (large).",
+  "safe": "false",
+  "symptom": "Debug only.",
+  "verify": null,
+  "doc": "docs/OPENROAD_ENGINES.md section 'drt: detailed routing (TritonRoute)'"
+ },
+ "DRT_SAVE_DRC_REPORT_ITERS": {
+  "engine": "drt",
+  "meaning": "Write a DRC report every N iterations.",
+  "safe": "Unset",
+  "symptom": "Debug only.",
+  "verify": null,
+  "doc": "docs/OPENROAD_ENGINES.md section 'drt: detailed routing (TritonRoute)'"
+ },
+ "RUN_DRT": {
+  "engine": "drt",
+  "meaning": "Run detailed routing.",
+  "safe": "true. BLOCKED to false.",
+  "symptom": "-",
+  "verify": null,
+  "doc": "docs/OPENROAD_ENGINES.md section 'drt: detailed routing (TritonRoute)'"
+ },
+ "RUN_FILL_INSERTION": {
+  "engine": "fin",
+  "meaning": "Insert filler and decap cells.",
+  "safe": "true. False only in the wrappers (fixed).",
+  "symptom": "Fill is needed for density DRC.",
+  "verify": null,
+  "doc": "docs/OPENROAD_ENGINES.md section 'fin: filler insertion'"
+ },
+ "RUN_TAP_ENDCAP_INSERTION": {
+  "engine": "floorplan",
+  "meaning": "Insert tap and endcap cells.",
+  "safe": "true. False only in the wrappers (fixed).",
+  "symptom": "Latch-up rules.",
+  "verify": null,
+  "doc": "docs/OPENROAD_ENGINES.md section 'ifp (initialize_floorplan, rows, tracks, cut_rows)'"
+ },
+ "RUN_POST_GPL_DESIGN_REPAIR": {
+  "engine": "rsz-gpl",
+  "meaning": "Run the post-GPL design repair step.",
+  "safe": "true",
+  "symptom": "-",
+  "verify": null,
+  "doc": "docs/OPENROAD_ENGINES.md section 'rsz (Resizer: repair_design, repair_timing, buffering)' (step 32)"
+ },
+ "RUN_LINTER": {
+  "engine": "flow",
+  "meaning": "Run Verilator lint.",
+  "safe": "true; turning it off is BLOCKED",
+  "symptom": "-",
+  "verify": null,
+  "doc": ".claude/skills/harden-design/SKILL.md"
+ }
+}

@@ -1,8 +1,58 @@
 [
-  {"title": ["Demo: KV cache", "prefill vs decode"], "content": "Run demo kv: call the demo_steps tool with name kv and do its steps one at a time."},
-  {"title": ["Demo: precision study", "7 number formats"], "content": "Run demo precision: call the demo_steps tool with name precision and do its steps one at a time."},
-  {"title": ["Demo: SoC", "the bus dominates"], "content": "Run demo soc: call the demo_steps tool with name soc and do its steps one at a time."},
-  {"title": ["Standard cells", "kv_attn_n8"], "content": "How many standard cells does kv_attn_n8 have?"},
-  {"title": ["Why more flip-flops", "kv_attn_n8_int4"], "content": "Why does kv_attn_n8_int4 have more flip-flops than kv_attn_n8?"},
-  {"title": ["Experiments", "what can I run"], "content": "Call the list_experiments tool and show me what I can run."}
+ {
+  "title": [
+   "What can I ask",
+   "all capabilities"
+  ],
+  "content": "Call the capability_map tool and show its markdown field verbatim."
+ },
+ {
+  "title": [
+   "Standard cells",
+   "kv_attn_n8"
+  ],
+  "content": "How many standard cells does kv_attn_n8 have?"
+ },
+ {
+  "title": [
+   "Errors and slow steps",
+   "log digest of kv_attn_n8"
+  ],
+  "content": "Call the log_digest tool for design kv_attn_n8 and show its markdown field verbatim."
+ },
+ {
+  "title": [
+   "Open the layout",
+   "KLayout application"
+  ],
+  "content": "Call the open_gds tool with design kv_attn_n8 and viewer klayout-app."
+ },
+ {
+  "title": [
+   "Plan with a skill",
+   "harden-design"
+  ],
+  "content": "Call the skill_plan tool with skill harden-design and design vision_block. Show the steps."
+ },
+ {
+  "title": [
+   "Run a simulation",
+   "asks before it starts"
+  ],
+  "content": "Run make simulate for vision_block"
+ },
+ {
+  "title": [
+   "KLayout by text",
+   "open, layers, zoom"
+  ],
+  "content": "open kv_attn_n8 in klayout and show only met1 and met2"
+ },
+ {
+  "title": [
+   "Magic by text",
+   "open and run DRC"
+  ],
+  "content": "open kv_attn_n8 in magic and run drc"
+ }
 ]

@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "recipe": {
+    "name": "open-ai-chip (make test only)",
+    "kind": "make",
+    "bootstrap": [],
+    "build": [],
+    "test": [
+      "make test"
+    ],
+    "start": null,
+    "port": null,
+    "readinessPath": "/",
+    "evidence": [
+      "Makefile target test = tests/run_tests.sh (no Docker, about 65 s)",
+      "make check needs a design and Docker results, so it is not part of the recipe"
+    ]
+  }
+}
