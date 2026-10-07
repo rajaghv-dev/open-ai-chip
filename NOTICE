@@ -1,0 +1,17 @@
+open-ai-chip
+Copyright 2026 rajaghv-dev and contributors
+
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+This repository contains third-party material under its own licence:
+
+- chipfoundry/caravel_user_project template files (Apache-2.0): designs/user_proj_example/rtl/
+  (user_proj_example.v, defines.v), the fixed Caravel wrapper geometry and user_defines.v structure in
+  designs/user_project_wrapper*/ (fixed_dont_change/, rtl/), and the template-derived configs and SDC.
+  Their LICENSE copies are kept next to them (designs/*/rtl/LICENSE).
+- PicoRV32 by Claire Xenia Wolf (ISC licence, header in the file): soc_sim/third_party/picorv32/.
+- Material copied from the owner's repository open-ai-silicon (same owner), including docs/slides/:
+  listed with commits in provenance/SOURCES.md.
+
+Not included, downloaded at run time into the git-ignored build/ directory: the SkyWater sky130A PDK (Apache-2.0),
+the LibreLane image, chipfoundry/caravel-lite and caravel_mgmt_soc_litex (see versions.lock and caravel_sim/VERSIONS.txt).

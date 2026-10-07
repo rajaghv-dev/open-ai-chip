@@ -63,7 +63,9 @@ A learner's guide to these skills (fundamentals, insights, how they fit together
 ## HARD RULES
 Security and ownership
 - Never run `cf login`, `cf init`, `cf push`, submit, reserve or `cf confirm`, and never publish anything; those
-  need the owner's direct action. Never change the GitHub repository from private to public.
+  need the owner's direct action. The repository is public (owner's decision, 2026-10-07; Apache-2.0, LICENSE and NOTICE):
+  never commit secrets, tokens, credentials, private keys or private files, and check the diff before every push. Changing
+  repository visibility stays owner-only.
 - Do not edit `../open-ai-silicon`. No external model downloads or nondeterministic data in tests.
 
 Physical flow

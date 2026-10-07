@@ -24,7 +24,8 @@ The full rules are in `CLAUDE.md` (HARD RULES), the plan in `SPEC.md`, and the H
 
 - **Owner only:**
   - never run `cf login|init|push|submit|confirm`;
-  - never publish anything, never make the GitHub repo public;
+  - never publish anything; repository visibility is owner-only. The repo is public (Apache-2.0): never commit
+    secrets, tokens, credentials, private keys or private files, and check the diff before every push;
   - never edit `../open-ai-silicon`.
 - **Signoff settings:**
   - never loosen `CLOCK_PERIOD` (25 ns) or `MAX_TRANSITION_CONSTRAINT`;

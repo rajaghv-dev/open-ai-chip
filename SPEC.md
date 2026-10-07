@@ -805,7 +805,8 @@ Reservation, payment, submission, and `cf confirm` remain final human-only actio
 2. Work on one phase and one ownership area only.
 3. Start from a clean branch and report the starting commit.
 4. Do not edit sibling `../open-ai-silicon`; it is reference material.
-5. Do not change the target repository from private to public.
+5. Do not change repository visibility (owner-only). The repository was made public by the owner (2026-10-07, Apache-2.0):
+   never commit secrets, tokens, credentials, private keys or private files.
 6. Do not add external model downloads, package registries at test time, or nondeterministic data.
 7. Do not hand-edit generated model artifacts.
 8. Do not weaken timing, DRC, LVS, synthesis, or precheck settings to make a gate pass.

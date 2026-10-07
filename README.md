@@ -14,7 +14,7 @@ step 1.
 **macOS** (details and checks for each line: [docs/RUN_ON_MAC.md](docs/RUN_ON_MAC.md) section 2):
 
 ```bash
-git clone https://github.com/rajaghv-dev/open-ai-chip.git && cd open-ai-chip       # private repository: needs access
+git clone https://github.com/rajaghv-dev/open-ai-chip.git && cd open-ai-chip
 brew install icarus-verilog riscv64-elf-gcc colima docker                           # simulator, RISC-V compiler, Docker runtime
 colima start -p osl --cpu 6 --memory 16 --disk 60 --vm-type vz                       # the Docker VM this repo uses
 python3 -m venv build/agent/venv && build/agent/venv/bin/pip install -r tools/requirements.txt   # agent and test packages
@@ -152,6 +152,7 @@ Each name links to its design page (architecture, data flow, every flow step, wh
 - SoC and tapeout: [SoC plan](docs/SOC_PLAN.md), [firmware](firmware/README.md), [Caravel simulation](docs/CARAVEL_SIM.md), [precheck](docs/PRECHECK.md).
 - Agents: [Hermes agent](docs/HERMES_AGENT.md), [tools](tools/README.md), [KLayout demo](examples/hermes_klayout_demo/README.md), [harness](examples/hermes_harness/README.md), [RAG](examples/hermes_rag/README.md), [KLayout GUI](examples/hermes_klayout_gui/README.md), [OpenROAD GUI](examples/openroad_gui/README.md), [desktop and tool server](examples/hermes_desktop/README.md), [skills](docs/SKILLS.md), [local Grafana dashboards](docs/GRAFANA.md).
 - Extending with a coding agent (Claude Code, Codex, Gemini CLI / Antigravity): [AGENTS.md](AGENTS.md).
+- Licence: Apache-2.0 ([LICENSE](LICENSE), [NOTICE](NOTICE)); third-party parts and their licences: [provenance/SOURCES.md](provenance/SOURCES.md).
 - Project: [plan and rules](SPEC.md), [sources and licences](provenance/SOURCES.md), [slides](docs/slides/README.md) (from the sibling repository).
 
 Not covered: no tapeout or `cf` account step is automated (owner only); the full-Caravel sims and the precheck ran for
