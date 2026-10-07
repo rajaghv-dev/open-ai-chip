@@ -28,6 +28,11 @@ bash scripts/hermes_start.sh                    # any later time: checks and sta
 - In Hermes.app, the sidebar's **Pinned** section lists the sessions "Demo 1: Repo tour" to "Demo 9: The model itself".
   Each one already shows its commands to type and what to say. Open the session for the step you are presenting; the
   steps below follow the same order.
+- **Make the chat readable on a projector** (once; these are app preferences, kept across restarts). Press **Cmd+,**,
+  open **Appearance**, and set:
+  - **Color Mode: Light**: dark text on a light background (the dark mode's grey text is hard to read);
+  - **Chat Text Size: 150 %** (presets 90 to 175 %; it scales chat text only);
+  - **UI Scale** up a step if the sidebar is also too small.
 - Warm the KLayout window once: type `klayout kv8`, then `chip close`.
 - If `chip` is unknown in a chat, it is on another profile: start a new chat (Cmd+N), or run `hermes profile use chip`
   and restart the app. The start script reports which profile is the default.

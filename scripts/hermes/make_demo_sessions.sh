@@ -17,6 +17,11 @@ mkdir -p "$REPO/build/agent"
 curl -fsS -m 3 http://127.0.0.1:8770/health >/dev/null 2>&1 || { echo "tool server not running: bash scripts/hermes_start.sh --no-app first"; exit 1; }
 [ -f "$HOME/.hermes/profiles/chip/config.yaml" ] || { echo "profile chip missing: bash scripts/hermes_agent_setup.sh --apply"; exit 1; }
 
+# remove earlier demo sessions made as source "oneshot" (invisible in the app's sidebar): pinned, titled "/demo ..." or "Demo N: ..."
+hermes -p chip sessions pinned 2>/dev/null | awk '/oneshot/ && ($1=="/demo" || $1=="Demo") {print $NF}' | while read -r sid; do
+  hermes -p chip sessions delete "$sid" --yes >/dev/null 2>&1 && echo "deleted hidden (oneshot) $sid"
+done
+
 # delete the sessions this script created before (only those ids), for the cards being rebuilt
 if [ -f "$STORE" ]; then
   python3 - "$STORE" "${CARDS[@]}" <<'E' | while read -r sid; do hermes -p chip sessions delete "$sid" --yes >/dev/null 2>&1 && echo "deleted old $sid"; done
@@ -33,7 +38,8 @@ TITLES=()   # "sid|title" of the sessions made in this run; renamed at the end (
 
 for key in "${CARDS[@]}"; do
   t0=$(date +%s)
-  out="$(cd "$REPO" && hermes -p chip chat -q "/demo $key" --oneshot --pass-session-id --in "$REPO" 2>&1)"
+  # --source cli: Hermes.app's sidebar hides source "oneshot" sessions, even pinned ones (SIDEBAR_EXCLUDED_SOURCES)
+  out="$(cd "$REPO" && hermes -p chip chat -q "/demo $key" --oneshot --source cli --pass-session-id --in "$REPO" 2>&1 | tr -d '\r')"   # CR in titles is refused
   sid="$(echo "$out" | sed -n 's/^Session: *\([0-9_a-f]*\).*/\1/p' | tail -1)"
   title="$(echo "$out" | sed -n 's/^## \(Demo [0-9]*: .*\)$/\1/p' | head -1)"
   if [ -z "$sid" ] || [ -z "$title" ]; then echo "FAILED $key (no session id or card in the output)"; continue; fi
@@ -56,7 +62,7 @@ for pass in 1 2 3; do
   for st in "${TITLES[@]}"; do
     sid="${st%%|*}"; title="${st#*|}"
     if ! echo "$pinned" | grep "$sid" | grep -q "^Demo "; then
-      hermes -p chip sessions rename "$sid" "$title" >/dev/null 2>&1; missing=$((missing+1))
+      hermes -p chip sessions rename "$sid" "$title" >/dev/null 2>&1 || echo "  rename failed: $sid"; missing=$((missing+1))
     fi
   done
   [ $missing = 0 ] && break

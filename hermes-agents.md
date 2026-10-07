@@ -616,6 +616,12 @@ After each visual step a picture of the view comes back into the chat (`http://1
   - Demo 9: The model, for contrast.
 - Each session holds its card: the commands to type, the sentences to try, and what to say. `/demo <name>` and `/demos`
   show the same cards anywhere.
+- The sessions are created with `--source cli`. Hermes.app's sidebar hides `oneshot` sessions even when they are pinned
+  (`SIDEBAR_EXCLUDED_SOURCES` in the desktop source), so the first version of the script made invisible sessions.
+- Titles are set after all sessions exist. The CLI output ends lines with a carriage return, and Hermes refuses a title
+  that contains one, which is why the earlier renames failed.
+- Readability: in Hermes.app, **Cmd+,** → **Appearance**: **Color Mode: Light** (dark text) and **Chat Text Size: 150 %**.
+  These are app preferences that no script can set.
 - Rerunning replaces only the sessions it made itself (ids in `build/agent/demo_sessions.json`). It took about 3
   minutes for all nine.
 
