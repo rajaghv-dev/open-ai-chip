@@ -24,7 +24,7 @@ Every command below is run from this directory.
 | Homebrew tools (simulator, RISC-V compiler) | `brew install icarus-verilog riscv64-elf-gcc` (`python3` and `jq` ship with macOS) | `iverilog -V`, `riscv64-elf-gcc --version` |
 | Docker runtime: Colima VM `osl` (6 CPU, 16 GB) | `brew install colima docker && colima start -p osl --cpu 6 --memory 16 --disk 60 --vm-type vz` | `colima status -p osl` |
 | LibreLane image and sky130A PDK | `make doctor` (lists what is missing and how to get it) | `make doctor` all OK |
-| Agent Python environment | `python3 -m venv build/agent/venv && build/agent/venv/bin/pip install klayout mcp pytest` | `build/agent/venv/bin/python -c "import klayout.lay, mcp"` |
+| Agent Python environment | `python3 -m venv build/agent/venv && build/agent/venv/bin/pip install -r tools/requirements.txt` (klayout mcp pytest fastapi uvicorn httpx) | `build/agent/venv/bin/python -c "import klayout.lay, mcp"` |
 | Local model | `brew install ollama` (or the Ollama app), `ollama serve &`, `ollama pull hermes3:8b` (4.7 GB, for the terminal agent loops and `run_all --agents`). The maintained Hermes desktop app uses `qwen3.5-64k:9b` + `qwen3-embedding:0.6b`: `bash scripts/hermes_agent_setup.sh`, then `bash scripts/hermes_start.sh` (macOS) | `ollama list` |
 | KLayout desktop app | `brew install --cask klayout`, then approve it once: right-click `/Applications/KLayout/klayout.app` > Open | `/Applications/KLayout/klayout.app/Contents/MacOS/klayout -b -r /dev/null` returns |
 | XQuartz (OpenROAD GUI and Magic windows) | `brew install --cask xquartz`, log out and in, then `defaults write org.xquartz.X11 nolisten_tcp -bool false`, `open -a XQuartz`, `DISPLAY=:0 /opt/X11/bin/xhost +localhost` | `lsof -nP -iTCP:6000 -sTCP:LISTEN` shows X11.bin |

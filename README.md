@@ -4,49 +4,114 @@ Twenty-five small digital designs (tiny AI engines, a precision study, KV-cache 
 wrappers), each taken from RTL to signoff-clean GDSII on sky130A with LibreLane 3.0.2 in Docker, on a laptop. Local
 Hermes agents read the results, drive KLayout and OpenROAD, and can hand flows to Claude.
 
-## Open and run
+## Quick start
+
+Every step below was run on macOS (Apple Silicon) on 2026-10-07. Linux (Ubuntu/Debian) has its own setup script; see
+step 1.
+
+### 1. Install (once)
+
+**macOS** (details and checks for each line: [docs/RUN_ON_MAC.md](docs/RUN_ON_MAC.md) section 2):
 
 ```bash
-cd open-ai-chip
-make doctor                                  # tools, Docker, LibreLane image, PDK: what is missing and how to get it
-bash scripts/run_all_mac.sh                  # macOS: verify everything (tests, sims, signoff, gate level), ~10 min (estimate)
-bash scripts/run_all_mac.sh --all            # + flows, precheck, Hermes agents, GUI windows
-bash scripts/setup_linux.sh && bash scripts/run_all.sh   # Linux: set up, then the same run
+git clone https://github.com/rajaghv-dev/open-ai-chip.git && cd open-ai-chip       # private repository: needs access
+brew install icarus-verilog riscv64-elf-gcc colima docker                           # simulator, RISC-V compiler, Docker runtime
+colima start -p osl --cpu 6 --memory 16 --disk 60 --vm-type vz                       # the Docker VM this repo uses
+python3 -m venv build/agent/venv && build/agent/venv/bin/pip install -r tools/requirements.txt   # agent and test packages
+make doctor                                   # checks everything; tells you how to get the LibreLane image and the sky130A PDK
+brew install --cask klayout xquartz           # optional: layout windows (KLayout) and Magic/OpenROAD windows (XQuartz)
 ```
 
-Order for a new or owner-unfrozen design: `make doctor`, `make test`, then `make flow-all DESIGN=<d>`. Fast gate: `make test`. All targets: `make help`.
+**Linux:** `bash scripts/setup_linux.sh` installs the same pieces (apt packages, Docker, the image, the PDK, the venv),
+then run `make doctor`. Details: [docs/RUN_ON_LINUX.md](docs/RUN_ON_LINUX.md).
 
-All 25 designs are frozen (`designs/FROZEN.json`): the Makefile refuses `gds`, `collect`, `flow-all` and `flow` on them. On a
-frozen design use `make simulate DESIGN=kv_attn_n8`, `make view DESIGN=kv_attn_n8` or a what-if copy; unfreeze is owner-only
-([designs/FROZEN.md](designs/FROZEN.md)).
-
-## Hermes Agent desktop app
-
-The front end is Nous Research's **Hermes Agent** desktop app (Hermes.app), connected to this repo over MCP with a
-`chip` profile (local Ollama `qwen3.5-64k:9b`, no file edits, gated runs, Claude only via `ask_claude` when needed).
+### 2. Verify
 
 ```bash
-bash scripts/hermes_agent_setup.sh            # dry run: shows the diff it would make in ~/.hermes (review it)
-bash scripts/hermes_agent_setup.sh --apply    # backup ~/.hermes, create the chip profile, MCP bridge, skills, hook, cron
-bash scripts/hermes_start.sh                   # every time: checks and starts Ollama + models, Docker, tool server, then opens Hermes.app
-bash scripts/hermes_start.sh --demo-sessions   # once before a class: nine pinned "Demo N" sessions with the commands to type
+make doctor          # every check PASS (tools, Docker, LibreLane image, PDK, disk)
+make test            # fast gate, no Docker: about 100-125 s, ends with "test: ALL PASSED"
+make test-full       # heavier, never starts a physical flow: about 5 min (105 PASS, 282 s on 2026-10-07)
+bash scripts/run_all_mac.sh        # or everything in order (tests, sims, signoff, gate level); Linux: bash scripts/run_all.sh
 ```
 
-Instant commands in Hermes (no model turn, about a second; partial names work): `/klayout kv_attn show only met1`,
-`/magic vision lit`, `/gds kv8`, `/timing kv_attn`, `/synth vision lit`, `/drc kv8`, `/lvs prec bf16`, `/signoff caravel kv`,
-`/compare kv4 kv8 kv16`, `/sim kv8`, `/run synth vision_block`, `/rebuild kv8`, `/jobs`; loop and harness demos
-`/loopdemo signoff kv`, `/loopdemo layers kv8`, `/harness facts kv`; `/chip` lists them all. An ambiguous name
-(`/timing audio`) gets a numbered question: answer `2` or `/pick 2`. Top-down guide: [hermes-agents.md](hermes-agents.md); class script: [docs/HERMES_CLASS_SHOWCASE.md](docs/HERMES_CLASS_SHOWCASE.md).
+`run_all_mac.sh --all` adds flows, precheck, the terminal agents and the GUI windows. Every target is listed by `make help`.
 
-Ask in Hermes: "How many cells does kv_attn_n8 have?", "Why does kv_attn_n8_int4 have more flip-flops than kv_attn_n8?",
-"Show the errors in kv_attn_n8's logs", "Open kv_attn_n8 in KLayout and show met1", "Run the simulation for vision_block" (asks
-for approval, then `yes, run <id>`), "Summarize the last run", "What should I improve in prec_bf16?", "What if the clock
-were 20 ns for vision_block?", "Ask Claude to ...". Every part of the integration, point by point: [hermes-agents.md](hermes-agents.md). Full map, safety and status:
-[docs/HERMES_AGENT_INTEGRATION.md](docs/HERMES_AGENT_INTEGRATION.md). Fifteen narrated demos to run in the app ("run demo 4"): [docs/HERMES_DEMOS.md](docs/HERMES_DEMOS.md). Undo: `bash scripts/hermes_agent_setup.sh --uninstall --apply`.
+### 3. Explore a design (safe on the frozen designs)
+
+All 25 designs are frozen (`designs/FROZEN.json`): the Makefile refuses `gds`, `collect`, `flow-all` and `flow` on them.
+These commands reuse the committed run and change nothing:
+
+```bash
+make simulate DESIGN=kv_attn_n8      # RTL simulation, self-checking testbench
+make check    DESIGN=kv_attn_n8      # signoff check of the committed run (DRC, LVS, timing, no lost logic)
+make gl       DESIGN=kv_attn_n8      # gate-level simulation (add NETLIST=final for the routed netlist)
+make view     DESIGN=kv_attn_n8      # summary plus the layout picture
+```
+
+- To run the full flow on a frozen design, use a what-if copy under `build/whatif/` (in Hermes: `chip rebuild kv8`).
+- For a new design, or one the owner has unfrozen: `make doctor`, `make test`, then `make flow-all DESIGN=<d>`
+  (simulate, gds, check, gl, gl-final, collect).
+- Unfreezing is owner-only: [designs/FROZEN.md](designs/FROZEN.md).
+
+### 4. The local AI agent: Hermes Agent desktop app (macOS)
+
+The front end is Nous Research's **Hermes Agent** desktop app, connected to this repo over MCP with a `chip` profile:
+- local Ollama model `qwen3.5-64k:9b`;
+- no file edits, gated runs;
+- Claude only via `ask_claude` when you ask.
+
+**Once:**
+
+```bash
+curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash            # Hermes Agent (or the Hermes Desktop download)
+brew install ollama && ollama pull qwen3.5:9b && ollama pull qwen3-embedding:0.6b
+ollama create qwen3.5-64k:9b -f tools/ollama/qwen3.5-64k.Modelfile             # the 64k-context variant Hermes uses
+bash scripts/hermes_agent_setup.sh --demo-tools            # dry run: shows the diff it would make in ~/.hermes; review it
+bash scripts/hermes_agent_setup.sh --demo-tools --apply    # backup ~/.hermes, create the chip profile, MCP bridge, skills, hook, cron
+hermes profile use chip                                    # make chip the profile Hermes.app opens on
+```
+
+**Every time:**
+
+```bash
+bash scripts/hermes_start.sh                   # checks and starts Ollama (models loaded and kept in memory), Docker, tool server, then Hermes.app
+bash scripts/hermes_start.sh --demo-sessions   # before a class: also nine pinned "Demo N" sessions with the commands to type
+```
+
+In Hermes.app:
+- Make the chat readable: Settings (**Cmd+,**) → Appearance → **Color Mode: Light**, **Chat Text Size: 150 %**.
+- Open a pinned "Demo N" session, or start a new chat (Cmd+N) and type `chip`.
+
+**How to type commands**
+- **Without** the `/`, the answer is a full chat reply with tables, 🟢🟡🟠🔴 slack colours and KLayout pictures (a
+  few seconds). With `/`, the answer is instant but shown as a small grey line.
+- Partial names work; an ambiguous one asks with numbered choices (`timing audio`, then `2`).
+
+| Do | Type |
+|---|---|
+| See all designs, signoff, numbers | `designs`, `signoff caravel kv`, `timing kv_attn`, `synth vision lit`, `drc kv8`, `lvs prec bf16`, `compare kv4 kv8 kv16` |
+| Open and operate a layout | `klayout kv_attn show only met1`, `layout zoom to the lower-left 50 um`, `drc kv8 live`, `magic vision lit`, `chip close` |
+| Search and explain | `search hold violation wrapper`, `ask why does kv_attn_n8_int4 have more flip-flops than kv_attn_n8?` |
+| Experiments and what-ifs (start at once) | `chip experiment soc-kv`, `chip whatif vision lit CLOCK_PERIOD=5`, `chip rebuild kv8`, then `jobs`, `result <tag>` |
+| Agent loops and harnesses | `loopdemo signoff kv`, `harness facts kv` |
+| All commands, demo cards | `chip`, `demos` |
+
+Plain questions go to the local model: "Which kv design has the most flip-flops?", "What if the clock were 20 ns for
+vision_block?". A run asked for in a sentence starts only after your `yes, run <id>`.
+
+Every integration with copy-paste examples: [hermes-agents.md](hermes-agents.md). Class script:
+[docs/HERMES_CLASS_SHOWCASE.md](docs/HERMES_CLASS_SHOWCASE.md). Fifteen narrated demos: [docs/HERMES_DEMOS.md](docs/HERMES_DEMOS.md).
+Safety and status: [docs/HERMES_AGENT_INTEGRATION.md](docs/HERMES_AGENT_INTEGRATION.md). Undo the setup:
+`bash scripts/hermes_agent_setup.sh --uninstall --apply`.
 
 Older front ends (Open WebUI with `make hermes` / `make demo*`, the repo's wrapper app, terminal agent loops) remain in
-the repo unmaintained; what is incomplete is listed in [SPEC.md](SPEC.md#agent-front-ends-decision-2026-10-07) and
+the repo unmaintained. What is incomplete is listed in [SPEC.md](SPEC.md#agent-front-ends-decision-2026-10-07) and
 [docs/HERMES_DESKTOP.md](docs/HERMES_DESKTOP.md).
+
+### 5. Extend the repo with a coding agent
+
+Claude Code, Codex, Gemini CLI or Antigravity: start from [AGENTS.md](AGENTS.md) (rules, where to extend, recipes,
+lessons learned). Before any commit: `make test`.
 
 ## Open by hand
 
