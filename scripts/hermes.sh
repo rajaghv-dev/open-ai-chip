@@ -7,6 +7,8 @@
 #   scripts/hermes.sh demo showcase   the scripted showcase (demo.py): saved as an Open WebUI chat + demo_transcript.md
 #   scripts/hermes.sh stop     stop what start.sh started
 #   scripts/hermes.sh status   what is running and whether the config audit passes
+#   scripts/hermes.sh app [opts]   the Nous Hermes desktop app (profile chip): checks, starts what it needs, opens it
+#                                  (= bash scripts/hermes_start.sh [opts]; the maintained front end, hermes-agents.md)
 # Docs: docs/HERMES_DESKTOP.md, examples/hermes_desktop/README.md
 set -uo pipefail
 export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
@@ -50,6 +52,7 @@ open_ui() {
 
 case "${1:-up}" in
   up)     setup; start_all; open_ui ;;
+  app)    shift; exec bash "$REPO/scripts/hermes_start.sh" "$@" ;;
   demo)
     if [ -f "$HD/demos.py" ] && [ "${2:-}" != "showcase" ]; then
       if [ -z "${2:-}" ]; then "$PY" "$HD/demos.py" --list; exit $?; fi

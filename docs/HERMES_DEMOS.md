@@ -5,6 +5,8 @@ The same content is the skill `.claude/skills/chip-demos/SKILL.md`, which Hermes
 Background: [HERMES_AGENT_INTEGRATION.md](HERMES_AGENT_INTEGRATION.md) (setup, safety, models). Numbers below come from `designs/<d>/output/metrics.json`
 and from the transcripts at the end (isolated home `build/hermes_final_home`, model `qwen3.5-64k:9b`, one-shot `hermes -p chip -z`).
 
+For a class, use the scripted version: [HERMES_CLASS_SHOWCASE.md](HERMES_CLASS_SHOWCASE.md) (verified steps, times, what to say).
+
 ## Prerequisite (once)
 
 ```bash

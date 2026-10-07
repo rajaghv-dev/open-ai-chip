@@ -24,13 +24,15 @@ The front end is Nous Research's **Hermes Agent** desktop app (Hermes.app), conn
 ```bash
 bash scripts/hermes_agent_setup.sh            # dry run: shows the diff it would make in ~/.hermes (review it)
 bash scripts/hermes_agent_setup.sh --apply    # backup ~/.hermes, create the chip profile, MCP bridge, skills, hook, cron
-open -a Hermes                                 # then pick the "chip" profile / "open-ai-chip" project
+bash scripts/hermes_start.sh                   # every time: checks and starts Ollama + models, Docker, tool server, then opens Hermes.app
+bash scripts/hermes_start.sh --demo-sessions   # once before a class: nine pinned "Demo N" sessions with the commands to type
 ```
 
 Instant commands in Hermes (no model turn, about a second; partial names work): `/klayout kv_attn show only met1`,
 `/magic vision lit`, `/gds kv8`, `/timing kv_attn`, `/synth vision lit`, `/drc kv8`, `/lvs prec bf16`, `/signoff caravel kv`,
 `/compare kv4 kv8 kv16`, `/sim kv8`, `/run synth vision_block`, `/rebuild kv8`, `/jobs`; loop and harness demos
-`/loopdemo signoff kv`, `/loopdemo layers kv8`, `/harness facts kv`; `/chip` lists them all. Top-down guide: [hermes-agents.md](hermes-agents.md).
+`/loopdemo signoff kv`, `/loopdemo layers kv8`, `/harness facts kv`; `/chip` lists them all. An ambiguous name
+(`/timing audio`) gets a numbered question: answer `2` or `/pick 2`. Top-down guide: [hermes-agents.md](hermes-agents.md); class script: [docs/HERMES_CLASS_SHOWCASE.md](docs/HERMES_CLASS_SHOWCASE.md).
 
 Ask in Hermes: "How many cells does kv_attn_n8 have?", "Why does kv_attn_n8_int4 have more flip-flops than kv_attn_n8?",
 "Show the errors in kv_attn_n8's logs", "Open kv_attn_n8 in KLayout and show met1", "Run flow-all for vision_block" (asks

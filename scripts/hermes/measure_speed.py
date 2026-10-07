@@ -58,6 +58,23 @@ def main():
                             "-z 'open kv_attn design' (window opened by pre_llm_call in 1.0 s, then the model's one-line reply)": 60,
                             "-z 'what is the setup slack of kv attention 16?' (facts injected)": 14,
                             "-z '/timing kv_attn' (answered by pre_llm_call)": 28},
+        "e2e_real_binary_2026_10_07": {
+            "note": "hermes -p chip -z on the owner's real chip profile after the fixes (router handled, transform_llm_output shows the exact reply); seconds",
+            "search the docs for how the wrapper hold violation was fixed": 10, "run the soc-kv experiment (confirm id only)": 6,
+            "list the experiments": 9, "close all windows": 6,
+            "open kv attention 16 in klayout and show only met2 (window opened 3.2 s; before the exact-reply hook)": 64,
+            "which kv design has the most flip-flops? (model + compare_designs, correct: kv_attn_n16 277)": 74,
+            "before the fixes: the same search sentence (model paraphrased and invented a MAX_TRANSITION_CONSTRAINT change)": 68},
+        "e2e_plugin_dispatch_2026_10_07": {
+            "/search hold violation wrapper": 0.3, "/klayout kv_attn show only met1": 3.3, "/layout zoom to the lower-left 50 um": 0.7,
+            "/layout show all": 0.5, "/drc kv8 live": 0.7, "/close all": 4.3, "/timing audio then 2": 0.0,
+            "/experiment soc-kv (job done, exit 0)": 15, "/loopdemo sim kv8 (PASS verified)": 2.0,
+            "/whatif vision lit PL_TARGET_DENSITY_PCT=60 (full flow on a copy, exit 0, compared by /result)": 51,
+            "/whatif vision lit CLOCK_PERIOD=40": "blocked by the HARD RULES, nothing started"},
+        "whatif_and_rebuild_2026_10_07": {
+            "chip whatif vision lit CLOCK_PERIOD=5 (done, worst setup slack +0.069 ns at max_ss, shown orange)": 48,
+            "chip whatif vision lit CLOCK_PERIOD=4 (LibreLane exit 2: hold violations at max_ff, min_ff, nom_ff; shown red)": 46,
+            "chip rebuild kv8 (unchanged copy, identical cells, slack, DRC, LVS to the committed run)": 104},
         "loops_live": {"/loopdemo layers vision lit (open + 5 layer pictures in KLayout)": 7.2,
                        "/loopdemo sim vision lit (make simulate, PASS line verified)": 2.0}}
     with open(OUT, "w") as f:

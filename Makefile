@@ -88,7 +88,7 @@ VIEWS_OF := $(if $(filter file,$(origin DESIGN)),tiny_ai_core,$(DESIGN))
 SIM_PLUS := $(if $(SIM_VEC),+VEC=$(abspath $(SIM_VEC)))
 GL_DESC  := $(if $(SIM_VEC),every case of tb/vectors.hex,committed tb)
 
-.PHONY: help doctor test test-full freeze check-frozen views macro-views wrapper simulate gds flow check gl gl-final collect view flow-all tiny all-designs designs table results generate check-generated model-check clean soc-sim adapter-test caravel-rtl caravel-gl precheck caravel-fullgl caravel-sdf-wrapper soc-kv code-map hermes hermes-stop demo demo-precision demo-kv demo-rtl2gds demo-int4 demo-heatmaps demo-soc demo-gui demo-proof demo-showcase grafana-db
+.PHONY: help doctor test test-full freeze check-frozen views macro-views wrapper simulate gds flow check gl gl-final collect view flow-all tiny all-designs designs table results generate check-generated model-check clean soc-sim adapter-test caravel-rtl caravel-gl precheck caravel-fullgl caravel-sdf-wrapper soc-kv code-map hermes hermes-app hermes-stop demo demo-precision demo-kv demo-rtl2gds demo-int4 demo-heatmaps demo-soc demo-gui demo-proof demo-showcase grafana-db
 .DEFAULT_GOAL := help
 
 help:
@@ -99,6 +99,7 @@ help:
 	@echo "  grafana-db       build build/grafana/chip.db (SQLite of the committed evidence) for the local Grafana dashboards (docs/GRAFANA.md)"
 	@echo "  model-check      golden.py --check of tiny_ai, image_text_match, precision_hw, kv_attention (audio_* have no --check; the testbench is the check)"
 	@echo "  master-prompt  regenerate tools/prompts/master_prompt.txt (scripts/docs/make_master_prompt.py) and .hermes.md (scripts/docs/make_hermes_context.py), the repo context for Hermes / Open WebUI"
+	@echo "  hermes-app     Nous Hermes desktop app (profile chip): check and start Ollama, models, Docker, tool server, then open it (scripts/hermes_start.sh; ARGS=--check|--demo-sessions)"
 	@echo "  hermes / hermes-stop   one command: set up if needed, start the Hermes chip agent and open it / stop it (docs/HERMES_DESKTOP.md)"
 	@echo "  demo   numbered menu of Hermes demos; demo-precision demo-kv demo-rtl2gds demo-int4 demo-heatmaps demo-soc demo-gui demo-proof demo-showcase run one"
 	@echo "  code-map   regenerate docs/CODE_MAP.md (file -> purpose -> parent doc) from the Docs: header lines"
@@ -315,6 +316,8 @@ code-map:
 # Hermes chip agent: one command (scripts/hermes.sh), demos from examples/hermes_desktop/demos.py
 hermes:
 	@bash scripts/hermes.sh
+hermes-app:
+	@bash scripts/hermes_start.sh $(ARGS)
 hermes-stop:
 	@bash scripts/hermes.sh stop
 demo:

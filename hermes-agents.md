@@ -11,6 +11,11 @@ repo, so that a local AI agent can explore, explain, run and rebuild the 25 chip
 
 Read as deep as you need; each level stands on the one above.
 
+**Want to demo right now?** Jump to [Copy-paste examples](#copy-paste-examples-every-integration).
+**Presenting in class?** Use [docs/HERMES_CLASS_SHOWCASE.md](docs/HERMES_CLASS_SHOWCASE.md): a 20-minute script of
+verified steps (search, open and operate a layout, close, ask-don't-guess, signoff numbers, an experiment, a what-if
+flow and a guardrail, loops and harnesses, and the model for contrast).
+
 Deeper pages:
 - [docs/HERMES_AGENT_INTEGRATION.md](docs/HERMES_AGENT_INTEGRATION.md): Hermes feature by feature, the config the setup
   writes, the hook decision table.
@@ -24,6 +29,180 @@ Deeper pages:
 - **built**: exists, not yet run through Hermes.
 
 ---
+
+## Copy-paste examples: every integration
+
+How to use these blocks:
+- Paste **one line per message** into a Hermes.app chat on profile `chip`.
+- The terminal blocks go into a terminal in the repo.
+- **verified** means run on this Mac on 2026-10-07; the times are from `speed_results.json` or the runs recorded in this
+  page.
+
+How a command shows up:
+- Typed **without** `/`, a command is answered as a normal chat reply: full size, tables, 🟢🟡🟠🔴 and ✅/❌ colours, and
+  KLayout pictures. It takes a few seconds, because the model ends the turn.
+- With `/`, the same command is instant. But Hermes.app shows plugin output as a small grey line, without markdown or
+  pictures, so use the slash only for quick checks.
+- Commands that **start** a run need `chip ` in front (or `/`). Typed plain, they only issue a confirm id.
+
+**Start (terminal), verified**
+```bash
+bash scripts/hermes_start.sh                    # check and start Ollama + models, Docker, tool server, XQuartz; open Hermes.app
+bash scripts/hermes_start.sh --check            # report only
+bash scripts/hermes_start.sh --demo-sessions    # also (re)build the nine pinned "Demo N" sessions
+```
+
+**Overview and numbers, verified**
+```
+chip
+demos
+designs
+metrics kv8
+signoff caravel kv
+compare kv4 kv8 kv16
+```
+
+**Synthesis, timing, DRC, LVS with colours, verified**
+```
+synth vision lit
+timing kv_attn
+drc kv attention 16
+lvs prec bf16
+log kv8
+```
+
+**Search and explain (mini RAG), verified**
+```
+search hold violation wrapper
+ask why does kv_attn_n8_int4 have more flip-flops than kv_attn_n8?
+notes kv8 intuitions
+how was the wrapper hold violation fixed?
+search the docs for antenna diodes
+```
+
+**KLayout: open, operate, close, verified**
+```
+klayout llm show only met1
+layout show only met4 and met5
+layout zoom to the lower-left 50 um
+layout zoom to 0 0 100 100
+layout show all
+drc kv8 live
+layout snapshot
+loopdemo layers vision lit
+gds kv8
+open kv attention 16 in klayout and show only met2
+close all windows
+```
+
+**Magic (XQuartz is started by the start script)**
+```
+magic vision lit
+layout find clk
+layout run drc
+chip close
+```
+Magic was verified on 2026-10-06 (`docs/GUI_AND_LOGS.md`); today only the XQuartz check was run.
+
+**Partial names and choices, verified**
+```
+timing audio
+2
+lvs prec
+pick bf16
+klayout llm_lit
+```
+
+**Experiments, verified (soc-kv about 15 s)**
+```
+experiments
+chip experiment soc-kv
+jobs
+result soc-kv
+result kv-cache
+run the soc-kv experiment
+```
+The last line only issues a confirm id. Reply with `yes, run <id>`, using the id from the reply.
+
+**What-if on a copy, colours and guardrails, verified (about 50 s per flow)**
+```
+params vision lit CLOCK_PERIOD
+chip whatif vision lit PL_TARGET_DENSITY_PCT=60
+chip whatif vision lit CLOCK_PERIOD=5
+chip whatif vision lit CLOCK_PERIOD=4
+chip whatif vision lit CLOCK_PERIOD=40
+whatifs
+```
+- After each started run: `jobs`, then `result <tag>` (the tag is in the reply).
+- 5 ns: met, but the slack is 🟠 +0.069 ns.
+- 4 ns: 🔴 LibreLane stops with hold violations at the three fast corners (exit 2).
+- 40 ns: blocked by the hard rules ("never loosen the clock"); nothing starts.
+
+**Runs and jobs, verified**
+```
+sim kv8
+loopdemo sim vision lit
+chip run check kv8
+chip run flow-all kv8
+chip rebuild kv8
+jobs
+```
+- `chip run flow-all kv8` is refused because kv8 is frozen, and points you to `rebuild`.
+- `chip rebuild kv8` runs the full flow on an unchanged copy: 104 s, and `result <tag>` shows a result identical to the
+  committed run (same cells, slack, DRC, LVS). A nice reproducibility point.
+
+**Loop and harness engineering, verified**
+```
+loopdemo signoff kv
+loopdemo sim vision lit
+harness names
+harness facts kv
+```
+
+**Open questions for the model with tools, verified (about 70 s)**
+```
+which kv design has the most flip-flops?
+what is the setup slack of kv attention 16?
+is caravel kv clean?
+```
+
+**Safety, checked by the hook tests (`tests/tools/test_hermes_hook.py`); the self-confirm block also verified live**
+```
+edit designs/kv_attn_n8/config.json and set CLOCK_PERIOD to 50
+run make gds for kv_attn_n8
+read ~/.hermes/.env
+push the repo to github
+```
+Expected: a block (file edits are not allowed), a confirm id and an approval card, a block (secrets), and a block
+(owner-only action).
+
+**Skills, memory, proof, Claude: built, not run end to end today**
+```
+show me the tune-timing-sdc skill
+what are the steps to harden a new design?
+remember that the class demo uses vision_all_lit
+what did I tell you to remember?
+is this running locally?
+ask Claude to explain the worst setup path of kv_attn_n8
+```
+The Claude request needs your `yes, run <id>` and uses your Claude plan.
+
+**Grafana: needs the `--grafana` setup, which is not applied to your profile yet**
+```bash
+bash scripts/hermes_agent_setup.sh --grafana            # review the diff, then add --apply
+make grafana-db                                          # refresh the dashboard data from the evidence
+open http://127.0.0.1:3000                               # dashboards: chip-overview, chip-runs, chip-agent
+```
+Then ask in Hermes: `list the Grafana dashboards`.
+
+**Terminal: sessions, cron, health**
+```bash
+hermes -p chip sessions pinned                  # the nine Demo sessions
+hermes -p chip cron list                        # nightly make test, weekly make test-full (need a running gateway)
+hermes -p chip mcp test chip                    # the MCP bridge: 50 tools
+hermes -p chip plugins list | grep open-ai-chip
+bash scripts/hermes_start.sh --check
+```
 
 ## Level 0. The goal in one minute
 
@@ -110,7 +289,7 @@ Every message takes the first path that fits. That is why most things are fast.
 | Speed | Path | When | Measured |
 |---|---|---|---|
 | 1. Instant, no model | plugin slash command, then `POST /quick` | you type `/timing kv_attn`, `/klayout vision lit show only met1`, `/run synth vision_block` | 0.001 to 0.006 s for the reports in process (`speed_results.json` `commands`); 0.1 s for reports and 2.5 s for `/klayout ...` through Hermes's own command dispatch |
-| 2. Routed, then one short model reply | plugin `pre_llm_call`, then `POST /quick {text}` | "open kv_attn design" (window opened in code), "what is the setup slack of kv attention 16?" (facts handed to the model), "why ..." (RAG quotes handed to the model), "run the flow for X" (confirm id only), "yes, run <id>" (started in code) | router 0.002 to 0.11 s (`speed_results.json` `sentences`); window opened 1.0 s after the message |
+| 2. Routed, exact reply (the model only ends the turn) | plugin `pre_llm_call`, then `POST /quick {text}` | "open kv_attn design" (window opened in code), "what is the setup slack of kv attention 16?" (facts handed to the model), "why ..." (RAG quotes handed to the model), "run the flow for X" (confirm id only), "yes, run <id>" (started in code) | router 0.002 to 0.11 s (`speed_results.json` `sentences`); window opened 1.0 s after the message |
 | 3. Model plus tools | the model picks MCP tools | open-ended questions, multi-step reasoning, what-if planning | tens of seconds on a 9B model (`speed_results.json` `observed`) |
 | 4. Claude | `ask_claude` (confirm gate) | writing code, new designs, hard diagnosis | minutes; uses the owner's Claude plan |
 
@@ -213,7 +392,13 @@ signs. Sources: `speed_results.json` `observed`; Hermes session 20261007_052017_
   - layout: `/klayout`, `/magic`, `/gds`, `/layout`, `/png`;
   - reports: `/metrics`, `/synth`, `/timing`, `/drc [live]`, `/lvs`, `/signoff`, `/compare`, `/designs`, `/log`, `/notes`;
   - RAG: `/ask`;
+  - search: `/search <words>` (passages with file:line);
+  - close: `/close [klayout|magic|all]`;
+  - experiments: `/experiments`, `/experiment <id> [design]`, `/result <id or tag>`;
+  - what-if on a copy: `/whatif <design> KEY=VALUE`, `/whatifs`, `/params <design> [KEY]`;
   - runs: `/sim`, `/run <target> <design>`, `/rebuild`, `/jobs`, `/job`;
+  - choices: `/pick <n>` answers a "Which design?" question (or just type the number);
+  - demo cards: `/demos`, `/demo <name or n>` (4.17);
   - demos of agent engineering: `/loopdemo`, `/harness` (4.16).
   - Report commands read `designs/<d>/output/metrics.json` and `reports/*.rpt` and name the source file in every answer.
 - **Router** (`pre_llm_call`, runs before the model on every plain message):
@@ -224,8 +409,15 @@ signs. Sources: `speed_results.json` `observed`; Hermes session 20261007_052017_
   - completes your own "yes, run <id>".
   - If a `/command` reaches the model (for example in `hermes -z`, which does not dispatch plugin commands), the
     router answers it.
+- **Exact replies:** when the router handles a message, the model is told to answer one word. The plugin's
+  `transform_llm_output` hook then replaces that word with the reply computed in code.
+  - Why: in a real test the 9B model paraphrased search passages and **invented** a fix (a changed
+    `MAX_TRANSITION_CONSTRAINT`) that is not in the repo.
+  - Since the change the text is exact, and the turn takes 6 to 10 s instead of 33 to 68 s (`speed_results.json`,
+    `e2e_real_binary_2026_10_07`).
+  - Why/how questions are handled the same way: the best two passages and the key sentences, verbatim, with sources.
 - **Consent:**
-  - a typed `/run` or `/rebuild` is your own command and starts at once;
+  - a typed `/run`, `/rebuild`, `/experiment` or `/whatif` is your own command and starts at once;
   - a plain sentence never starts a run;
   - frozen designs never get `gds`/`flow-all`/`collect` (`/run` answers "frozen, use /rebuild").
 - **Synthesis** has no make target of its own: `/run synth X` runs LibreLane's `gds` step, which begins with Yosys;
@@ -238,6 +430,22 @@ signs. Sources: `speed_results.json` `observed`; Hermes session 20261007_052017_
 - How: words left after filler words ("open", "the", "design", "klayout") are matched against the words of each
   design name, with synonyms (attention→attn, lite→lit, caravel→wrapper) and a family default. In a sentence, the
   longest run of words that names a design wins.
+- "llm", "transformer" and "kv cache" mean the KV-cache attention family (kv_attn_n8 by default): it is the LLM-inference
+  building block here (docs/LLM_INFERENCE.md). There is no design named after an LLM.
+- A real tie ("audio") or a name that points two ways ("llm_lit") never dead-ends. The reply offers ready-to-type
+  commands (`/klayout kv_attn_n8` or `/klayout vision_all_lit`) and the design list by family, and opens nothing.
+- A typo with one clear winner is fixed ("kv_attn_n8_in4" means kv_attn_n8_int4).
+- **Ambiguous means ask, never guess.** Every command and every model tool resolves partial names the same way. When a name
+  fits several designs, the reply is a numbered question that the server remembers for 10 minutes:
+  `/timing audio` answers "Which design? 1) audio_onset 2) audio_pitch".
+  - Answer `2`, `/pick 2`, or a name (`pitch`), and the same command runs on that design without a model turn.
+  - A whole family is offered: `/lvs prec` lists all seven precision designs.
+  - For the model's own tool calls the server returns `ask_user`. The model shows it and stops, and your answer is
+    completed in code (`normalize_tools.set_pending`/`take_pending`, `quick_tools.pick`).
+- Shell or path syntax in a name (`vision_block; rm -rf /`, `../x`) is refused, never "repaired" into a valid name.
+- An open question is answered only by a number, an exact name or a short name, and any other message drops it. A
+  sentence such as "run the soc-kv experiment" can never be taken as the answer "soc_kv_attn_n8" (a bug found in the
+  end-to-end test).
 - A real tie ("audio") lists the choices instead of guessing. Code: `normalize_tools.resolve_design`,
   `design_from_text`, used by every tool, `gui_command` and the router.
 - `open_gds` replies with the related designs, so "kv_attn" shows which one opened and what else exists.
@@ -377,6 +585,40 @@ After each visual step a picture of the view comes back into the chat (`http://1
   configurations. Key result there: moving work the model is bad at into deterministic tools beat a better prompt.
   This whole integration applies that lesson; the fast paths (4.6) are the same move.
 
+### 4.17 Start script and pinned demo sessions
+- **Start everything from a terminal:** `bash scripts/hermes_start.sh`, or `make hermes-app`, or
+  `bash scripts/hermes.sh app`. It checks, and starts what is missing, before Hermes.app opens:
+  1. the `hermes` CLI and Hermes.app;
+  2. the `chip` profile: the default, with the plugin linked and enabled, the MCP server and the hook;
+  3. Ollama (starts Ollama.app);
+  4. the two models (`qwen3.5-64k:9b`, `qwen3-embedding:0.6b`), loaded and kept warm 30 minutes, so the first answer is
+     not a cold one;
+  5. Docker (starts Colima `osl`), the LibreLane image and the PDK;
+  6. KLayout, XQuartz on TCP 6000 for Magic (started if already configured), Grafana;
+  7. the repo tool server (restarted when its code is newer and no job is running);
+  8. smoke tests (`/timing kv8`, an ambiguous name, RAG, the name harness, the plugin as Hermes sees it, the MCP bridge
+     with its tool count);
+  9. Hermes.app (restarted if the plugin changed since it started).
+- It ends with a table (ok / warn / FAIL) and exits 1 if a required part failed.
+  - `--check` changes nothing.
+  - `--no-docker` and `--no-app` skip those parts.
+  - It never pulls models, never edits `~/.hermes` (that stays with `hermes_agent_setup.sh`), and never reads secrets.
+- **Pinned demo sessions:** `bash scripts/hermes_start.sh --demo-sessions` (or `scripts/hermes/make_demo_sessions.sh`)
+  creates nine sessions in Hermes.app's **Pinned** sidebar section:
+  - Demo 1: Repo tour;
+  - Demo 2: Search and explain;
+  - Demo 3: Open, operate and close a layout;
+  - Demo 4: Partial names;
+  - Demo 5: Synthesis, timing, DRC, LVS;
+  - Demo 6: Kick off an experiment;
+  - Demo 7: What-if and guardrails;
+  - Demo 8: Loop and harness engineering;
+  - Demo 9: The model, for contrast.
+- Each session holds its card: the commands to type, the sentences to try, and what to say. `/demo <name>` and `/demos`
+  show the same cards anywhere.
+- Rerunning replaces only the sessions it made itself (ids in `build/agent/demo_sessions.json`). It took about 3
+  minutes for all nine.
+
 ## Level 5. Workflows
 
 - **Explore a design (seconds):**
@@ -410,6 +652,8 @@ After each visual step a picture of the view comes back into the chat (`http://1
 | Router on a sentence | 0.002 s (facts) to 0.11 s (RAG quotes) | same file (`sentences`) |
 | RAG first and warm question | 1.13 s, 0.12 s | same file (`rag`) |
 | Through Hermes's own command dispatch | 0.1 s reports, 2.5 s `/klayout vision lit show only met1` | same file (`observed`) |
+| End to end, real `hermes` binary and profile | 6 to 10 s for handled sentences (search, experiment confirm, list, close); about 70 s for a model-plus-tool question | same file (`observed.e2e_real_binary_2026_10_07`) |
+| End to end, plugin dispatch | 0.3 to 4.3 s per GUI or report step; `/experiment soc-kv` 15 s; `/whatif` full flow on a copy 51 s; `CLOCK_PERIOD=40` blocked | same file (`observed.e2e_plugin_dispatch_2026_10_07`) |
 | Before the fast paths | about 390 s (default profile, interrupted), 70 s and 24 s (chip profile opens), 92 s and a wrong sign (`/timing` via the model) | same file (`observed`) |
 | Tool-calling accuracy | 51/58 = 87.9 % (Hermes, qwen3.5) vs 60.7 % (Open WebUI) | `examples/hermes_desktop/eval_tools/results_summary_hermes.json`, `docs/HERMES_AGENT.md` |
 | Validation | `make test-full` 130 PASS, 25 designs frozen | `docs/VALIDATION.md`, `designs/FROZEN.json` |
@@ -419,8 +663,8 @@ Re-measure with `build/agent/venv/bin/python scripts/hermes/measure_speed.py`.
 ## Level 7. Status, limits, what needs you
 
 - **Owner actions:**
-  - Run `bash scripts/hermes_agent_setup.sh`, read the diff, rerun with `--apply` (add `--grafana` if wanted), then
-    pick the `chip` profile in Hermes.app. Until then the app runs the default profile, without any of this.
+  - Done on 2026-10-07: the `chip` profile is applied and is the default (backup `~/.hermes/backups/open-ai-chip-20261007-063546`).
+  - Every session: `bash scripts/hermes_start.sh` (4.17). Before a class, add `--demo-sessions` once.
   - `/magic` needs XQuartz listening on TCP once (`scripts/gui/open_gui.sh` header).
   - Decide on a Hermes gateway (for cron) and on Grafana's `grafana_api_request`.
 - **Limits:**
@@ -436,6 +680,7 @@ Re-measure with `build/agent/venv/bin/python scripts/hermes/measure_speed.py`.
 | Concern | Files |
 |---|---|
 | Setup | `scripts/hermes_agent_setup.sh`, `scripts/hermes/setup_profile.py` |
+| Start and demo sessions | `scripts/hermes_start.sh` (`make hermes-app`), `scripts/hermes/make_demo_sessions.sh` |
 | Fast paths, loops, harnesses | `scripts/hermes/plugin/open-ai-chip/`, `examples/hermes_desktop/tool_server/quick_tools.py`, `scripts/hermes/measure_speed.py`; model-in-the-loop version `examples/hermes_harness/` |
 | GUI | `examples/hermes_desktop/tool_server/gui_tools.py`, `examples/hermes_klayout_gui/`, `scripts/gui/open_gui.sh` |
 | Safety | `scripts/hermes/hooks/pre_tool_call.py`, `scripts/hermes/hooks/confirm_guard.py` |

@@ -61,7 +61,10 @@ STOP_WORDS = {"the", "a", "an", "open", "opening", "load", "launch", "start", "s
               "gui", "file", "engine", "macro", "block_design", "my", "this", "that", "one", "now", "just", "repo", "tool", "viewer"}
 SYNONYMS = {"attention": "attn", "atten": "attn", "attn": "attn", "lite": "lit", "light": "lit", "lighted": "lit", "caravel": "wrapper",
             "precision": "prec", "bfloat16": "bf16", "binary": "bin", "ternary": "tern", "sentiments": "sentiment", "matching": "match",
-            "img": "image", "txt": "text", "soc": "soc", "upw": "wrapper", "proj": "project", "core": "core"}
+            "img": "image", "txt": "text", "soc": "soc", "upw": "wrapper", "proj": "project", "core": "core",
+            # what people call the KV-cache attention family (the LLM-inference building block, docs/LLM_INFERENCE.md)
+            "llm": "attn", "llms": "attn", "transformer": "attn", "gpt": "attn", "kvcache": "attn", "cache": "attn", "decoder": "attn",
+            "lite": "lit", "allit": "lit", "alllit": "lit", "camera": "vision", "image_classifier": "vision", "neuron": "prec"}
 FAMILY_DEFAULT = {"kv": "kv_attn_n8", "attn": "kv_attn_n8", "kv_attn": "kv_attn_n8", "prec": None, "audio": None, "vision": "vision_block",
                   "wrapper": "user_project_wrapper", "soc": None}
 for _f in ("bin", "tern", "int4", "int8", "fp8", "fp16", "bf16"):
@@ -90,6 +93,8 @@ def resolve_design(raw: str, valid: Optional[List[str]] = None) -> Tuple[Optiona
     valid = valid if valid is not None else designs()
     if not valid:
         return raw, []
+    if re.search(r"[;&|`$<>=\\(){}\[\]!*?]|\.\.", raw or ""):   # shell or path syntax is refused, never "repaired" into a name
+        return None, []
     s = raw.strip().strip("\"'`").lower().replace("-", "_").replace(" ", "_")
     s = re.sub(r"^designs/", "", s).rstrip("/")
     if s in valid:
@@ -107,13 +112,16 @@ def resolve_design(raw: str, valid: Optional[List[str]] = None) -> Tuple[Optiona
         return by_words, []
     close = difflib.get_close_matches(s, valid, n=5, cutoff=0.6)
     if tied:
-        return None, tied[:5]
-    if close:
+        return None, tied[:8]
+    if close:                                   # a clear spelling winner ("kv_attn_n8_in4") before partial word matches
         best = difflib.SequenceMatcher(None, s, close[0]).ratio()
         second = difflib.SequenceMatcher(None, s, close[1]).ratio() if len(close) > 1 else 0.0
         if best >= 0.86 and best - second >= 0.06:
             return close[0], []
-    return None, (close or pre or sub)[:5]
+    by_part, part_choices = _match_partial(s, valid)
+    if by_part:
+        return by_part, []
+    return None, (part_choices or close or pre or sub)[:8]
 
 
 def _query_words(s: str) -> List[str]:
@@ -151,6 +159,29 @@ def _match_words(s: str, valid: List[str]) -> Tuple[Optional[str], List[str]]:
     return None, best
 
 
+def _match_partial(s: str, valid: List[str]) -> Tuple[Optional[str], List[str]]:
+    """When not every word matches ("llm_lit"): the designs hit by the most words, one per family (its default). A single
+    winner hit by at least half the words is returned; otherwise (None, choices) so the caller can offer them."""
+    q = _query_words(s)
+    if not q:
+        return None, []
+    score = {v: sum(_word_hits(w, v.split("_")) for w in q) for v in valid}
+    top = max(score.values() or [0])
+    if top == 0:
+        return None, []
+    best, seen = [], set()
+    for v in sorted((v for v in valid if score[v] == top), key=lambda v: (len(v.split("_")), v)):
+        fam = v.split("_")[0]
+        d = FAMILY_DEFAULT.get(fam) if FAMILY_DEFAULT.get(fam) and score.get(FAMILY_DEFAULT.get(fam)) == top else v
+        if fam in seen:
+            continue
+        seen.add(fam)
+        best.append(d)
+    if len(best) == 1 and top * 2 >= len(q):
+        return best[0], []
+    return None, best[:8]
+
+
 def design_from_text(text: str, valid: Optional[List[str]] = None) -> Optional[str]:
     """The design a free sentence talks about ("open the klayout with vision lit" -> vision_all_lit), or None."""
     valid = valid if valid is not None else designs()
@@ -182,6 +213,60 @@ def design_from_text(text: str, valid: Optional[List[str]] = None) -> Optional[s
     return None
 
 
+# ---------------------------------------------------------------- choices: an ambiguous name asks, the user picks
+PENDING = os.path.join(REPO, "build", "agent", "pending_choice.json")
+PENDING_TTL_S = 600
+
+
+def set_pending(kind: str, payload: dict, choices: List[str]) -> str:
+    """Remember an open question ("which design?") so the user's answer ("2", "/pick 2", a name) completes it. Returns the
+    numbered question text. kind "cmd" = a slash command (payload {cmd, template}), "tool" = a tool call (payload {tool, body, field})."""
+    try:
+        os.makedirs(os.path.dirname(PENDING), exist_ok=True)
+        with open(PENDING, "w") as f:
+            json.dump({"kind": kind, "payload": payload, "choices": choices, "t": time.time()}, f)
+    except OSError:
+        pass
+    return "Which design? " + "  ".join("%d) %s" % (i, c) for i, c in enumerate(choices, 1)) + \
+        "\nReply with the number (or `/pick <n>`, or the name)."
+
+
+def clear_pending() -> None:
+    try:
+        os.remove(PENDING)
+    except OSError:
+        pass
+
+
+def take_pending(answer: str) -> Optional[Tuple[dict, str]]:
+    """(pending, chosen design) when `answer` picks one of the remembered choices; the question is then cleared."""
+    try:
+        with open(PENDING) as f:
+            p = json.load(f)
+    except (OSError, ValueError):
+        return None
+    if time.time() - p.get("t", 0) > PENDING_TTL_S:
+        return None
+    a = (answer or "").strip().lower().strip(".)")
+    a = re.sub(r"^/?pick\s+", "", a)
+    ch = p.get("choices") or []
+    pick = None
+    if re.fullmatch(r"\d{1,2}", a) and 1 <= int(a) <= len(ch):
+        pick = ch[int(a) - 1]
+    elif a in ch:
+        pick = a
+    elif a and len(a.split()) <= 2 and len(a) <= 30:      # a short name ("pitch", "bf16"); a sentence is never an answer
+        name, _ = _match_words(a, ch)
+        pick = name or (ALIASES.get(a.replace(" ", "_")) if ALIASES.get(a.replace(" ", "_")) in ch else None)
+    if not pick:
+        return None
+    try:
+        os.remove(PENDING)
+    except OSError:
+        pass
+    return p, pick
+
+
 def clean_confirm(v: str) -> str:
     m = re.search(r"(?<![0-9a-f])[0-9a-f]{6}", str(v).strip().lower())
     return m.group(0) if m else str(v).strip()
@@ -211,9 +296,14 @@ def normalize(tool: str, body: dict, valid: Optional[List[str]] = None):
         if isinstance(out.get(k), str):
             name, close = resolve_design(out[k], valid)
             if name is None:
-                return out, changes, {"error": "unknown design %r" % out[k], "closest": close,
-                                      "valid_designs": valid if valid is not None else designs(),
-                                      "hint": "call again with one of valid_designs (list_designs shows them with a description)"}
+                err = {"error": "unknown design %r" % out[k], "closest": close,
+                       "valid_designs": valid if valid is not None else designs(),
+                       "hint": "call again with one of valid_designs (list_designs shows them with a description)"}
+                if close and tool:
+                    err["ask_user"] = set_pending("tool", {"tool": tool, "body": out, "field": k}, close)
+                    err["hint"] = ("the name is ambiguous: show ask_user to the user VERBATIM and STOP; do not guess. The user's "
+                                   "answer is completed by the server.")
+                return out, changes, err
             if name != out[k]:
                 changes.append((k, out[k], name))
                 out[k] = name

@@ -33,6 +33,12 @@ def _mounted_globals():
 QG = _mounted_globals()
 
 
+@pytest.fixture(autouse=True)
+def _own_pending(monkeypatch, tmp_path):
+    """Each test gets its own "Which design?" memory, so no answer is taken by another test's question."""
+    monkeypatch.setitem(QG["nt"].__dict__, "PENDING", str(tmp_path / "pending.json"))
+
+
 def q(cmd, args=""):
     r = client.post("/quick", json={"cmd": cmd, "args": args})
     assert r.status_code == 200
@@ -42,16 +48,16 @@ def q(cmd, args=""):
 def test_report_commands_from_evidence():
     """Pins down: /timing /synth /drc /lvs /signoff /metrics answer for a loose name, with the numbers of metrics.json and the source."""
     t = q("timing", "kv attention 16")
-    assert "kv_attn_n16 timing" in t and "8.766" in t and "timing_summary.rpt" in t
+    assert "kv_attn_n16 timing: 🟢" in t and "8.766" in t and "timing_summary.rpt" in t
     assert "vision_all_lit synthesis" in q("synth", "vision lit") and "synth_stat.rpt" in q("synth", "vision lit")
     d = q("drc", "kv_attn")
-    assert "kv_attn_n8 DRC" in d and "| Magic DRC (signoff) | 0 |" in d
+    assert "kv_attn_n8 DRC: ✅ clean" in d and "| Magic DRC (signoff) | ✅ | 0 |" in d
     assert "Circuits match uniquely" in q("lvs", "prec bf16")
-    assert "signoff: CLEAN" in q("signoff", "caravel kv")
-    assert "| standard cells | 2566 |" in q("metrics", "kv8")
+    assert "signoff: ✅ CLEAN" in q("signoff", "caravel kv")
+    assert "| standard cells | 2566 |" in q("metrics", "kv8") and "🟢" in q("metrics", "kv8")
     c = q("compare", "kv4 kv8 kv16")
     assert "| cells | 1679 | 2566 | 4169 |" in c
-    assert "did you mean" in q("metrics", "audio")             # a real tie lists the choices
+    assert q("metrics", "audio").startswith("Which design? 1) audio_onset  2) audio_pitch")   # a real tie asks
     assert "/klayout" in q("chip")
 
 
@@ -132,7 +138,7 @@ def test_router_why_question_gets_rag_quotes(monkeypatch):
     monkeypatch.setitem(QG, "_call", lambda name, body: {"found": True, "mode": "hybrid", "answer": "> quote (NOTES.md:224)"}
                         if name == "rag_answer" else {})
     r = client.post("/quick", json={"text": "why does kv_attn_n8_int4 have more flip-flops than kv_attn_n8?"}).json()
-    assert r["kind"] == "rag" and "NOTES.md:224" in r["context"]
+    assert r["kind"] == "rag" and r["handled"] and "NOTES.md:224" in r["reply"]      # quoted verbatim, not paraphrased
 
 
 def test_plugin_registers_commands_and_hook(monkeypatch):
@@ -163,14 +169,16 @@ def test_plugin_registers_commands_and_hook(monkeypatch):
     assert "ALREADY handled" in hook(user_message="/drc kv8")["context"] and sent[-1] == {"cmd": "drc", "args": "kv8"}
     n = len(sent)
     assert hook(user_message="/model") is None and len(sent) == n          # a Hermes command: not ours
-    assert hook(user_message="open kv8 in klayout")["context"].endswith("R")
+    assert "Done" in hook(user_message="open kv8 in klayout", session_id="s1")["context"]
+    assert ctx.hooks["transform_llm_output"](response_text="Done", session_id="s1") == "R"        # the exact reply replaces the model's
+    assert ctx.hooks["transform_llm_output"](response_text="hi", session_id="s1") is None         # only once, only for that turn
 
 
 def test_loop_and_harness_demos(monkeypatch):
     """Pins down: /loopdemo signoff walks a family with PLAN/ACT/OBSERVE/CHECK/STOP; /harness names and /harness facts pass their gates;
     /loopdemo layers and /loopdemo sim follow their plans (GUI and job faked)."""
     r = q("loop", "signoff kv")
-    assert "| 0 | PLAN |" in r and r.count("| CHECK | clean |") == 5 and "tightest setup slack kv_attn_n16 (8.766 ns)" in r
+    assert "| 0 | PLAN |" in r and r.count("| CHECK | ✅ clean |") == 5 and "tightest setup slack kv_attn_n16 (8.766 ns)" in r
     assert "gate **PASS**" in q("harness", "names") and "score 15/15, gate **PASS**" in q("harness", "facts kv")
     assert "/loopdemo signoff" in q("loopdemo", "")
     gui = []
@@ -190,3 +198,85 @@ def test_loop_and_harness_demos(monkeypatch):
     assert gui[:6] == ["open vision_all_lit in klayout"] + ["show only met%d" % i for i in range(1, 6)] and r.count("| CHECK | rendered |") == 5
     r = q("loop", "sim vision lit")
     assert "PASS vision_all_lit_tb" in r and "| STOP | verified |" in r
+
+
+def test_llm_names_and_helpful_miss():
+    """Pins down: "llm" / "transformer" mean the KV-cache attention family; a name that points two ways ("llm_lit") never
+    dead-ends: the reply offers ready-to-type commands and the design list by family, and nothing is opened."""
+    full = sorted(set(VALID_ALL()))
+    assert QG["nt"].resolve_design("llm", full)[0] == "kv_attn_n8" and QG["nt"].resolve_design("transformer", full)[0] == "kv_attn_n8"
+    r = q("klayout", "open llm_lit design")
+    assert r.startswith("Which design? 1) kv_attn_n8  2) vision_all_lit") and "`/klayout vision_all_lit`" in r
+    r = q("klayout", "open zzqq design")
+    assert "No design is called 'zzqq'" in r and "| KV-cache attention (LLM inference) |" in r
+
+
+def VALID_ALL():
+    return QG["nt"].designs()
+
+
+def test_ambiguous_name_asks_then_pick_completes(monkeypatch, tmp_path):
+    """Pins down: every command takes partial names; an ambiguous one asks with numbered choices (no guess, nothing run), and the
+    user's answer ("2", "/pick 2", a name) runs the same command on that design without a model turn; shell syntax is refused."""
+    r = q("timing", "audio")
+    assert r.startswith("Which design? 1) audio_onset  2) audio_pitch") and "`/timing audio_pitch`" in r
+    r = client.post("/quick", json={"text": "2"}).json()
+    assert r["kind"] == "pick" and r["reply"].startswith("(audio_pitch) ## audio_pitch timing")
+    assert client.post("/quick", json={"text": "2"}).json()["handled"] is False          # the question was cleared
+    assert "7)" in q("lvs", "prec") and "prec_tern" in q("lvs", "prec")                   # a whole family is offered
+    assert q("pick", "bf16").startswith("(prec_bf16) ## prec_bf16 LVS: ✅")
+    assert "nothing to pick" in q("pick", "1")
+    assert QG["nt"].resolve_design("vision_block; rm -rf /")[0] is None
+
+
+def test_router_search_and_experiments(monkeypatch):
+    """Pins down: plain sentences for search, the experiment list, an experiment run (confirm id only) and its result are handled
+    in code, before the model."""
+    calls = []
+
+    def fake(name, body):
+        calls.append((name, body))
+        if name == "rag_search":
+            return {"mode": "hybrid", "passages": [{"markdown": "[NOTES.md](x)", "text": "hold fixed by the SDC"}]}
+        if name == "list_experiments":
+            return {"experiments": [{"id": "soc-kv", "title": "KV cache prefill vs decode", "expected_time": "15 s", "command": "make soc-kv"}]}
+        if name == "run_experiment":
+            return {"confirm_id": "abc123", "will_run": "make soc-kv", "expected_time": "15 s", "say": "Reply 'yes, run abc123' to start."}
+        return {"markdown": "TABLE"}
+    monkeypatch.setitem(QG, "_call", fake)
+    post = lambda t: client.post("/quick", json={"text": t}).json()  # noqa: E731
+    r = post("search the docs for hold violation fix")
+    assert r["kind"] == "search" and calls[-1] == ("rag_search", {"query": "hold violation fix", "k": 5})
+    assert post("list the experiments")["kind"] == "experiments"
+    r = post("run the soc-kv experiment")
+    assert r["kind"] == "gate" and "yes, run abc123" in r["reply"] and calls[-1] == ("run_experiment", {"id": "soc-kv"})
+    assert ("confirm_run", {"confirm_id": "abc123"}) not in calls                      # a sentence never starts a run
+    r = post("show the results of the kv-cache experiment")
+    assert r["kind"] == "result"
+
+
+def test_demo_cards():
+    """Pins down: nine demo cards, each with commands to type and sentences; /demo by name or number; /demos lists them."""
+    assert len(QG["DEMO_CARDS"]) == 9
+    r = q("demo", "layout")
+    assert r.startswith("## Demo 3: Open, operate and close a layout") and "- `klayout llm show only met1`" in r and "**Or say**" in r
+    assert q("demo", "6").startswith("## Demo 6: Kick off an experiment")
+    assert "| 9 | The model itself, for contrast | `/demo model` |" in q("demos", "")
+
+
+def test_colours_and_plain_commands(monkeypatch):
+    """Pins down: 🔴 only for negative slack, by column (a delta is never coloured); plain "timing kv8" is a command answered as a
+    chat reply; a plain command that would START a run keeps the confirm step unless prefixed with "chip"."""
+    md = "| metric | what-if | committed | delta |\n|---|---|---|---|\n| setup worst slack ns | -0.5 | 16.07 | -16.57 |\n" \
+         "\n| corner | setup what-if | hold what-if |\n|---|---|---|\n| nom_tt | 2.07 | 0.05 |"
+    out = QG["colour_slack"](md)
+    assert out.startswith("🔴 **Negative slack") and "🔴 -0.5" in out and "🟢 16.07" in out and "| -16.57 |" in out
+    assert "🟢 2.07" in out and "🟡 0.05" in out                       # hold thresholds for the hold column
+    assert QG["colour_slack"]("| corner | setup x |\n|---|---|\n| a | 3 |").startswith("| corner")   # no banner when all met
+    pc = QG["plain_command"]
+    assert pc("timing kv8") == ("timing", "kv8") and pc("klayout kv_attn show only met1") == ("klayout", "kv_attn show only met1")
+    assert pc("run the soc-kv experiment") is None and pc("close all windows") is None
+    assert pc("rebuild vision lit") is None and pc("whatif vision lit CLOCK_PERIOD=5") is None and pc("run synth kv8") is None
+    assert pc("chip rebuild vision lit") == ("rebuild", "vision lit") and pc("chip close") == ("close", "")
+    r = client.post("/quick", json={"text": "timing kv8"}).json()
+    assert r["handled"] and r["kind"] == "command" and r["reply"].startswith("## kv_attn_n8 timing: 🟢")

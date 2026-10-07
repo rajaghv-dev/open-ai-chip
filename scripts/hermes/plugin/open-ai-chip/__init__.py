@@ -44,7 +44,18 @@ COMMANDS = {
     "sim": "start the RTL simulation now: /sim kv8",
     "run": "start a make target now: /run synth vision_block (simulate, synth, check, gl, gl-final, flow-all)",
     "rebuild": "full flow on a fresh unchanged copy (frozen design untouched): /rebuild kv8",
+    "search": "search the repo docs: /search hold violation wrapper",
+    "close": "close the KLayout/Magic windows: /close (all) | /close klayout | /close magic",
+    "experiments": "list the repo's experiments",
+    "experiment": "start an experiment now: /experiment soc-kv | /experiment kv-cache kv8",
+    "result": "result of an experiment or what-if: /result soc-kv | /result <tag>",
+    "whatif": "the flow on a copy with changed settings: /whatif vision_block PL_TARGET_DENSITY_PCT=60",
+    "whatifs": "list the what-if copies",
+    "params": "tunable settings of a design: /params vision_block [KEY]",
     "jobs": "running and finished jobs",
+    "demos": "list the demo cards",
+    "demo": "a demo card with the commands to type: /demo layout | /demo 3",
+    "pick": "answer a 'Which design? 1) ... 2) ...' question: /pick 2 (or the name)",
     "loopdemo": "loop-engineering demos: /loopdemo signoff kv | /loopdemo layers kv8 | /loopdemo sim vision lit",
     "harness": "harness-engineering demos: /harness names | /harness facts kv",
     "job": "status and log tail of a job: /job <id>",
@@ -100,7 +111,16 @@ def _command(name):
     return handler
 
 
-def _pre_llm_call(user_message=None, **kwargs):
+_HANDLED = {}          # session_id -> the reply computed in code for this turn
+
+
+def _transform_llm_output(response_text=None, session_id=None, **kwargs):
+    """Replace the model's text with the reply computed in code, so a handled request is shown exactly (numbers, citations)."""
+    reply = _HANDLED.pop(str(session_id or ""), None)
+    return reply if reply else None
+
+
+def _pre_llm_call(user_message=None, session_id=None, **kwargs):
     text = user_message if isinstance(user_message, str) else ""
     if not text.strip() or len(text) > 600:
         return None
@@ -113,8 +133,10 @@ def _pre_llm_call(user_message=None, **kwargs):
     else:
         r = _quick({"text": text}, timeout=120)
     if r.get("handled") and r.get("reply"):
-        return {"context": "[open-ai-chip fast path: this request was ALREADY handled in code, before you. Reply to the user with "
-                           "the text below as it is (you may add one short sentence), and call NO tool.]\n" + r["reply"]}
+        # the model only has to end the turn; transform_llm_output then puts the exact reply in its place (no paraphrase)
+        _HANDLED[str(session_id or "")] = r["reply"]
+        return {"context": "[open-ai-chip fast path: this request was ALREADY handled in code before you, and its result will be "
+                           "shown to the user automatically. Call NO tool. Reply with exactly one word: Done]"}
     if r.get("context"):
         return {"context": r["context"]}
     return None
@@ -124,3 +146,4 @@ def register(ctx):
     for name, desc in COMMANDS.items():
         ctx.register_command(name, _command(name), description=desc)
     ctx.register_hook("pre_llm_call", _pre_llm_call)
+    ctx.register_hook("transform_llm_output", _transform_llm_output)

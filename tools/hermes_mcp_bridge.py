@@ -147,8 +147,15 @@ def http_json(method, path, payload=None, timeout=CALL_TIMEOUT_S):
 
 def forward(tool, arguments, timeout=CALL_TIMEOUT_S):
     """-> (text, is_error). Text is the JSON result, then the markdown field alone when present."""
+    body = arguments if tool["method"] == "POST" else None
     try:
-        status, res = http_json(tool["method"], tool["path"], arguments if tool["method"] == "POST" else None, timeout)
+        status, res = http_json(tool["method"], tool["path"], body, timeout)
+    except urllib.error.URLError as e:          # server gone (restarted after a code update, or crashed): start it, retry once
+        try:
+            ensure_server()
+            status, res = http_json(tool["method"], tool["path"], body, timeout)
+        except Exception as e2:  # noqa: BLE001
+            return "tool server call failed: %s: %s (first: %s)" % (type(e2).__name__, e2, e), True
     except Exception as e:  # noqa: BLE001
         return "tool server call failed: %s: %s" % (type(e).__name__, e), True
     text = json.dumps(res, indent=1)

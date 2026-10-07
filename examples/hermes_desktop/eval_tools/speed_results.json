@@ -5,7 +5,7 @@
   {
    "command": "/timing kv_attn",
    "seconds": 0.003,
-   "first_line": "**kv_attn_n8 timing** (clock 25 ns; positive slack = met)"
+   "first_line": "## kv_attn_n8 timing: \ud83d\udfe2 **timing met at all corners**"
   },
   {
    "command": "/synth vision lit",
@@ -15,32 +15,32 @@
   {
    "command": "/drc kv attention 16",
    "seconds": 0.002,
-   "first_line": "**kv_attn_n16 DRC**"
+   "first_line": "## kv_attn_n16 DRC: \u2705 clean"
   },
   {
    "command": "/lvs prec bf16",
    "seconds": 0.002,
-   "first_line": "**prec_bf16 LVS** (netgen: layout netlist vs the synthesised netlist)"
+   "first_line": "## prec_bf16 LVS: \u2705 layout matches the netlist"
   },
   {
    "command": "/signoff caravel kv",
    "seconds": 0.002,
-   "first_line": "**user_project_wrapper_soc_kv signoff: CLEAN** Frozen: yes (`designs/FROZEN.json`)."
+   "first_line": "## user_project_wrapper_soc_kv signoff: \u2705 CLEAN Frozen: yes (`designs/FROZEN.json`)."
   },
   {
    "command": "/metrics kv8",
    "seconds": 0.001,
-   "first_line": "**kv_attn_n8**: signoff clean"
+   "first_line": "## kv_attn_n8: \u2705 signoff clean"
   },
   {
    "command": "/compare kv4 kv8 kv16",
    "seconds": 0.002,
-   "first_line": "| metric | kv_attn_n4 | kv_attn_n8 | kv_attn_n16 |"
+   "first_line": "**cells**"
   },
   {
    "command": "/designs ",
-   "seconds": 0.006,
-   "first_line": "| design | cells | flip-flops | setup WS ns | signoff |"
+   "seconds": 0.007,
+   "first_line": "## 25 designs, 25 signoff-clean"
   },
   {
    "command": "/chip ",
@@ -60,12 +60,12 @@
   {
    "command": "/harness names",
    "seconds": 0.001,
-   "first_line": "**Harness: design-name resolver** (fixed set, 10 cases): score 10/10, gate **PASS**"
+   "first_line": "**Harness: design-name resolver** (fixed set, 10 cases): score 10/10, gate **PASS** \u2705"
   },
   {
    "command": "/harness facts kv",
-   "seconds": 0.006,
-   "first_line": "**Harness: grounded facts** (5 designs x 3 questions): score 15/15, gate **PASS**"
+   "seconds": 0.009,
+   "first_line": "**Harness: grounded facts** (5 designs x 3 questions): score 15/15, gate **PASS** \u2705"
   }
  ],
  "sentences": [
@@ -83,15 +83,15 @@
   },
   {
    "text": "why does kv_attn_n8_int4 have more flip-flops than kv_attn_n8?",
-   "seconds": 0.078,
+   "seconds": 0.071,
    "kind": "rag",
-   "handled": false
+   "handled": true
   },
   {
    "text": "how was the wrapper hold violation fixed?",
-   "seconds": 0.108,
+   "seconds": 0.121,
    "kind": "rag",
-   "handled": false
+   "handled": true
   },
   {
    "text": "hello there",
@@ -101,8 +101,8 @@
   }
  ],
  "rag": {
-  "first_question_seconds": 0.58,
-  "warm_question_seconds": 0.15
+  "first_question_seconds": 0.63,
+  "warm_question_seconds": 0.13
  },
  "observed": {
   "note": "End-to-end times through the real hermes binary on 2026-10-07 (isolated home, qwen3.5-64k:9b, M-series Mac); one-shot `hermes -p chip -z` starts a new process, MCP bridge and tool server each time, so these include that start.",
@@ -118,9 +118,37 @@
    "-z 'what is the setup slack of kv attention 16?' (facts injected)": 14,
    "-z '/timing kv_attn' (answered by pre_llm_call)": 28
   },
+  "e2e_real_binary_2026_10_07": {
+   "note": "hermes -p chip -z on the owner's real chip profile after the fixes (router handled, transform_llm_output shows the exact reply); seconds",
+   "search the docs for how the wrapper hold violation was fixed": 10,
+   "run the soc-kv experiment (confirm id only)": 6,
+   "list the experiments": 9,
+   "close all windows": 6,
+   "open kv attention 16 in klayout and show only met2 (window opened 3.2 s; before the exact-reply hook)": 64,
+   "which kv design has the most flip-flops? (model + compare_designs, correct: kv_attn_n16 277)": 74,
+   "before the fixes: the same search sentence (model paraphrased and invented a MAX_TRANSITION_CONSTRAINT change)": 68
+  },
+  "e2e_plugin_dispatch_2026_10_07": {
+   "/search hold violation wrapper": 0.3,
+   "/klayout kv_attn show only met1": 3.3,
+   "/layout zoom to the lower-left 50 um": 0.7,
+   "/layout show all": 0.5,
+   "/drc kv8 live": 0.7,
+   "/close all": 4.3,
+   "/timing audio then 2": 0.0,
+   "/experiment soc-kv (job done, exit 0)": 15,
+   "/loopdemo sim kv8 (PASS verified)": 2.0,
+   "/whatif vision lit PL_TARGET_DENSITY_PCT=60 (full flow on a copy, exit 0, compared by /result)": 51,
+   "/whatif vision lit CLOCK_PERIOD=40": "blocked by the HARD RULES, nothing started"
+  },
+  "whatif_and_rebuild_2026_10_07": {
+   "chip whatif vision lit CLOCK_PERIOD=5 (done, worst setup slack +0.069 ns at max_ss, shown orange)": 48,
+   "chip whatif vision lit CLOCK_PERIOD=4 (LibreLane exit 2: hold violations at max_ff, min_ff, nom_ff; shown red)": 46,
+   "chip rebuild kv8 (unchanged copy, identical cells, slack, DRC, LVS to the committed run)": 104
+  },
   "loops_live": {
-   "/loop layers vision lit (open + 5 layer pictures in KLayout)": 7.2,
-   "/loop sim vision lit (make simulate, PASS line verified)": 2.0
+   "/loopdemo layers vision lit (open + 5 layer pictures in KLayout)": 7.2,
+   "/loopdemo sim vision lit (make simulate, PASS line verified)": 2.0
   }
  }
 }

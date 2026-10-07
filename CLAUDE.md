@@ -101,6 +101,7 @@ Hermes Agent (Nous, installed on this Mac) mapped to this repo, with the desktop
 
 ## For Hermes (Nous Hermes Agent, profile `chip`; ignore if you are Claude Code)
 - The whole integration, point by point: `hermes-agents.md`.
+- Start (checks and starts Ollama, models, Docker, tool server, Hermes.app): `bash scripts/hermes_start.sh`; pinned demo sessions: `--demo-sessions`.
 - This session is read plus gated runs. You have no terminal and cannot edit files: a hook blocks `write_file`/`patch`. Do not try; say what change is needed and who should make it.
 - Use the `mcp_chip_*` tools: read tools freely; `run_make` and `whatif_run` start nothing until the user answers "yes, run <confirm_id>", and the hook asks for approval on physical flows. One physical flow at a time.
 - Frozen designs (`designs/FROZEN.json`) get no flows; use `whatif_run` on a copy instead. Never suggest loosening `CLOCK_PERIOD` / `MAX_TRANSITION_CONSTRAINT`.

@@ -42,7 +42,8 @@ QUERY_PREFIX = os.environ.get("RAG_QUERY_PREFIX", "Instruct: Given a question ab
 EMBED_CHARS, EMBED_BATCH, RRF_K, POOL = 1500, 16, 60, 60
 PER_FILE = 2
 EXCLUDE_MD = (".claude/agents", ".claude/commands", "CLAUDE.md", "docs/HERMES_AGENT.md", "docs/HERMES_AGENT_INTEGRATION.md",
-              "docs/HERMES_DEMOS.md", "hermes-agents.md", "examples/hermes_rag/README.md")   # agent config; docs that quote the eval questions
+              "docs/HERMES_DEMOS.md", "hermes-agents.md", "docs/HERMES_CLASS_SHOWCASE.md",
+              "examples/hermes_rag/README.md")   # agent config; docs that quote the eval questions
 CODE_DIRS = ("scripts/", "tools/", "examples/")
 CODE_EXT = (".py", ".sh")
 SKIP_PARTS = ("/runs/", "/build/", "__pycache__")
