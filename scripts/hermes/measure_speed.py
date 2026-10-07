@@ -58,8 +58,8 @@ def main():
                             "-z 'open kv_attn design' (window opened by pre_llm_call in 1.0 s, then the model's one-line reply)": 60,
                             "-z 'what is the setup slack of kv attention 16?' (facts injected)": 14,
                             "-z '/timing kv_attn' (answered by pre_llm_call)": 28},
-        "loops_live": {"/loop layers vision lit (open + 5 layer pictures in KLayout)": 7.2,
-                       "/loop sim vision lit (make simulate, PASS line verified)": 2.0}}
+        "loops_live": {"/loopdemo layers vision lit (open + 5 layer pictures in KLayout)": 7.2,
+                       "/loopdemo sim vision lit (make simulate, PASS line verified)": 2.0}}
     with open(OUT, "w") as f:
         json.dump(res, f, indent=1)
         f.write("\n")

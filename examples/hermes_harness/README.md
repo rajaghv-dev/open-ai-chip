@@ -135,8 +135,8 @@ failures. The scorer was fixed (not the model, not the harness) and every run wa
 ## In the Hermes desktop app (code-only versions of these ideas)
 
 The open-ai-chip Hermes plugin has small demos of the same ideas that run without a model, on the existing designs, so
-every step is visible: `/loop signoff kv` (plan, act, observe, check, stop over five designs), `/loop layers kv8` (a GUI
-loop over met1..met5 in KLayout), `/loop sim vision lit` (start a job, poll, verify the PASS line), `/harness names` and
+every step is visible: `/loopdemo signoff kv` (plan, act, observe, check, stop over five designs), `/loopdemo layers kv8` (a GUI
+loop over met1..met5 in KLayout), `/loopdemo sim vision lit` (start a job, poll, verify the PASS line), `/harness names` and
 `/harness facts kv` (fixed cases, score, pass/fail gate). Code: `examples/hermes_desktop/tool_server/quick_tools.py`;
 overview and measured times: `hermes-agents.md` section 4.16; demos 14 and 15 in `docs/HERMES_DEMOS.md`. The lesson of
 this folder (move work the model is bad at into deterministic tools) is also why the integration answers lookups and

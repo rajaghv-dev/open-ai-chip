@@ -152,19 +152,19 @@ Short talk: demos 12, 13, 2, 5, 14 (about 10 minutes; 12 to 15 need the plugin, 
 
 ### Demo 13: GUI tour of a layout (KLayout and Magic by text)
 
-- Type: `/klayout kv_attn show only met1`, then `/layout show only met4 and met5`, `/layout zoom to the lower-left 50 um`, `/drc kv8 live`, `/layout show all`, `/loop layers vision lit`, `/layout close all`. With XQuartz set up: `/magic vision lit find clk`.
+- Type: `/klayout kv_attn show only met1`, then `/layout show only met4 and met5`, `/layout zoom to the lower-left 50 um`, `/drc kv8 live`, `/layout show all`, `/loopdemo layers vision lit`, `/layout close all`. With XQuartz set up: `/magic vision lit find clk`.
 - What runs: gui_command through the plugin (instant) or, in words ("open kv_attn in klayout and show only met1"), the pre_llm_call router; a picture of the view comes back after each step.
 - Look at: the KLayout window follows each command; met1 is the horizontal power rails and short local wiring, met4/met5 the power grid straps; the lower-left 50 um shows standard-cell rows; DRC shows 0 markers; the layer tour returns five pictures.
 - Explain: a layout is a stack of masks; looking at one metal at a time shows how routing uses alternating directions and how the power grid is built. Nothing is ever saved: the parser has no write operation.
-- Time: 1 to 3 s per step; `/loop layers` 7.2 s (speed_results.json). Status: verified live for `/klayout vision lit show only met1` and `/loop layers vision lit`; the other window steps go through the same gui_command parser (tests/tools/test_gui_tools.py) but were not timed here. Magic needs XQuartz on TCP (scripts/gui/open_gui.sh header).
+- Time: 1 to 3 s per step; `/loopdemo layers` 7.2 s (speed_results.json). Status: verified live for `/klayout vision lit show only met1` and `/loopdemo layers vision lit`; the other window steps go through the same gui_command parser (tests/tools/test_gui_tools.py) but were not timed here. Magic needs XQuartz on TCP (scripts/gui/open_gui.sh header).
 
 ### Demo 14: Loop engineering (plan, act, observe, check, stop)
 
-- Type: `/loop signoff kv`, then `/loop sim vision lit`.
+- Type: `/loopdemo signoff kv`, then `/loopdemo sim vision lit`.
 - What runs: two loops in code with their trace printed as a table: a read-only loop over the five KV designs, and a real job (make simulate) polled until its PASS line is verified.
 - Look at: row 0 is the PLAN with the goal, the stop condition and the budget; each step is ACT, OBSERVE, CHECK; the last row is STOP with the result (5 of 5 clean, tightest setup slack kv_attn_n16 8.766 ns; the simulation's PASS line).
 - Explain: an agent is a loop. A good loop has a goal, a stop condition and a budget, and it verifies (the PASS line), it does not assume ("the command returned"). examples/hermes_harness/ shows the same loop with a model choosing the actions (ReAct versus plan-then-execute).
-- Time: `/loop signoff` instant; `/loop sim vision lit` 2 s (speed_results.json). Status: verified.
+- Time: `/loopdemo signoff` instant; `/loopdemo sim vision lit` 2 s (speed_results.json). Status: verified.
 
 ### Demo 15: Harness engineering (fixed cases, score, gate)
 

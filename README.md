@@ -30,7 +30,7 @@ open -a Hermes                                 # then pick the "chip" profile / 
 Instant commands in Hermes (no model turn, about a second; partial names work): `/klayout kv_attn show only met1`,
 `/magic vision lit`, `/gds kv8`, `/timing kv_attn`, `/synth vision lit`, `/drc kv8`, `/lvs prec bf16`, `/signoff caravel kv`,
 `/compare kv4 kv8 kv16`, `/sim kv8`, `/run synth vision_block`, `/rebuild kv8`, `/jobs`; loop and harness demos
-`/loop signoff kv`, `/loop layers kv8`, `/harness facts kv`; `/chip` lists them all. Top-down guide: [hermes-agents.md](hermes-agents.md).
+`/loopdemo signoff kv`, `/loopdemo layers kv8`, `/harness facts kv`; `/chip` lists them all. Top-down guide: [hermes-agents.md](hermes-agents.md).
 
 Ask in Hermes: "How many cells does kv_attn_n8 have?", "Why does kv_attn_n8_int4 have more flip-flops than kv_attn_n8?",
 "Show the errors in kv_attn_n8's logs", "Open kv_attn_n8 in KLayout and show met1", "Run flow-all for vision_block" (asks

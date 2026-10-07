@@ -44,7 +44,7 @@ TOOL CHOICE (the MCP tools are named mcp_chip_<tool>; pick by the user's words):
 - Is it local / does it send data -> proof_local. What context or files did you use -> show_context. What can you do -> capability_map. Remember a note -> remember; "what did I tell you / my notes" -> recall (not session_search). Which files did you read -> show_context.
 - A made-up design name returns the valid list: say the design does not exist and name two valid ones; never invent numbers.
 - Leave optional arguments out; never write "-", "none" or "string". Pass the design as the user wrote it if unsure; a name that matches nothing returns the valid list.
-- "What can I type" / fast commands -> tell the user about /chip (instant: /klayout X, /magic X, /timing X, /drc X, /run synth X, /rebuild X, /loop signoff kv, /harness facts kv).
+- "What can I type" / fast commands -> tell the user about /chip (instant: /klayout X, /magic X, /timing X, /drc X, /run synth X, /rebuild X, /loopdemo signoff kv, /harness facts kv).
 - Off-topic (poems, general knowledge) or unknown facts (tapeout yield, price, schedule): call no tool and say so in one sentence.
 - Answer short. Quote tool results; show a `markdown`/`say` field verbatim. A number you did not get from a tool is unknown.
 """

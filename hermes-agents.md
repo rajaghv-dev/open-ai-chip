@@ -82,13 +82,13 @@ The flow every design went through, top to bottom. For each step:
 |---|---|---|---|---|
 | 1. Spec and model | Python golden model generates ROMs and test vectors (`model/<x>/`) | `/notes <d> architecture` | "how does kv_attn_n8 work?" | `rag_answer`, `notes_section`; skill `add-tiny-engine` |
 | 2. RTL | Verilog in `designs/<d>/rtl/`, shared engines in `shared/rtl/` | `/ask how is the kv cache addressed?` | "explain the int4 cache" | `explain`, `rag_answer` |
-| 3. Simulate | self-checking testbench, `make simulate` | `/sim <d>`, `/loop sim <d>` | "run the simulation for kv8" (confirm id) | `run_make simulate` |
+| 3. Simulate | self-checking testbench, `make simulate` | `/sim <d>`, `/loopdemo sim <d>` | "run the simulation for kv8" (confirm id) | `run_make simulate` |
 | 4. Synthesis | Yosys maps RTL to sky130 cells (first step of `make gds`) | `/synth <d>`, `/run synth <d>` | "how many flip-flops does vision lit have?" | skill `tune-synthesis`; `synth_stat.rpt` |
-| 5. Floorplan, place, CTS, route | OpenROAD engines: die size, placement, clock tree, global and detailed routing | `/klayout <d>`, `/magic <d>`, `/loop layers <d>`, `/png <d>`, `/log <d>` | "show the layout of kv8, only met1 and met2" | skill `tune-openroad-engines`; `gui_command`, `engine_pictures` |
+| 5. Floorplan, place, CTS, route | OpenROAD engines: die size, placement, clock tree, global and detailed routing | `/klayout <d>`, `/magic <d>`, `/loopdemo layers <d>`, `/png <d>`, `/log <d>` | "show the layout of kv8, only met1 and met2" | skill `tune-openroad-engines`; `gui_command`, `engine_pictures` |
 | 6. Timing (STA) | setup/hold on 9 corners at 25 ns | `/timing <d>` | "what is the worst setup slack of kv16?" | skill `tune-timing-sdc`; `timing_summary.rpt` |
 | 7. Physical signoff | Magic and KLayout DRC, netgen LVS, XOR, antenna | `/drc <d>`, `/drc <d> live`, `/lvs <d>`, `/signoff <d>` | "is caravel kv clean?" | `signoff_summary`; `drc_klayout.json`, `lvs_netgen.rpt` |
 | 8. Gate-level simulation | the synthesised and routed netlists rerun the testbench | `/run gl <d>`, `/run gl-final <d>` | "run gate level for prec_int8" | `run_make gl`, `gl-final` |
-| 9. Collect and freeze | results copied into `designs/<d>/output/`, hashes in `designs/FROZEN.json` | `/designs`, `/compare a b c`, `/loop signoff <family>` | "which kv design is biggest?" | `compare_designs`; owner-only `make freeze` |
+| 9. Collect and freeze | results copied into `designs/<d>/output/`, hashes in `designs/FROZEN.json` | `/designs`, `/compare a b c`, `/loopdemo signoff <family>` | "which kv design is biggest?" | `compare_designs`; owner-only `make freeze` |
 | 10. Explore | change a setting on a copy, compare with the frozen run | `/rebuild <d>` | "what if the clock were 20 ns for vision_block?" | skill `whatif-experiment`; `propose_change`, `whatif_run` |
 | 11. SoC and Caravel | the macro inside the Caravel `user_project_wrapper`, firmware sims | `/signoff caravel kv` | "how does the wrapper connect the macro?" | skills `wrapper-build`, `soc-run` |
 | 12. Tapeout | ChipFoundry submission | (none) | (none) | owner only: never automated (`cf` is blocked) |
@@ -214,7 +214,7 @@ signs. Sources: `speed_results.json` `observed`; Hermes session 20261007_052017_
   - reports: `/metrics`, `/synth`, `/timing`, `/drc [live]`, `/lvs`, `/signoff`, `/compare`, `/designs`, `/log`, `/notes`;
   - RAG: `/ask`;
   - runs: `/sim`, `/run <target> <design>`, `/rebuild`, `/jobs`, `/job`;
-  - demos of agent engineering: `/loop`, `/harness` (4.16).
+  - demos of agent engineering: `/loopdemo`, `/harness` (4.16).
   - Report commands read `designs/<d>/output/metrics.json` and `reports/*.rpt` and name the source file in every answer.
 - **Router** (`pre_llm_call`, runs before the model on every plain message):
   - opens a layout at once;
@@ -344,7 +344,7 @@ After each visual step a picture of the view comes back into the chat (`http://1
 | Snapshot | `/layout snapshot` | "snapshot" | the current view as a picture |
 | Status | `/layout status` | "which windows are open?" | pid, port, design |
 | Close | `/layout close all` (or `close klayout`, `close magic`) | same words | windows disappear |
-| Layer tour (a loop) | `/loop layers kv8` (add `magic` for Magic) | (none) | met1..met5 one at a time, five pictures |
+| Layer tour (a loop) | `/loopdemo layers kv8` (add `magic` for Magic) | (none) | met1..met5 one at a time, five pictures |
 
 - **Chain** steps with "and" or "then": `/klayout kv_attn show only met4 and met5 and zoom to the lower-left 50 um`.
 - Layers: met1..met5, li1, poly, diff.
@@ -360,14 +360,15 @@ After each visual step a picture of the view comes back into the chat (`http://1
   model so it is reliable.
   - The loop: PLAN; then repeat ACT, OBSERVE, CHECK; STOP on success or when a budget runs out.
   - The harness: deterministic tools, checks against ground truth, budgets, tracing, an eval set, a pass/fail gate.
+- `/loopdemo`, not `/loop`: Hermes has a built-in `/loop`, and a plugin cannot take a built-in name (Hermes skips it).
 - The demos below run the loop **in code**, so every step is visible and repeatable. Each prints its trace as a table.
   They use only the 25 existing designs.
 
 | Command | Loop or harness | What it teaches | Measured (`speed_results.json`) |
 |---|---|---|---|
-| `/loop signoff kv` | read-only loop over a family: read metrics, observe, check the verdict, stop when all are checked | a loop needs a goal, a stop condition and a budget | 0.002 s |
-| `/loop layers kv8` | GUI loop: open, then show met1..met5 one at a time, check each picture rendered | the observation (a picture) is checked, not assumed | 7.2 s live |
-| `/loop sim vision lit` | act, observe, verify with a real job: start `make simulate`, poll every 2 s, check exit 0 and the PASS line | "done" means verified, not "the command returned" | 2.0 s live |
+| `/loopdemo signoff kv` | read-only loop over a family: read metrics, observe, check the verdict, stop when all are checked | a loop needs a goal, a stop condition and a budget | 0.002 s |
+| `/loopdemo layers kv8` | GUI loop: open, then show met1..met5 one at a time, check each picture rendered | the observation (a picture) is checked, not assumed | 7.2 s live |
+| `/loopdemo sim vision lit` | act, observe, verify with a real job: start `make simulate`, poll every 2 s, check exit 0 and the PASS line | "done" means verified, not "the command returned" | 2.0 s live |
 | `/harness names` | 10 fixed loose names, score, gate; "audio" must **not** be guessed | an eval set plus a gate turns "seems to work" into a number | 10/10, PASS |
 | `/harness facts kv` | 3 questions per design, each checked against `metrics.json` and for a cited source file | grounding: a right answer without its source fails | 15/15, PASS |
 
@@ -394,8 +395,8 @@ After each visual step a picture of the view comes back into the chat (`http://1
   - `/jobs`, then `whatif_result` compares with the frozen run.
 - **Rebuild from scratch:** `/rebuild kv8` runs the full flow on an unchanged copy (minutes), then compares. Useful to
   show reproducibility.
-- **Teach the agent loop:** `/loop signoff kv` (a loop), `/harness facts kv` (a harness), `/loop layers kv8` (a GUI
-  loop), `/loop sim vision lit` (verify, not assume); then `examples/hermes_harness/` for the version with a model inside.
+- **Teach the agent loop:** `/loopdemo signoff kv` (a loop), `/harness facts kv` (a harness), `/loopdemo layers kv8` (a GUI
+  loop), `/loopdemo sim vision lit` (verify, not assume); then `examples/hermes_harness/` for the version with a model inside.
 - **Re-run a cheap check:** `/sim kv8`, `/run gl kv8`, `/run check kv8` (reads the existing run; no new layout).
 - **A new design or an RTL change:** ask Claude (`ask_claude` or Claude Code) with skills `add-tiny-engine` or
   `harden-design`. Then the owner unfreezes, re-hardens and freezes.
@@ -404,7 +405,7 @@ After each visual step a picture of the view comes back into the chat (`http://1
 
 | What | Value | Source |
 |---|---|---|
-| Loop and harness demos (read-only) | 0.001 to 0.006 s; `/loop layers` 7.2 s and `/loop sim` 2.0 s live | same file (`commands`, `observed.loops_live`) |
+| Loop and harness demos (read-only) | 0.001 to 0.006 s; `/loopdemo layers` 7.2 s and `/loopdemo sim` 2.0 s live | same file (`commands`, `observed.loops_live`) |
 | Report commands through `/quick` | 0.001 to 0.006 s | `examples/hermes_desktop/eval_tools/speed_results.json` (`commands`) |
 | Router on a sentence | 0.002 s (facts) to 0.11 s (RAG quotes) | same file (`sentences`) |
 | RAG first and warm question | 1.13 s, 0.12 s | same file (`rag`) |

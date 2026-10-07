@@ -45,7 +45,7 @@ COMMANDS = {
     "run": "start a make target now: /run synth vision_block (simulate, synth, check, gl, gl-final, flow-all)",
     "rebuild": "full flow on a fresh unchanged copy (frozen design untouched): /rebuild kv8",
     "jobs": "running and finished jobs",
-    "loop": "loop-engineering demos: /loop signoff kv | /loop layers kv8 | /loop sim vision lit",
+    "loopdemo": "loop-engineering demos: /loopdemo signoff kv | /loopdemo layers kv8 | /loopdemo sim vision lit",
     "harness": "harness-engineering demos: /harness names | /harness facts kv",
     "job": "status and log tail of a job: /job <id>",
 }

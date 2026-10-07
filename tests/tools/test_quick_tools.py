@@ -167,12 +167,12 @@ def test_plugin_registers_commands_and_hook(monkeypatch):
 
 
 def test_loop_and_harness_demos(monkeypatch):
-    """Pins down: /loop signoff walks a family with PLAN/ACT/OBSERVE/CHECK/STOP; /harness names and /harness facts pass their gates;
-    /loop layers and /loop sim follow their plans (GUI and job faked)."""
+    """Pins down: /loopdemo signoff walks a family with PLAN/ACT/OBSERVE/CHECK/STOP; /harness names and /harness facts pass their gates;
+    /loopdemo layers and /loopdemo sim follow their plans (GUI and job faked)."""
     r = q("loop", "signoff kv")
     assert "| 0 | PLAN |" in r and r.count("| CHECK | clean |") == 5 and "tightest setup slack kv_attn_n16 (8.766 ns)" in r
     assert "gate **PASS**" in q("harness", "names") and "score 15/15, gate **PASS**" in q("harness", "facts kv")
-    assert "/loop signoff" in q("loop", "")
+    assert "/loopdemo signoff" in q("loopdemo", "")
     gui = []
 
     def fake(name, body):

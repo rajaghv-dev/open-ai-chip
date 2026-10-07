@@ -19,7 +19,7 @@ was not done. Paths are repo-relative; run everything from the repo root. `<d>` 
 | A GDS without any window | `build/agent/venv/bin/python examples/hermes_klayout_gui/agent.py --dry-run` (offscreen, no display) | same (not tested here) |
 | OpenROAD GUI on a finished run | `bash scripts/gui/open_gui.sh openroad <d>` with XQuartz (verified, section 3) | same with the X11 socket (not tested here) |
 | OpenROAD engine heat maps, live | `bash scripts/gui/open_gui.sh heatmaps <d>` (cycles layout, placement density, routing congestion, power density, IR drop; `DWELL=12 ROUNDS=3`; verified) | same flow with X11/Wayland socket (not tested here) |
-| KLayout / Magic driven from the Hermes desktop chat | `/klayout <d> show only met1`, `/magic <d>`, `/layout zoom to the lower-left 50 um`, `/drc <d> live`, `/loop layers <d>` (plugin, no model turn; full list in `hermes-agents.md` section 4.15; verified for KLayout) | same once the profile is set up (not tested here) |
+| KLayout / Magic driven from the Hermes desktop chat | `/klayout <d> show only met1`, `/magic <d>`, `/layout zoom to the lower-left 50 um`, `/drc <d> live`, `/loopdemo layers <d>` (plugin, no model turn; full list in `hermes-agents.md` section 4.15; verified for KLayout) | same once the profile is set up (not tested here) |
 | The GDS in Magic (the repo's default layout viewer) | `bash scripts/gui/open_gui.sh magic <d>` with XQuartz (verified, section 3) | same with the X11 socket (not tested here) |
 | Testbench result of an RTL sim | `cat build/sim/<d>/sim.log` | same |
 | Gate-level sim result | `cat build/gl/<d>/result.txt build/gl/<d>/sim/gl.log` | same |

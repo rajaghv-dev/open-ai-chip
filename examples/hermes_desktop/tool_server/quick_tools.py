@@ -71,7 +71,7 @@ HELP = """**open-ai-chip commands** (instant, no model; design names may be part
 | `/run <target> <design>` | start a make target now: simulate, synth (=gds), check (DRC/LVS/timing), gl, gl-final, flow-all |
 | `/rebuild <design>` | full flow on a fresh unchanged copy (frozen design untouched) |
 | `/jobs`, `/job <id>` | running and finished jobs |
-| `/loop signoff kv`, `/loop layers kv8`, `/loop sim vision lit` | loop-engineering demos: PLAN, ACT, OBSERVE, CHECK, STOP, shown step by step |
+| `/loopdemo signoff kv`, `/loopdemo layers kv8`, `/loopdemo sim vision lit` | loop-engineering demos: PLAN, ACT, OBSERVE, CHECK, STOP, shown step by step |
 | `/harness names`, `/harness facts kv` | harness-engineering demos: fixed cases, checks against metrics.json, score and gate |
 
 Frozen designs (all 25) never get gds/flow-all/collect: use `/rebuild`. One physical flow at a time."""
@@ -447,7 +447,7 @@ def loop_signoff(words: str, budget: int = 30) -> str:
     """Read-only loop over a family: for each design ACT read metrics, OBSERVE the numbers, CHECK the verdict."""
     ds = _family(words or "kv")
     if not ds:
-        return "usage: `/loop signoff <family or design>` (families: kv, prec, vision, audio, soc, wrapper, all)"
+        return "usage: `/loopdemo signoff <family or design>` (families: kv, prec, vision, audio, soc, wrapper, all)"
     rows, step, clean, worst = [(0, "PLAN", "goal: every design in %s signoff-clean; budget %d steps; stop when all checked" % (words or "kv", budget))], 0, [], None
     for d in ds:
         step += 1
@@ -568,9 +568,9 @@ LOOP_HELP = """**Loop and harness demos** (existing designs only; every step is 
 
 | Command | Idea it shows |
 |---|---|
-| `/loop signoff kv` | a read-only loop: PLAN, then ACT read, OBSERVE numbers, CHECK verdict per design, STOP when all checked |
-| `/loop layers kv8` (or `... magic`) | a GUI loop: open the layout, show met1..met5 one at a time, check each picture rendered |
-| `/loop sim vision lit` | act, observe, verify with a real job: start the simulation, poll, check the PASS line, budget 180 s |
+| `/loopdemo signoff kv` | a read-only loop: PLAN, then ACT read, OBSERVE numbers, CHECK verdict per design, STOP when all checked |
+| `/loopdemo layers kv8` (or `... magic`) | a GUI loop: open the layout, show met1..met5 one at a time, check each picture rendered |
+| `/loopdemo sim vision lit` | act, observe, verify with a real job: start the simulation, poll, check the PASS line, budget 180 s |
 | `/harness names` | a test harness for the name resolver: fixed cases, score, pass/fail gate (an ambiguous name must not be guessed) |
 | `/harness facts kv` | grounding harness: 3 questions per design checked against metrics.json and for a cited source |
 
@@ -651,7 +651,7 @@ def run_cmd(cmd: str, args: str) -> str:
         return cmd_run(p[0] if p else "", p[1] if len(p) > 1 else "") if p else "usage: `/run <target> <design>`, e.g. `/run synth vision_block`"
     if c in ("rebuild", "reharden"):
         return cmd_rebuild(a)
-    if c == "loop":
+    if c in ("loopdemo", "loop"):          # /loopdemo is a Hermes built-in, so the plugin registers /loopdemo
         return run_loop(a)
     if c == "harness":
         return run_harness(a)
