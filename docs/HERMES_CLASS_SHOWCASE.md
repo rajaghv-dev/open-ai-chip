@@ -21,7 +21,8 @@ bash scripts/hermes_start.sh --demo-sessions    # first time before a class: als
 bash scripts/hermes_start.sh                    # any later time: checks and starts everything, opens Hermes.app
 ```
 
-- It checks and starts Ollama and both models (pre-loaded, so the first answer is fast), Docker (for step 7), the tool
+- It checks and starts Ollama and loads both models into memory **before** Hermes.app opens. They stay loaded until you
+  quit the app (`scripts/hermes/keep_models_warm.sh --status` shows them), so no answer waits for a model load, Docker (for step 7), the tool
   server, KLayout and XQuartz.
 - It smoke-tests the commands and opens Hermes.app.
 - Expect a final table with **0 failed**. Warnings are optional parts (for example XQuartz, which only Magic needs).
@@ -64,7 +65,8 @@ bash scripts/hermes_start.sh                    # any later time: checks and sta
   🟢🟡🟠🔴 and ✅/❌ colours, bars and KLayout pictures. It takes a few seconds.
 - With `/` the answer is instant, but Hermes.app shows plugin output as a small grey line without markdown. Use that only
   for quick checks, not on the projector.
-- Commands that start a run need `chip ` in front: `chip experiment soc-kv`, `chip whatif ...`, `chip rebuild kv8`.
+- `run`, `rebuild`, `whatif` and `experiment` need `chip ` in front (or `/`): `chip experiment soc-kv`, `chip whatif ...`, `chip rebuild kv8`. `sim` and `loopdemo sim` start the cheap RTL simulation at once.
+- The nine pinned sessions and `/demo n` use card numbers (1 tour ... 9 model); "run demo n" in the `chip-demos` skill uses the 15-demo numbering of `docs/HERMES_DEMOS.md`.
 - If text is still small on the projector, zoom the app (**Cmd +**).
 
 ## The script
@@ -83,8 +85,8 @@ bash scripts/hermes_start.sh                    # any later time: checks and sta
   - then the answer, quoted verbatim: the macro was re-hardened with the Caravel macro SDC, and hold went from
     -0.894 ns to +0.105 ns.
 - **say:**
-  - This is retrieval (RAG): BM25 plus local embeddings over the repo's own notes. First question about 1 s, then
-    0.1 s.
+  - This is retrieval (RAG): BM25 plus local embeddings over the repo's own notes. First question about 0.6 s, then
+    0.13 s (`examples/hermes_desktop/eval_tools/speed_results.json`, `rag`).
   - Before we added the exact-reply step, the 9B model paraphrased these passages and **invented** a fix (a changed
     `MAX_TRANSITION_CONSTRAINT`) that is not in the repo.
   - Now the quotes are shown exactly. Lesson: small models must quote, not summarise.

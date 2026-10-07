@@ -24,8 +24,8 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --all) FLOWS=1 PRECHECK=1 AGENTS=1 GUI=1 ;;
     --flows) FLOWS=1 ;; --precheck) PRECHECK=1 ;; --fullgl) FULLGL=1 ;; --agents) AGENTS=1 ;; --gui) GUI=1 ;;
-    --keep-going) KEEP=1 ;; --no-docker) NODOCKER=1 ;; --design) D=$2; shift ;;
-    -h|--help) sed -n 2,19p "$0"; exit 0 ;;
+    --keep-going) KEEP=1 ;; --no-docker) NODOCKER=1 ;; --design) [ $# -ge 2 ] || { echo "--design needs a name"; exit 2; }; D=$2; shift ;;
+    -h|--help) sed -n 2,17p "$0"; exit 0 ;;
     *) echo "unknown option $1"; exit 2 ;;
   esac
   shift
@@ -72,7 +72,7 @@ OLLAMA=0; curl -s --max-time 3 localhost:11434/api/tags | grep -q hermes3 && OLL
 XQ=0
 if [ "$OS" = Darwin ]; then lsof -nP -iTCP:6000 -sTCP:LISTEN >/dev/null 2>&1 && XQ=1
 else   # Linux: an X server (native, or XWayland) reachable through DISPLAY and its unix socket
-  n=${DISPLAY#*:}; n=${n%%.*}
+  n=${DISPLAY:-}; n=${n#*:}; n=${n%%.*}
   [ -n "${DISPLAY:-}" ] && [ -S "/tmp/.X11-unix/X$n" ] && XQ=1
 fi
 if [ "$OS" = Darwin ]; then KL=/Applications/KLayout/klayout.app/Contents/MacOS/klayout; else KL=$(command -v klayout || true); fi

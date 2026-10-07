@@ -1179,6 +1179,8 @@ def plain_command(text: str) -> Optional[Tuple[str, str]]:
         return c, rest
     if c == "demo" and re.fullmatch(r"\w+", rest.strip() or "-"):
         return c, rest
+    if c == "ask" and len(rest.split()) >= 2:            # "ask why does X ...": the quoted RAG answer, not loose facts
+        return c, rest
     if c in ("sim", "rebuild", "notes", "log") and len(rest.split()) <= 3 and not re.search(r"\b(the|a|an|for|of)\b", rest.lower()):
         return c, rest
     return None

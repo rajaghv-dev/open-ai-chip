@@ -162,7 +162,17 @@ simulate: $(SIM_DIR)/tb.vvp
 
 # ---- RTL to GDSII ----
 # flow: one LibreLane run, no reuse (scripts/flow/run_capped.sh calls it with the container named)
+# Frozen guard (designs/FROZEN.json): targets that run LibreLane or rewrite designs/<d>/output refuse a frozen design.
+# The owner changes a frozen design on purpose with FROZEN_OK=1 (then make freeze; designs/FROZEN.md).
+define frozen_guard
+	@if [ "$(FROZEN_OK)" != 1 ] && python3 -c 'import sys; sys.path.insert(0, "scripts/flow"); import frozen; sys.exit(0 if sys.argv[1] in frozen.frozen_designs() else 1)' $(DESIGN) 2>/dev/null; then \
+	  echo "$(DESIGN) is FROZEN (designs/FROZEN.json): make $@ would rewrite its committed evidence."; \
+	  echo "  Use make simulate|check|gl|gl-final DESIGN=$(DESIGN), or a what-if copy (Hermes: chip rebuild $(DESIGN))."; \
+	  echo "  Owner, changing it on purpose: FROZEN_OK=1 make $@ DESIGN=$(DESIGN), then make freeze (designs/FROZEN.md)."; exit 1; fi
+endef
+
 flow:
+	$(frozen_guard)
 	$(call run_librelane,$(DDIR),)
 
 # ---- macro views (build/macros/<macro>/) ----
@@ -179,6 +189,7 @@ wrapper:
 	@$(MAKE) --no-print-directory flow-all DESIGN=user_project_wrapper
 
 gds: $(if $(MACROS),macro-views)
+	$(frozen_guard)
 	@mkdir -p $(DDIR)/output $(TMP)
 	@if run=$$(python3 scripts/flow/find_reusable_run.py $(DESIGN) 2>$(TMP)/reuse.err); then \
 	  echo "gds: REUSED $$run (complete, inputs unchanged since it started); no flow run"; \
@@ -211,6 +222,7 @@ gl-final:
 
 # ---- results ----
 collect:
+	$(frozen_guard)
 	@bash scripts/flow/collect.sh --collect $(DESIGN) --profile $(PROFILE) --cpuset $(CPUSET)
 	@mkdir -p $(DDIR)/output
 	@cp build/results/$(DESIGN)/metrics.json $(DDIR)/output/
@@ -227,6 +239,7 @@ view:
 
 # ---- the one command ----
 flow-all:
+	$(frozen_guard)
 	@mkdir -p $(TMP); rm -f $(TMP)/stages.txt; S=$$(date +%s); fail=0; \
 	stage() { n=$$1; shift; echo "=== flow-all: $$n ==="; a=$$(date +%s); \
 	  if "$$@" > $(TMP)/stage_$$n.log 2>&1; then r=PASS; else r=FAIL; fail=1; fi; \
@@ -270,9 +283,13 @@ model-check:
 
 # ---- every design, one after another; then the results table ----
 all-designs:
-	@fail=""; for d in $(ALL_DESIGNS); do \
-	  echo "##### $$d #####"; $(MAKE) --no-print-directory flow-all DESIGN=$$d || fail="$$fail $$d"; \
+	@fail=""; skipped=""; for d in $(ALL_DESIGNS); do \
+	  echo "##### $$d #####"; \
+	  if [ "$(FROZEN_OK)" != 1 ] && python3 -c 'import sys; sys.path.insert(0, "scripts/flow"); import frozen; sys.exit(0 if sys.argv[1] in frozen.frozen_designs() else 1)' $$d 2>/dev/null; then \
+	    echo "skip: frozen (designs/FROZEN.json)"; skipped="$$skipped $$d"; continue; fi; \
+	  $(MAKE) --no-print-directory flow-all DESIGN=$$d || fail="$$fail $$d"; \
 	done; \
+	[ -z "$$skipped" ] || echo "all-designs: skipped frozen:$$skipped (owner: FROZEN_OK=1 to re-harden them)"; \
 	python3 scripts/docs/tables.py; \
 	if [ -n "$$fail" ]; then echo "all-designs: FAILED:$$fail"; exit 1; fi; echo "all-designs: all passed"
 

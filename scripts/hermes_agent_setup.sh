@@ -5,6 +5,9 @@
 #   bash scripts/hermes_agent_setup.sh                    # review (diff only)
 #   bash scripts/hermes_agent_setup.sh --apply            # back up to <home>/backups/open-ai-chip-<ts>/, then apply
 #   bash scripts/hermes_agent_setup.sh --uninstall [--apply]   # plan / undo using the latest backup
+#   options: --demo-tools (also expose log_digest, param_info, propose_change, whatif_run, whatif_result: the what-if and
+#            log demos need them; the applied profile of 2026-10-07 has them) --grafana (add the read-only Grafana MCP server)
+#            Re-run with the same flags you applied before, or the diff removes those tools again.
 #   options: --profile NAME (default chip), --hermes-home DIR (default $HERMES_HOME or ~/.hermes; use build/hermes_test_home to try)
 # Never reads .env, auth.json, pairing/ or any secret. Docs: docs/HERMES_AGENT_INTEGRATION.md. Logic: scripts/hermes/setup_profile.py
 set -euo pipefail

@@ -1,0 +1,9 @@
+# Agent venv packages (build/agent/venv): python3 -m venv build/agent/venv && build/agent/venv/bin/pip install -r tools/requirements.txt
+# Used by the tool server (examples/hermes_desktop/tool_server), the MCP bridge (tools/hermes_mcp_bridge.py), tools/ and tests/tools.
+# Versions measured working on 2026-10-07 (macOS): klayout 0.30.12, mcp 2.3.0, pytest 9.1.1, fastapi 0.142.2, uvicorn 0.54.0, httpx 0.28.1.
+klayout
+mcp
+pytest
+fastapi
+uvicorn
+httpx

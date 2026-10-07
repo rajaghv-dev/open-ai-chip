@@ -9,12 +9,16 @@ Hermes agents read the results, drive KLayout and OpenROAD, and can hand flows t
 ```bash
 cd open-ai-chip
 make doctor                                  # tools, Docker, LibreLane image, PDK: what is missing and how to get it
-bash scripts/run_all_mac.sh                  # macOS: verify everything (tests, sims, signoff, gate level), ~10 min
+bash scripts/run_all_mac.sh                  # macOS: verify everything (tests, sims, signoff, gate level), ~10 min (estimate)
 bash scripts/run_all_mac.sh --all            # + flows, precheck, Hermes agents, GUI windows
 bash scripts/setup_linux.sh && bash scripts/run_all.sh   # Linux: set up, then the same run
 ```
 
-One design end to end: `make flow-all DESIGN=kv_attn_n8`. Fast gate: `make test`. All targets: `make help`.
+Order for a new or owner-unfrozen design: `make doctor`, `make test`, then `make flow-all DESIGN=<d>`. Fast gate: `make test`. All targets: `make help`.
+
+All 25 designs are frozen (`designs/FROZEN.json`): the Makefile refuses `gds`, `collect`, `flow-all` and `flow` on them. On a
+frozen design use `make simulate DESIGN=kv_attn_n8`, `make view DESIGN=kv_attn_n8` or a what-if copy; unfreeze is owner-only
+([designs/FROZEN.md](designs/FROZEN.md)).
 
 ## Hermes Agent desktop app
 
@@ -35,7 +39,7 @@ Instant commands in Hermes (no model turn, about a second; partial names work): 
 (`/timing audio`) gets a numbered question: answer `2` or `/pick 2`. Top-down guide: [hermes-agents.md](hermes-agents.md); class script: [docs/HERMES_CLASS_SHOWCASE.md](docs/HERMES_CLASS_SHOWCASE.md).
 
 Ask in Hermes: "How many cells does kv_attn_n8 have?", "Why does kv_attn_n8_int4 have more flip-flops than kv_attn_n8?",
-"Show the errors in kv_attn_n8's logs", "Open kv_attn_n8 in KLayout and show met1", "Run flow-all for vision_block" (asks
+"Show the errors in kv_attn_n8's logs", "Open kv_attn_n8 in KLayout and show met1", "Run the simulation for vision_block" (asks
 for approval, then `yes, run <id>`), "Summarize the last run", "What should I improve in prec_bf16?", "What if the clock
 were 20 ns for vision_block?", "Ask Claude to ...". Every part of the integration, point by point: [hermes-agents.md](hermes-agents.md). Full map, safety and status:
 [docs/HERMES_AGENT_INTEGRATION.md](docs/HERMES_AGENT_INTEGRATION.md). Fifteen narrated demos to run in the app ("run demo 4"): [docs/HERMES_DEMOS.md](docs/HERMES_DEMOS.md). Undo: `bash scripts/hermes_agent_setup.sh --uninstall --apply`.
@@ -48,9 +52,9 @@ the repo unmaintained; what is incomplete is listed in [SPEC.md](SPEC.md#agent-f
 
 | Open | Command |
 |---|---|
-| Hermes agent in the browser / Mac app | `make hermes` (or `bash scripts/hermes.sh`) |
+| Hermes Agent desktop app (maintained) | `make hermes-app` (= `bash scripts/hermes_start.sh`; `ARGS=--check` or `--demo-sessions`) |
+| Legacy Open WebUI front end (unmaintained) | `make hermes` (or `bash scripts/hermes.sh`) |
 | Hermes in the terminal | `build/agent/venv/bin/python tools/hermes_agent.py "How many standard cells does vision_block have?"` |
-| Hermes Agent (Nous, `chip` profile) | `bash scripts/hermes_agent_setup.sh`, review the diff, then `--apply` ([guide](docs/HERMES_AGENT_INTEGRATION.md)) |
 | KLayout driven by Hermes | `bash examples/hermes_klayout_gui/start_live.sh`, then `build/agent/venv/bin/python examples/hermes_klayout_gui/agent.py --backend live "open kv_attn_n8, show met1"` |
 | OpenROAD GUI, live heat maps | `bash scripts/gui/open_gui.sh heatmaps kv_attn_n8` |
 | Magic | `bash scripts/gui/open_gui.sh magic kv_attn_n8` |
@@ -82,6 +86,7 @@ Each name links to its design page (architecture, data flow, every flow step, wh
 - Background: [why this is AI](docs/WHY_AI.md), [architecture](docs/ARCHITECTURE.md), [precision study](docs/PRECISION_STUDY.md), [LLM inference and the KV cache](docs/LLM_INFERENCE.md), [OpenROAD engines](docs/OPENROAD_ENGINES.md).
 - SoC and tapeout: [SoC plan](docs/SOC_PLAN.md), [firmware](firmware/README.md), [Caravel simulation](docs/CARAVEL_SIM.md), [precheck](docs/PRECHECK.md).
 - Agents: [Hermes agent](docs/HERMES_AGENT.md), [tools](tools/README.md), [KLayout demo](examples/hermes_klayout_demo/README.md), [harness](examples/hermes_harness/README.md), [RAG](examples/hermes_rag/README.md), [KLayout GUI](examples/hermes_klayout_gui/README.md), [OpenROAD GUI](examples/openroad_gui/README.md), [desktop and tool server](examples/hermes_desktop/README.md), [skills](docs/SKILLS.md), [local Grafana dashboards](docs/GRAFANA.md).
+- Extending with a coding agent (Claude Code, Codex, Gemini CLI / Antigravity): [AGENTS.md](AGENTS.md).
 - Project: [plan and rules](SPEC.md), [sources and licences](provenance/SOURCES.md), [slides](docs/slides/README.md) (from the sibling repository).
 
 Not covered: no tapeout or `cf` account step is automated (owner only); the full-Caravel sims and the precheck ran for

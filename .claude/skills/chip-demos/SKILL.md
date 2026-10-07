@@ -8,7 +8,7 @@ description: Fifteen narrated demos of the open-ai-chip repo that run inside the
 Self-contained. Demos run through the MCP tools of the `chip` profile (names `mcp__chip__<tool>`). The agent never edits repo files; every run starts only after the USER writes "yes, run <id>".
 How to run one: the user says "run demo N" or "demo: <name>". Reply with the demo title, then walk the steps: say the next prompt to type (or call the tool when the step is a plain question), show the result, then give the "Explain" lines. Never run a physical step (flow, what-if flow, experiment, ask_claude) yourself: show the confirm text and wait for the user's own "yes, run <id>".
 Menu (say "list the demos"): 1 chips, 2 why, 3 logs, 4 layout, 5 flow, 6 what-if, 7 experiments, 8 skills, 9 memory, 10 proof, 11 claude, 12 instant commands, 13 gui tour, 14 loop, 15 harness. Demos 12 to 15 are slash commands the USER types (the plugin answers them without you); for those, tell the user what to type and explain the result.
-Setup prerequisite: `bash scripts/hermes_agent_setup.sh --apply` (add `--demo-tools` for demos 3 (log_digest) and 6). Human version with measured transcripts: docs/HERMES_DEMOS.md. Order for a short talk: 1, 2, 4, 5, 6.
+Setup prerequisite: `bash scripts/hermes_agent_setup.sh --apply` (add `--demo-tools` for demos 3 (log_digest) and 6). Human version with measured transcripts: docs/HERMES_DEMOS.md. Order for a short talk: 12, 13, 2, 5, 14.
 Models: the default qwen3.5-64k:9b is the one evaluated (87.9 % on 58 tool-calling cases, examples/hermes_desktop/eval_tools/results_summary_hermes.json). hermes3:8b, gemma3:4b-it-qat, gemma4:12b and mistral-nemo:latest are selectable for show; do not run the demos on them (docs/HERMES_AGENT_INTEGRATION.md, "Models for demos").
 
 ## Demo 1: Ask the chips (numbers)
@@ -79,7 +79,7 @@ Models: the default qwen3.5-64k:9b is the one evaluated (87.9 % on 58 tool-calli
 - Tools expected: param_info; propose_change (writes nothing); whatif_run (confirm gate plus approval card) -> job_status; whatif_result
 - Look at: 40 ns is BLOCKED (rule R1-CLOCK: only a shorter period is allowed); 20 ns is allowed with a patch text; the what-if result is a table of committed against changed numbers.
 - Explain: A what-if runs on a copy under build/whatif/, never on designs/<d>/, so the committed evidence stays valid. HARD RULE: never loosen CLOCK_PERIOD (25 ns) or MAX_TRANSITION_CONSTRAINT to make a gate pass; tightening is a legitimate experiment and shrinks setup slack.
-- Time: questions 15 s; a what-if flow 2 to 3 minutes (Docker). Status: propose_change and param_info answers checked against the tool server; whatif_run not run; needs `--demo-tools`.
+- Time: questions 15 s; a what-if flow about 50 s (vision_all_lit, `speed_results.json`; Docker). Status: propose_change and param_info answers checked against the tool server; the plugin form `/whatif` verified; needs `--demo-tools`.
 
 ## Demo 7: Experiments: soc-kv and the precision table
 

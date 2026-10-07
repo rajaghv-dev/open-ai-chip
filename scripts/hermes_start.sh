@@ -16,7 +16,8 @@
 #   3 Ollama running (starts Ollama.app)            9 repo tool server on 127.0.0.1:8770 (started, or restarted when its
 #   4 models present: qwen3.5-64k:9b (required),       code is newer and no job is running), health and RAG warmed
 #     qwen3-embedding:0.6b (RAG; else BM25 only)   10 smoke tests: /chip, /timing kv8, router, RAG, MCP bridge
-#   5 both models loaded and kept warm 30 min      11 Hermes.app opened (restarted when the plugin changed since it started)
+#   5 both models loaded and pinned in memory      11 Hermes.app opened (restarted when the plugin changed since it started),
+#     before the app opens                             plus a watcher that keeps the models loaded until the app quits
 # Never: pulls models, changes ~/.hermes (run scripts/hermes_agent_setup.sh for that), edits repo files, reads secrets.
 set -uo pipefail
 export PATH="/opt/homebrew/bin:/usr/local/bin:$HOME/.local/bin:$PATH"
@@ -36,7 +37,7 @@ CHECK=0; APP=1; DOCKER=1; RESTART=0; DEMOS=0
 for a in "$@"; do
   case "$a" in
     --check) CHECK=1 ;; --no-app) APP=0 ;; --no-docker) DOCKER=0 ;; --restart-server) RESTART=1 ;; --demo-sessions) DEMOS=1 ;;
-    -h|--help) sed -n 2,22p "$0"; exit 0 ;;
+    -h|--help) sed -n 2,21p "$0"; exit 0 ;;
     *) echo "unknown option $a (see --help)"; exit 2 ;;
   esac
 done
@@ -69,10 +70,10 @@ if [ -f "$PROFILE_DIR/config.yaml" ]; then
   else row warn "default profile" "not chip: run 'hermes profile use chip' or pick chip in the app's profile rail"; fi
   if [ -L "$PLUGIN_LINK" ] && [ -f "$PLUGIN_LINK/__init__.py" ]; then
     if grep -q 'open-ai-chip' "$PROFILE_DIR/config.yaml"; then row ok "plugin open-ai-chip" "linked and enabled (slash commands)"
-    else row fail "plugin open-ai-chip" "linked but not in plugins.enabled: re-run the setup with --apply"; fi
-  else row fail "plugin open-ai-chip" "not linked: re-run bash scripts/hermes_agent_setup.sh --apply"; fi
-  grep -q 'hermes_mcp_bridge.py' "$PROFILE_DIR/config.yaml" && row ok "MCP server chip" "configured (tools/hermes_mcp_bridge.py)" || row fail "MCP server chip" "missing in config: re-run the setup"
-  grep -q 'pre_tool_call.py' "$PROFILE_DIR/config.yaml" && row ok "safety hook" "pre_tool_call + confirm guard" || row fail "safety hook" "missing in config: re-run the setup"
+    else row fail "plugin open-ai-chip" "linked but not in plugins.enabled: re-run bash scripts/hermes_agent_setup.sh --demo-tools --apply (same flags as before)"; fi
+  else row fail "plugin open-ai-chip" "not linked: re-run bash scripts/hermes_agent_setup.sh --demo-tools --apply (same flags as before)"; fi
+  grep -q 'hermes_mcp_bridge.py' "$PROFILE_DIR/config.yaml" && row ok "MCP server chip" "configured (tools/hermes_mcp_bridge.py)" || row fail "MCP server chip" "missing in config: re-run bash scripts/hermes_agent_setup.sh --demo-tools --apply"
+  grep -q 'pre_tool_call.py' "$PROFILE_DIR/config.yaml" && row ok "safety hook" "pre_tool_call + confirm guard" || row fail "safety hook" "missing in config: re-run bash scripts/hermes_agent_setup.sh --demo-tools --apply"
 else
   row fail "profile chip" "not set up: bash scripts/hermes_agent_setup.sh (dry run), then --apply"
 fi
@@ -94,11 +95,13 @@ else
       else row warn "model $m" "missing: RAG falls back to BM25 (ollama pull $m)"; fi
     done
     if [ $CHECK = 0 ]; then
-      echo "  loading models into memory (keep_alive 30m)..."
+      echo "  loading the models into memory, pinned until Hermes.app closes..."
       t0=$(date +%s)
-      curl -fsS -m 300 $OLLAMA/api/generate -d "{\"model\":\"$MODEL\",\"keep_alive\":\"30m\"}" >/dev/null 2>&1 && row ok "warm $MODEL" "loaded in $(( $(date +%s)-t0 )) s, kept 30 min" || row warn "warm $MODEL" "could not load (first answer will be slow)"
-      curl -fsS -m 120 $OLLAMA/api/embed -d "{\"model\":\"$EMBED\",\"input\":\"warm\",\"keep_alive\":\"30m\"}" >/dev/null 2>&1 && row ok "warm $EMBED" "loaded, kept 30 min" || row warn "warm $EMBED" "could not load (RAG uses BM25)"
+      curl -fsS -m 300 $OLLAMA/api/generate -d "{\"model\":\"$MODEL\",\"prompt\":\"ok\",\"stream\":false,\"think\":false,\"keep_alive\":-1,\"options\":{\"num_predict\":1}}" >/dev/null 2>&1 && row ok "load $MODEL" "in memory ($(( $(date +%s)-t0 )) s), pinned" || row warn "load $MODEL" "could not load (first answer will be slow)"
+      curl -fsS -m 120 $OLLAMA/api/embed -d "{\"model\":\"$EMBED\",\"input\":\"warm\",\"keep_alive\":-1}" >/dev/null 2>&1 && row ok "load $EMBED" "in memory, pinned" || row warn "load $EMBED" "could not load (RAG uses BM25)"
     fi
+    loaded="$(curl -fsS -m 5 $OLLAMA/api/ps | json '", ".join("%s (ctx %s, %.1f GB)" % (m["name"], m.get("context_length"), m.get("size_vram",0)/1e9) for m in d["models"])')"
+    [ -n "$loaded" ] && row ok "models in memory" "$loaded" || row warn "models in memory" "none loaded"
   fi
 fi
 
@@ -174,7 +177,7 @@ if up "$BASE/health" 3; then
 fi
 if [ -f "$PROFILE_DIR/config.yaml" ] && command -v hermes >/dev/null; then
   out="$(hermes -p chip plugins list 2>/dev/null | grep 'open-ai-chip' | head -1)"
-  [[ "$out" == *enabled* ]] && row ok "Hermes sees the plugin" "open-ai-chip enabled" || row fail "Hermes sees the plugin" "not enabled: re-run the setup with --apply"
+  [[ "$out" == *enabled* ]] && row ok "Hermes sees the plugin" "open-ai-chip enabled" || row fail "Hermes sees the plugin" "not enabled: re-run bash scripts/hermes_agent_setup.sh --demo-tools --apply (same flags as before)"
   n="$(hermes -p chip mcp test chip 2>&1 | sed -n 's/.*Tools discovered: \([0-9]*\).*/\1/p' | head -1)"
   [ -n "$n" ] && row ok "MCP bridge" "hermes -p chip mcp test chip: $n tools" || row warn "MCP bridge" "hermes mcp test chip did not list tools (log: ~/.hermes/profiles/chip/logs/mcp-stderr.log)"
 fi
@@ -202,6 +205,9 @@ if [ $APP = 1 ] && [ $CHECK = 0 ] && [ -d /Applications/Hermes.app ]; then
     echo "  restarting Hermes.app (it started before ${stale#$HOME/} changed)..."
     osascript -e 'tell application "Hermes" to quit' >/dev/null 2>&1; sleep 4
   fi
+  if bash "$REPO/scripts/hermes/keep_models_warm.sh" --status | grep -q 'running (pid'; then row ok "keep models warm" "watcher already running"
+  else nohup bash "$REPO/scripts/hermes/keep_models_warm.sh" >/dev/null 2>&1 &
+       row ok "keep models warm" "watcher started: re-pins every 2 min, unloads when Hermes.app quits (scripts/hermes/keep_models_warm.sh --status)"; fi
   open -a Hermes && row ok "Hermes.app" "$( [ -n "$app_pid" ] && [ -z "$stale" ] && echo 'already running, brought to front' || echo 'started' )"
 else row warn "Hermes.app" "not opened (--check or --no-app)"; fi
 

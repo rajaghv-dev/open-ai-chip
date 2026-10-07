@@ -220,8 +220,8 @@ sentences from the right design but not the `wb_rst_i` explanation); the passage
 ### Speed in the Hermes desktop app
 
 Measured with `scripts/hermes/measure_speed.py` (`examples/hermes_desktop/eval_tools/speed_results.json`): the first
-`rag_answer` takes 1.13 s with the embedding model unloaded, later ones 0.12 s; the chat router hands why/how questions
-their quotes in 0.08 to 0.11 s. Three changes in `examples/hermes_desktop/tool_server/rag_tools.py` keep it so:
+`rag_answer` takes 0.63 s with the embedding model unloaded, later ones 0.13 s; the chat router hands why/how questions
+their quotes in 0.07 to 0.12 s. Three changes in `examples/hermes_desktop/tool_server/rag_tools.py` keep it so:
 - the tool server warms the index and the embedding model at start (background thread; not under pytest, `CHIP_RAG_WARM=0` turns it off);
 - the first question loads the cached chunks and vectors and answers at once; chunks changed since the last build are
   embedded in a background thread (BM25 covers them meanwhile). Before, the first question after a doc edit waited for

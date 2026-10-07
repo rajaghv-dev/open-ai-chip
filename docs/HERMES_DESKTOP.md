@@ -441,7 +441,7 @@ to the clipboard if the input is not found). A prompt with `{{x}}` fields asks y
 | `/klayout <sentence>` | `/klayout open kv_attn_n8 and show only met1 and met2` | `gui_command` | opens and drives the real KLayout window from one plain sentence (no model routing) |
 | `/magic <sentence>` | `/magic open kv_attn_n8 and run drc` | `gui_command` | opens and drives the real Magic window (DRC, find, measure) from one plain sentence |
 | `/open <file>` | `/open designs/kv_attn_n8/NOTES.md` | `open_file` | the text of a doc, NOTES, report or json with a line range |
-| `/skills` | `/skills` | `list_skills` | the six project skills with one line each |
+| `/skills` | `/skills` | `list_skills` | the project skills with one line each |
 | `/skill <name> [design]` | `/skill harden-design vision_block` | `skill_plan` | the ordered steps of a skill with the tool per step |
 | `/param <design> [key]` | `/param vision_block PL_TARGET_DENSITY_PCT` | `param_info` | current value, default, engine, meaning, safe range, rule and doc link of a setting |
 | `/whatif <design> <KEY=value>` | `/whatif vision_block CLOCK_PERIOD=20` | `propose_change` `whatif_run` `whatif_result` | rules checked, patch text shown, flow run on a COPY after your yes, compared with the committed metrics |

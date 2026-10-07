@@ -25,7 +25,7 @@ Every command below is run from this directory.
 | Docker runtime: Colima VM `osl` (6 CPU, 16 GB) | `brew install colima docker && colima start -p osl --cpu 6 --memory 16 --disk 60 --vm-type vz` | `colima status -p osl` |
 | LibreLane image and sky130A PDK | `make doctor` (lists what is missing and how to get it) | `make doctor` all OK |
 | Agent Python environment | `python3 -m venv build/agent/venv && build/agent/venv/bin/pip install klayout mcp pytest` | `build/agent/venv/bin/python -c "import klayout.lay, mcp"` |
-| Local model (Hermes agents) | `brew install ollama` (or the Ollama app), `ollama serve &`, `ollama pull hermes3:8b` (4.7 GB) | `ollama list` |
+| Local model | `brew install ollama` (or the Ollama app), `ollama serve &`, `ollama pull hermes3:8b` (4.7 GB, for the terminal agent loops and `run_all --agents`). The maintained Hermes desktop app uses `qwen3.5-64k:9b` + `qwen3-embedding:0.6b`: `bash scripts/hermes_agent_setup.sh`, then `bash scripts/hermes_start.sh` (macOS) | `ollama list` |
 | KLayout desktop app | `brew install --cask klayout`, then approve it once: right-click `/Applications/KLayout/klayout.app` > Open | `/Applications/KLayout/klayout.app/Contents/MacOS/klayout -b -r /dev/null` returns |
 | XQuartz (OpenROAD GUI and Magic windows) | `brew install --cask xquartz`, log out and in, then `defaults write org.xquartz.X11 nolisten_tcp -bool false`, `open -a XQuartz`, `DISPLAY=:0 /opt/X11/bin/xhost +localhost` | `lsof -nP -iTCP:6000 -sTCP:LISTEN` shows X11.bin |
 
@@ -56,23 +56,25 @@ It prints one line per stage and a summary; every stage's log is under `build/ru
 | 2 | `make all-designs` (with `--flows`) | the full RTL-to-GDSII flow of all 25 designs in order; current runs are reused |
 | 3 | `make test-full` | every design: run state, simulate, signoff check, routed gate-level sim; adapter, SoC sims, Caravel RTL and hybrid gate-level; plus precheck / full-chip GL when asked |
 | 4 | pictures, no window | OpenROAD engine views offscreen, the KLayout + Hermes plumbing in dry-run, the tools pytest |
-| 5 | Hermes (with `--agents`) | the 6 live smoke tests, a chip question, the KLayout demo offscreen |
+| 5 | Hermes (with `--agents`) | the 6 live smoke tests, a chip question, the KLayout demo offscreen (these test the terminal agents, not Hermes.app) |
 | 6 | GUI windows (with `--gui`) | KLayout live-window tests, Magic and OpenROAD windows on XQuartz, the OpenROAD heat-map cycle |
 
 ## 4. Run the parts one by one
 
+All 25 designs are frozen (`designs/FROZEN.json`): the Makefile refuses `make gds`, `collect`, `flow-all` and `flow` on them (owner override `FROZEN_OK=1`). Use `make simulate|check|gl|gl-final|view DESIGN=<d>` or a what-if copy; unfreeze is owner-only (`designs/FROZEN.md`). The flow-all row is for a new or owner-unfrozen design.
+
 | Goal | Command | Time on this Mac |
 |---|---|---|
 | Machine check | `make doctor` | seconds |
-| Fast gate | `make test` | about 100 s |
-| One design, RTL to GDSII | `make flow-all DESIGN=kv_attn_n8` | 105 s flow (all 25 from scratch: 2,047 s, about 34 min, `resources.json` sum) |
-| All designs | `make all-designs` | reuses current runs |
+| Fast gate | `make test` | about 100 to 125 s (123 s on 2026-10-07 with other jobs running) |
+| One design, RTL to GDSII (new or unfrozen design only) | `make flow-all DESIGN=<d>` | 105 s flow (kv_attn_n8, `resources.json`) (all 25 from scratch: 2,047 s, about 34 min, `resources.json` sum) |
+| All designs | `make all-designs` | skips frozen designs (all 25 today) |
 | Heavy local checks | `make test-full` (`FLAGS="--precheck --fullgl"`) | about 5 min without the flags |
 | RTL sim / gate-level of one design | `make simulate DESIGN=<d>`, `make gl DESIGN=<d>`, `make gl-final DESIGN=<d>` | seconds |
 | Firmware on the RISC-V SoC | `make soc-sim`, `make soc-kv` | about 25 s, 14 s |
 | Caravel full-chip | `make caravel-rtl`, `make caravel-gl`, `make caravel-fullgl` | about 53 s, 58 s, 14 min |
 | Tapeout precheck | `make precheck` | about 1 min |
-| Results tables in README | `make table` | seconds |
+| Results tables in `docs/RESULTS.md` | `make table` | seconds |
 
 ## 5. Open every GUI from the terminal
 
@@ -99,7 +101,7 @@ After using the X11 windows you may withdraw the access: `DISPLAY=:0 /opt/X11/bi
 | preflight: Colima `osl`, `make doctor`, agent venv | PASS | 2 s |
 | `make test` | PASS | 100 s |
 | `make all-designs` (all 25 runs current, so reused: gds 0 to 1 s each; the time is simulate, check, gate-level, collect) | PASS | 395 s |
-| `make test-full --precheck` | PASS | 344 s |
+| `make test-full --precheck` | PASS | 344 s (plain `make test-full`: 302 s, 105 PASS, 2026-10-07) |
 | OpenROAD engine views offscreen | FAIL in the run, PASS on rerun (8 views) | - |
 | KLayout + Hermes dry run, agent/tools pytest | PASS | 5 s |
 | Hermes live smoke tests (6 agents), chip Q&A, KLayout demo offscreen | PASS | 57 s, 8 s, 23 s |
@@ -118,7 +120,7 @@ and rerun. With physical flows from scratch (no current runs) add the flow time:
 |---|---|
 | Summary of a run_all run | `build/run_all/<timestamp>/summary.txt`, one log per stage next to it |
 | Per-design evidence | `designs/<d>/output/` (metrics.json, reports, layout.png), the page `designs/<d>/NOTES.md` |
-| Results tables | `README.md` "Measured results" (`make table`) |
+| Results tables | `docs/RESULTS.md` (`make table`; local view `make results`) |
 | Validation of all runs | [docs/VALIDATION.md](VALIDATION.md) |
 | Every log of the flows and sims | [docs/GUI_AND_LOGS.md](GUI_AND_LOGS.md) |
 
@@ -127,7 +129,7 @@ and rerun. With physical flows from scratch (no current runs) add the flow time:
 | Symptom | Fix |
 |---|---|
 | `Cannot connect to the Docker daemon` | `colima start -p osl`; use `DOCKER_HOST=unix://$HOME/.colima/osl/docker.sock` |
-| A design shows STALE | its inputs changed after its run; `make flow-all DESIGN=<d>` re-hardens it (one flow at a time) |
+| A design shows STALE | its inputs changed after its run; `make flow-all DESIGN=<d>` re-hardens it (one flow at a time; refused on frozen designs, unfreeze is owner-only) |
 | Hermes stages SKIP | `ollama serve &` and `ollama pull hermes3:8b` |
 | KLayout hangs at launch | approve it once in Finder (right-click > Open) |
 | XQuartz stages SKIP | the XQuartz setup line of section 2, then `open -a XQuartz` |

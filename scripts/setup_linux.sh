@@ -9,6 +9,9 @@
 # Steps: 1 apt packages (git make python3 venv pip jq curl iverilog, RISC-V bare-metal gcc)  2 RISC-V name shims
 #        3 Docker Engine + docker group  4 LibreLane image (versions.lock)  5 sky130A PDK at the pinned commit (ciel)
 #        6 agent venv build/agent/venv   7 KLayout + X11 notes   8 Ollama + hermes3:8b   9 optional: Open WebUI, Caravel
+# Note: hermes3:8b serves the older Open WebUI path (scripts/hermes.sh) and the live smoke tests. The maintained front end,
+#   the Nous Hermes desktop app (scripts/hermes_start.sh: qwen3.5-64k:9b + qwen3-embedding:0.6b), is macOS-only here
+#   (open -a, osascript, date -j, stat -f and Hermes.app).
 # Flags: --all (default set)  --dry-run  --yes  --no-apt  --no-docker  --no-pdk  --no-ollama  --no-gui
 #        --webui (Open WebUI + desktop deps; calls examples/hermes_desktop/setup_webui.sh if present)
 #        --caravel (clone the Caravel sim sources, about 5 GB; otherwise the commands are only printed)
@@ -147,7 +150,7 @@ else
 fi
 
 # ---- 6. agent venv
-step "6. agent venv build/agent/venv (klayout mcp pytest fastapi uvicorn httpx)"
+step "6. agent venv build/agent/venv (tools/requirements.txt: klayout mcp pytest fastapi uvicorn httpx)"
 PYMAJ=$(python3 -c 'import sys; print("%d.%d" % sys.version_info[:2])' 2>/dev/null || echo 0.0)
 case "$PYMAJ" in 3.9|3.8|3.7|2.*|0.0) [ "$DRY" = 1 ] || note "python3 is $PYMAJ; the mcp package needs 3.10+ (Ubuntu 22.04+ and Debian 12 have it)";; esac
 AP=build/agent/venv/bin/python
@@ -155,7 +158,7 @@ if [ "$DRY" = 0 ] && [ -x "$AP" ] && "$AP" -c 'import klayout.lay, mcp, fastapi,
   echo "  venv already complete"; rec OK "agent venv" "present"
 else
   [ -x "$AP" ] || { run mkdir -p build/agent; run python3 -m venv build/agent/venv; }
-  if run build/agent/venv/bin/pip install -q klayout mcp pytest fastapi uvicorn httpx; then rec OK "agent venv" "installed"
+  if run build/agent/venv/bin/pip install -q -r tools/requirements.txt; then rec OK "agent venv" "installed"
   else rec FAIL "agent venv" "pip install failed"; fi
 fi
 

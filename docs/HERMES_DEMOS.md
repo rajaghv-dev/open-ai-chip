@@ -89,7 +89,7 @@ Short talk: demos 12, 13, 2, 5, 14 (about 10 minutes; 12 to 15 need the plugin, 
 - Tools expected: param_info; propose_change (writes nothing); whatif_run (confirm gate plus approval card) -> job_status; whatif_result
 - Look at: 40 ns is BLOCKED (rule R1-CLOCK: only a shorter period is allowed); 20 ns is allowed with a patch text; the what-if result is a table of committed against changed numbers.
 - Explain: A what-if runs on a copy under build/whatif/, never on designs/<d>/, so the committed evidence stays valid. HARD RULE: never loosen CLOCK_PERIOD (25 ns) or MAX_TRANSITION_CONSTRAINT to make a gate pass; tightening is a legitimate experiment and shrinks setup slack.
-- Time: questions 15 s; a what-if flow 2 to 3 minutes (Docker). Status: propose_change and param_info answers checked against the tool server; whatif_run not run; needs `--demo-tools`.
+- Time: questions 15 s; a what-if flow about 50 s (vision_all_lit, `speed_results.json`; Docker). Status: propose_change and param_info answers checked against the tool server; the plugin form `/whatif` verified; needs `--demo-tools`.
 
 ### Demo 7: Experiments: soc-kv and the precision table
 

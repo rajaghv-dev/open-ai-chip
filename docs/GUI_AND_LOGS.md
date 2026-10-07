@@ -97,11 +97,11 @@ jq -r 'to_entries[] | select(.key|test("drc__|lvs__|timing__setup__ws$|instance_
    designs/kv_attn_n8/output/metrics.json                              # verified
 python3 -c "import json;m=json.load(open('designs/kv_attn_n8/output/metrics.json'));print(m['design__instance__count'], m['timing__setup__ws'])"   # verified, no jq needed
 make view DESIGN=kv_attn_n8 ARGS=--no-gui                              # text summary of collected results
-make collect DESIGN=<d>                                                # (re)collect results; reuses the newest current run, may run a flow if none exists
+make collect DESIGN=<d>                                                # (re)collect results; reuses the newest current run, may run a flow if none exists; overwrites designs/<d>/output, refused on frozen designs
 ```
 
 `make flow-all` and `make gds` can start a physical flow; do not use them just to look at results. `make view`
-and `make table` are read-only; `make collect` reuses a current run when there is one.
+and `make table` are read-only; `make collect` reuses a current run when there is one, but it overwrites `designs/<d>/output` and is refused on frozen designs.
 
 ## 2. KLayout (GDS viewer)
 
@@ -292,7 +292,7 @@ Linux: `docker ps` and `docker logs -f` work the same, with no `DOCKER_HOST` (no
 
 ### Keeping the Mac awake
 
-A flow is capped at 10 minutes by `FLOW_TIMEOUT`, but batch targets (`make all-designs`) take hours and the Mac sleeping
+A flow is capped at 10 minutes by `FLOW_TIMEOUT`, but batch targets (`make all-designs`) take about 34 min from scratch (2,047 s, sum of `designs/*/output/resources.json` `wall_s_total`) and skip frozen designs and the Mac sleeping
 stops Colima's VM progress. `caffeinate -i make all-designs` (verified `caffeinate` exists) blocks idle sleep while the
 command runs; `caffeinate -dims -w <pid>` attaches to an existing process.
 

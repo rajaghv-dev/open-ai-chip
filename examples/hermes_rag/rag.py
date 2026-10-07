@@ -18,7 +18,7 @@ INDEX_PATH = os.path.join(ROOT, "build", "agent", "rag_index.json")
 K1, B = 1.5, 0.75
 TEXT_CHARS = 800
 MAX_CHUNK_LINES = 30          # long sections are split so that one hit stays focused
-EXCLUDE = (".claude/", "CLAUDE.md", "examples/", "docs/HERMES_AGENT.md", "docs/HERMES_AGENT_INTEGRATION.md", "docs/HERMES_DEMOS.md",
+EXCLUDE = (".claude/", "CLAUDE.md", "AGENTS.md", "GEMINI.md", "examples/", "docs/HERMES_AGENT.md", "docs/HERMES_AGENT_INTEGRATION.md", "docs/HERMES_DEMOS.md",
            "hermes-agents.md", "docs/HERMES_CLASS_SHOWCASE.md")   # agent config and the agent's own docs (they quote the eval questions)
 STOP = set("a an the of to in on for and or is are was were be by with as at it its this that these those from "
            "what why how which does do did has have had not no can".split())

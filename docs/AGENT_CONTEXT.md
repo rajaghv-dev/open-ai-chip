@@ -38,7 +38,7 @@ ASK ME: "how many cells does X have", "compare X and Y", "why did X fail", "show
 ## The flow and what "clean" means
 `make flow-all DESIGN=<d>` runs simulate, gds, check, gl, gl-final, collect and stops at the first failing stage; it is
 capped at 10 minutes (FLOW_TIMEOUT 600 s). A finished run is reused unless a non-markdown file in the design dir
-changed (scripts/flow/find_reusable_run.py). `make test` is the fast gate (about 65 s, no Docker). `make doctor`
+changed (scripts/flow/find_reusable_run.py). `make test` is the fast gate (about 100 to 125 s, no Docker). `make doctor`
 checks Docker, the LibreLane image and the PDK before any physical flow. Failure patterns (out of memory, GPL-0301,
 GRT-0116 congestion, hold or slew violations, "logic lost") are in `.claude/skills/harden-design/SKILL.md`.
 

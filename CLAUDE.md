@@ -9,6 +9,8 @@ results tables; `SPEC.md` is the plan, phases, acceptance criteria and "Agent op
 come from it). `LOCAL_RUN_PLAN.md`, `provenance/SOURCES.md` and `versions.lock` record origin and pinned versions.
 Sibling `../open-ai-silicon` is reference material only: never edit it.
 
+Shared agent memory (any agent: Claude Code, Codex, Gemini CLI / Antigravity): `AGENTS.md` (how to run, where to extend, recipes, lessons learned).
+
 ## Layout
 - `designs/<name>/`: one design per directory.
   - `config.json` LibreLane config (single source of the RTL file list; `"//KEY"` entries are comments with the
@@ -21,7 +23,7 @@ Sibling `../open-ai-silicon` is reference material only: never edit it.
   `precision_hw`, `kv_attention` with `spec.md`). They generate the ROM `.v`, `vectors.hex`, `weights.json`.
 - `shared/rtl/wb_stream_adapter.v`, `shared/tb/*.vh`: adapter and shared testbench code.
 - `scripts/flow/` flow tooling (`find_reusable_run.py`, `check_signoff.py`, `signoff_allowances.json`,
-  `run_capped.sh`, `gl_sim.sh`, `collect.sh`, `summary.py`); `scripts/docs/tables.py` writes the README tables;
+  `run_capped.sh`, `gl_sim.sh`, `collect.sh`, `summary.py`); `scripts/docs/tables.py` writes the tables in `docs/RESULTS.md` (`make table`);
   `scripts/doctor.sh`, `scripts/check_generated.sh`; shared helpers `scripts/lib/common.sh` (shell) and `scripts/lib/repo.py`
   (Python): repo root, design list, `dir::` paths, LibreLane image pin, DOCKER_HOST default.
 - `firmware/` + `soc_sim/`: PicoRV32 SoC simulation (`make soc-sim`; `make soc-kv` runs the KV-attention firmware, `firmware/kv/`). `caravel_sim/`: full Caravel RTL/GL sims
@@ -35,7 +37,7 @@ Sibling `../open-ai-silicon` is reference material only: never edit it.
 - `make help` lists every target (`DESIGN=<name>` selects the design; default `user_proj_example`).
 - `make doctor` checks host tools, Docker daemon, LibreLane image, PDK. Run it before any physical flow.
 - Opening GUIs and finding logs (macOS and Linux): `docs/GUI_AND_LOGS.md`.
-- `make test` is the fast gate (about 100 s, no Docker): structure, configs, lint of every design, model checks,
+- `make test` is the fast gate (about 100 to 125 s, no Docker): structure, configs, lint of every design, model checks,
   regeneration reproducibility, RTL sims, adapter, SoC sims, notes headings, negative tests for every design family,
   docs checks (links, make targets, inventory, README numbers vs metrics.json) and the agent/tools pytest (`tests/tools`).
 - `make test-full` (`tests/test_full.sh`, about 5 min): per design run-state + simulate + check + gl-final, plus adapter,
@@ -51,6 +53,7 @@ Sibling `../open-ai-silicon` is reference material only: never edit it.
 - `write-design-notes`: `designs/<d>/NOTES.md` with the required headings and sourced numbers.
 - `wrapper-build`: macro views, `user_project_wrapper*` builds around a macro (`make views`, `make wrapper`).
 - `soc-run`: `make soc-sim`, `adapter-test`, `caravel-rtl`, `caravel-gl`.
+- `chip-demos`: the 15 narrated Hermes demos ("run demo 4").
 - `tune-synthesis`, `tune-timing-sdc`, `tune-openroad-engines`: change and judge SYNTH_*, clock/SDC/margins, and OpenROAD
   engine settings (HARD RULES apply: never loosen CLOCK_PERIOD or MAX_TRANSITION_CONSTRAINT, never DELAY, never DISABLE_LVS).
 - `whatif-experiment`: try such a change on a copy (`build/whatif/<d>__<tag>/`), compare with the committed run; never edits `designs/<d>/`.
@@ -86,7 +89,7 @@ Evidence and hygiene
   `make gds` runs the flow again (`scripts/flow/find_reusable_run.py`). Do not touch a design's files casually
   if its committed evidence must stay current.
 - Upstream template RTL (`user_proj_example`) must stay byte-identical (`tests/upstream.sha256`).
-- FROZEN: all 25 validated designs are pinned by sha256 in `designs/FROZEN.json` (`make check-frozen`, part of `make test`; guard API `scripts/flow/frozen.py` `is_frozen(path)`). Agents never edit frozen paths or run `make freeze`; unfreeze is owner-only: change deliberately, re-harden, `make freeze`, commit (`designs/FROZEN.md`).
+- FROZEN: all 25 validated designs are pinned by sha256 in `designs/FROZEN.json` (`make check-frozen`, part of `make test`; guard API `scripts/flow/frozen.py` `is_frozen(path)`). The Makefile refuses `gds`/`collect`/`flow-all`/`flow` on frozen designs (`FROZEN_OK=1` is the owner's override). Agents never edit frozen paths or run `make freeze`; unfreeze is owner-only: change deliberately, re-harden, `make freeze`, commit (`designs/FROZEN.md`).
 
 ## Conventions
 - Clock 25 ns (40 MHz) on `wb_clk_i`; sky130_fd_sc_hd; `PROFILE=tight` container (2 CPUs, 8 GB).
@@ -96,7 +99,7 @@ Evidence and hygiene
   changed, evidence paths, measured budgets, first failure.
 - Other agents may work in the same tree: change only files you own for the task and say what you touched.
 
-Hermes in Open WebUI and as a Mac app (`examples/hermes_desktop/`): `docs/HERMES_DESKTOP.md`. Running every Hermes example from the terminal: `docs/HERMES_FROM_TERMINAL.md`. Read-only EDA/KLayout tools for agents: `tools/eda_tools.py` (also `tools/mcp_server.py`); local Hermes agent and its evaluation: `docs/HERMES_AGENT.md` (venv at `build/agent/venv`, tests in `tests/tools/`).
+The maintained agent front end is the Nous Hermes desktop app (`make hermes-app` = `bash scripts/hermes_start.sh`; docs: `hermes-agents.md`, `docs/HERMES_AGENT_INTEGRATION.md`); Open WebUI and the wrapper app (`examples/hermes_desktop/`, `docs/HERMES_DESKTOP.md`) are kept unmaintained. Running every Hermes example from the terminal: `docs/HERMES_FROM_TERMINAL.md`. Read-only EDA/KLayout tools for agents: `tools/eda_tools.py` (also `tools/mcp_server.py`); local Hermes agent and its evaluation: `docs/HERMES_AGENT.md` (venv at `build/agent/venv`, tests in `tests/tools/`).
 Hermes Agent (Nous, installed on this Mac) mapped to this repo, with the desktop-app workflow and safety plan (statuses in the page; setup: `bash scripts/hermes_agent_setup.sh`, review the diff, then `--apply`): `docs/HERMES_AGENT_INTEGRATION.md`.
 
 ## For Hermes (Nous Hermes Agent, profile `chip`; ignore if you are Claude Code)

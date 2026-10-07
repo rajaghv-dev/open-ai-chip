@@ -74,20 +74,22 @@ One PASS/FAIL/SKIP line per stage, logs in `build/run_all/<timestamp>/`.
 
 ## 4. Run the parts one by one
 
+All 25 designs are frozen (`designs/FROZEN.json`): the Makefile refuses `make gds`, `collect`, `flow-all` and `flow` on them (owner override `FROZEN_OK=1`). Use `make simulate|check|gl|gl-final|view DESIGN=<d>` or a what-if copy; unfreeze is owner-only (`designs/FROZEN.md`). The flow-all row is for a new or owner-unfrozen design.
+
 Same targets as on the Mac; times are from the Mac build host (section 6 of RUN_ON_MAC.md), not measured on Linux.
 
 | Goal | Command |
 |---|---|
 | Machine check | `make doctor` |
 | Fast gate (no Docker) | `make test` |
-| One design RTL to GDSII | `make flow-all DESIGN=kv_attn_n8` |
-| All designs (current runs reused) | `make all-designs` |
+| One design RTL to GDSII (new or unfrozen design) | `make flow-all DESIGN=<d>` |
+| All designs (skips frozen designs, all 25 today) | `make all-designs` |
 | Heavy local checks | `make test-full` (`FLAGS="--precheck --fullgl"`) |
 | RTL / gate-level sim of one design | `make simulate DESIGN=<d>`, `make gl DESIGN=<d>`, `make gl-final DESIGN=<d>` |
 | Firmware on the PicoRV32 SoC | `make soc-sim`, `make soc-kv` (need `riscv64-elf-gcc`, step 2) |
 | Caravel full-chip | download first: `bash scripts/setup_linux.sh --caravel` (or the two `git clone` lines it prints), then `make caravel-rtl`, `make caravel-gl`, `make caravel-fullgl`; `caravel-sdf-wrapper` also needs an amd64 CVC image (on an aarch64 host it runs under emulation) |
 | Tapeout precheck | `make precheck` (own container, 14 checks) |
-| Results tables | `make table` |
+| Results tables (`docs/RESULTS.md`) | `make table` (local view `make results`) |
 
 Physical flows run one at a time (the Makefile caps each at 10 minutes). `docker ps` first: another session may be running.
 On Linux the LibreLane container runs as root, so `designs/<d>/runs/` and `build/` files it creates are owned by root;
@@ -127,7 +129,7 @@ $PY examples/hermes_klayout_gui/demo.py --live --backend live                  #
 On Linux `start_live.sh` uses `klayout` from PATH (apt). Close the window with its button; if it hangs, `pkill -9 klayout`.
 Opt-in tests: `HERMES_LIVE=1 $PY -m pytest -q tests/tools/test_live_smoke.py`, `KLAYOUT_LIVE=1 $PY -m pytest -q tests/tools/test_klayout_live.py`.
 
-Desktop / Open WebUI (only if `examples/hermes_desktop/` exists; see [HERMES_DESKTOP.md](HERMES_DESKTOP.md)):
+Desktop / Open WebUI (legacy, unmaintained; the maintained route is the Nous Hermes desktop app, see [hermes-agents.md](../hermes-agents.md), macOS only today. Only if `examples/hermes_desktop/` exists; see [HERMES_DESKTOP.md](HERMES_DESKTOP.md)):
 
 ```bash
 bash scripts/setup_linux.sh --webui           # Open WebUI into build/webui/venv (several GB), pywebview GTK backend
@@ -179,12 +181,12 @@ Headless server: everything except the windows works; use the offscreen commands
 | windows do not open | `echo $DISPLAY; ls /tmp/.X11-unix; xhost +SI:localuser:root`; on SSH use the offscreen commands |
 | root-owned files in `build/` or `runs/` | `sudo chown -R "$USER" designs build` |
 | `port 8765 is already in use` | an old KLayout bridge window is open: close it or `pkill -9 klayout` |
-| a design shows STALE | `make flow-all DESIGN=<d>` re-hardens it (one flow at a time) |
+| a design shows STALE | `make flow-all DESIGN=<d>` re-hardens it (one flow at a time; refused on frozen designs, unfreeze is owner-only) |
 
 ## 8. Where the results are
 
-Same as the Mac: `build/run_all/<timestamp>/summary.txt` and one log per stage, `designs/<d>/output/`, the README tables
-(`make table`), [VALIDATION.md](VALIDATION.md), [GUI_AND_LOGS.md](GUI_AND_LOGS.md).
+Same as the Mac: `build/run_all/<timestamp>/summary.txt` and one log per stage, `designs/<d>/output/`, the tables in `docs/RESULTS.md`
+(`make table`, local view `make results`), [VALIDATION.md](VALIDATION.md), [GUI_AND_LOGS.md](GUI_AND_LOGS.md).
 
 ## 9. What differs from macOS
 

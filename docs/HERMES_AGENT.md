@@ -54,7 +54,7 @@ q05 "fail" in the old 12/15 was therefore a scorer artefact, not a model change.
 (so the keyword check passes) but its cited counts (12345, 54321) are invented after a tool error; the pass is by the keyword, not
 by grounded numbers. One run per configuration on 15 questions is an anecdote; see `examples/hermes_harness/README.md` for the
 harness variants. Harness results (`examples/hermes_harness/results_summary.json`): baseline 13/15, + guardrails 13, + grounding 13,
-+ `pick_extreme` 15, all features 15, all + plan 14; `eval_harness.py --gate 15` exits 0 and `--gate 16` exits 1 (the gate compares the
++ `pick_extreme` 15, all features 15, all + plan 13; `eval_harness.py --gate 15` exits 0 and `--gate 16` exits 1 (the gate compares the
 "all" score).
 
 | Question | Expected | Answer (first line) | Tools | Result |

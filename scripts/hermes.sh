@@ -68,5 +68,5 @@ case "${1:-up}" in
     [ -d "$APP" ] && say "app: $APP" || say "app: not built"
     up http://127.0.0.1:8080/health && "$PY" "$HD/audit_config.py" | tail -1
     up http://127.0.0.1:8770/health && say "proof: $(curl -fsS -m 20 -X POST -H 'Content-Type: application/json' -d '{}' http://127.0.0.1:8770/proof_local | python3 -c 'import sys,json; print(json.load(sys.stdin)["status_line"])' 2>/dev/null)" ;;
-  *) echo "usage: scripts/hermes.sh [demo|stop|status]" >&2; exit 2 ;;
+  *) echo "usage: scripts/hermes.sh [up|app [opts]|demo|stop|status]" >&2; exit 2 ;;
 esac

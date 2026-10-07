@@ -4,6 +4,7 @@
 # Required: python3, iverilog/vvp, a reachable Docker daemon, the LibreLane image, the sky130A PDK at the pinned commit.
 set -uo pipefail
 cd "$(dirname "$0")/.."
+. ./scripts/lib/common.sh; oac_docker_host     # Colima "osl" socket by default, as the Makefile does
 . ./versions.lock
 PDK_ROOT="${PDK_ROOT:-$HOME/.volare}"
 FAIL=0

@@ -412,6 +412,14 @@ if python3 scripts/docs/make_hermes_context.py --check >"$TMP/hc.log" 2>&1; then
 # == frozen: Guards against: any change to a frozen design (run inputs, tb, model sources, committed metrics.json / layout.png) after the validation freeze (designs/FROZEN.json). No Docker. Docs: designs/FROZEN.md, tests/TEST_MATRIX.md
 echo "== frozen"
 if python3 scripts/flow/freeze.py check >"$TMP/frozen.log" 2>&1; then pass "$(head -1 "$TMP/frozen.log")"; else fail "check-frozen: $(head -12 "$TMP/frozen.log" | tr '\n' ';')"; fi
+# the Makefile refuses the targets that would rewrite frozen evidence (no flow starts: the guard runs first)
+fz="$(python3 -c 'import sys; sys.path.insert(0, "scripts/flow"); import frozen; print(sorted(frozen.frozen_designs())[0] if frozen.frozen_designs() else "")')"
+if [ -n "$fz" ]; then
+  for t in gds collect flow-all flow; do
+    if out="$(make --no-print-directory $t DESIGN=$fz 2>&1)"; then fail "make $t DESIGN=$fz (frozen) was not refused"
+    elif echo "$out" | grep -q "is FROZEN"; then pass "make $t refuses frozen $fz"; else fail "make $t DESIGN=$fz failed without the frozen message: $(echo "$out" | head -2 | tr '\n' ';')"; fi
+  done
+fi
 
 echo
 [ "$FAILS" = 0 ] && { echo "test: ALL PASSED"; exit 0; } || { echo "test: $FAILS FAILED"; exit 1; }

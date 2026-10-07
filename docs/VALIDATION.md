@@ -6,7 +6,7 @@ Docker via `DOCKER_HOST=unix://$HOME/.colima/osl/docker.sock`, one container at 
 Raw logs: `build/validation/test_full_2026-10-07.log` and `build/test_full/` (git-ignored).
 Command: `bash tests/test_full.sh --synth-gl` (per design: run-state via `find_reusable_run.py`, `make simulate`, `make check`
 = `check_signoff.py`, `make gl-final`, `make gl`; then adapter-test, soc-sim, soc-kv, caravel-rtl, caravel-gl), result line
-"test-full: 130 PASS, 0 FAIL, 3 SKIP, 0 STALE in 430 s" (the 3 SKIP are the opt-in caravel-fullgl, caravel-sdf-wrapper, precheck).
+"test-full: 130 PASS, 0 FAIL, 3 SKIP, 0 STALE in 430 s" with `--synth-gl` (a plain `make test-full` gave 105 PASS, 0 FAIL, 3 SKIP, 0 STALE in 302 s on the 2026-10-07 re-run, log `build/vlog/`) (the 3 SKIP are the opt-in caravel-fullgl, caravel-sdf-wrapper, precheck).
 Evidence column: `output/metrics.json` equals the run's `final/metrics.json` (parsed JSON equal), `error.log` empty,
 `resources.json` `run_dir` = this run, `layout.png` present (checked with a script over all 25, 25 of 25).
 

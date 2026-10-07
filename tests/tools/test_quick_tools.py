@@ -278,5 +278,6 @@ def test_colours_and_plain_commands(monkeypatch):
     assert pc("run the soc-kv experiment") is None and pc("close all windows") is None
     assert pc("rebuild vision lit") is None and pc("whatif vision lit CLOCK_PERIOD=5") is None and pc("run synth kv8") is None
     assert pc("chip rebuild vision lit") == ("rebuild", "vision lit") and pc("chip close") == ("close", "")
+    assert pc("ask why does kv_attn_n8_int4 have more flip-flops than kv_attn_n8?")[0] == "ask"
     r = client.post("/quick", json={"text": "timing kv8"}).json()
     assert r["handled"] and r["kind"] == "command" and r["reply"].startswith("## kv_attn_n8 timing: 🟢")

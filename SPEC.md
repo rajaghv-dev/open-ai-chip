@@ -6,6 +6,8 @@ The key decision is to build one hard macro named `tiny_ai_core`. It contains th
 
 ## Status (as of 2026-10-06)
 
+> **2026-10-07:** all 25 designs are validated and frozen (`designs/FROZEN.json`); the maintained agent front end is the Nous Hermes desktop app.
+
 > **Update 2026-10-06 (current state, later than the notes below; evidence `build/state_snapshot.md`, each design's `output/metrics.json`):**
 > - 25 designs are hardened clean (DRC, LVS, XOR, antenna 0; setup and hold met; all five `make flow-all` stages PASS, including
 >   gate-level sims of the synthesised and routed netlists). `make test` passes, `make check-generated` covers 41 generated files.
@@ -42,7 +44,7 @@ The key decision is to build one hard macro named `tiny_ai_core`. It contains th
 > - `make caravel-rtl`: complete Caravel RTL, real VexRiscv firmware, one case per mode; PASS (about 53 s).
 > - `make caravel-gl`: hybrid gate-level (routed wrapper and macro netlists inside RTL Caravel, unit delay); PASS (about 58 s).
 >   Details: `docs/CARAVEL_SIM.md`.
-> - `shared/rtl/wb_stream_adapter.v` verified with all 13 stream engines (`make adapter-test`); `designs/soc_image_text_match`
+> - `shared/rtl/wb_stream_adapter.v` verified with all 14 stream engines (13 + `kv_attn_n8`, `make adapter-test`); `designs/soc_image_text_match`
 >   (adapter + `image_text_match`, 109 pins) hardened clean.
 > - Acceptance item "Full-Caravel representative RTL and GL tests pass" stays unticked: RTL is met, but GL is partial (Caravel
 >   and the management core stay RTL, no SDF, one case per mode, and the wrapper under test holds `tiny_ai_core`, not yet
@@ -577,7 +579,8 @@ Every target must return nonzero on failure. No target may convert a failed chec
 > | `make synth-check` | does not exist; equivalent: the synthesis check inside `make gds` (`ERROR_ON_SYNTH_CHECKS` is true; `synth_checks.rpt`) and the flip-flop survival check in `make check` |
 > | `make harden-macro`, `make check-macro` | do not exist; equivalents: `make gds DESIGN=tiny_ai_core` and `make check DESIGN=tiny_ai_core` (`scripts/flow/check_signoff.py`: DRC, LVS, XOR, antenna, slack at every corner, synthesis check errors, surviving flip-flops) |
 > | exhaustive gate-level runs | `make gl` (synthesised netlist) and `make gl-final` (routed, powered netlist) |
-> | `make harden-wrapper`, `make verify-caravel`, `make verify-caravel-gl`, `make precheck`, `make candidate` | do not exist yet (Phases 7 to 9) |
+> | `make precheck`, `make caravel-rtl`, `make caravel-gl`, `make caravel-fullgl` | exist |
+> | `make harden-wrapper`, `make verify-caravel`, `make verify-caravel-gl`, `make candidate` | do not exist; equivalents: `make wrapper`, `make caravel-rtl`, `make caravel-gl` (no `candidate` bundle yet, Phase 9) |
 > | extra targets | `make flow-all` (simulate, gds, check, gl, gl-final, collect), `make tiny` (the three engines plus comparison table), `make collect`, `make view`, `make model-check`, `make clean`, `make help` |
 >
 > `make check` reports max-slew and max-cap counts for the baseline template module without failing on them (the
@@ -812,6 +815,7 @@ Reservation, payment, submission, and `cf confirm` remain final human-only actio
 12. Do not run `cf login`, `cf init`, `cf push`, submit, reserve, or `cf confirm` without the owner's direct action and review.
 13. Stop after the first decisive failure and preserve the log and run directory.
 14. Report only measured numbers and name the source file for each.
+15. Do not edit frozen paths (`designs/FROZEN.json`) or run `make freeze`; the Makefile refuses `gds`, `collect`, `flow-all` and `flow` on frozen designs; unfreeze is owner-only (`designs/FROZEN.md`).
 
 Every handoff uses this form:
 

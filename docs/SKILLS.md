@@ -1,7 +1,7 @@
 # Skills for this repository: what they encode and why
 
 This page is for a reader who can program but is new to chip design and to Claude Code "skills". It explains
-what a skill is, then walks through the ten project skills in `.claude/skills/`. For each one it teaches the
+what a skill is, then walks through the ten project skills in `.claude/skills/` (plus `chip-demos`, the Hermes demos). For each one it teaches the
 engineering ideas behind the steps (so the checklist makes sense), summarises the workflow, and lists the
 non-obvious lessons with the evidence numbers from this repository. Every number names the file it comes from.
 The skills themselves are the authority on the steps; this page explains the reasons.
@@ -121,7 +121,7 @@ flowchart TD
 
 ---
 
-## 2. The ten skills
+## 2. The ten skills (plus chip-demos)
 
 ### 2.1 harden-design
 

@@ -10,7 +10,8 @@ Facts come from `Makefile` (`make help`), `scripts/flow/*`, and the notes of the
 record the fixes that already worked for sibling designs.
 
 ## 0. Preconditions
-1. `make doctor` (Docker daemon, LibreLane image, PDK) and `make test` (about 65 s, no Docker) pass.
+0. If `designs/FROZEN.json` lists `<d>`, stop: the Makefile refuses the flow; use the `whatif-experiment` skill on a copy (the owner unfreezes, `designs/FROZEN.md`).
+1. `make doctor` (Docker daemon, LibreLane image, PDK) and `make test` (about 100 to 125 s, no Docker) pass.
 2. One physical flow at a time on this machine. Check `docker ps` for a LibreLane container before starting.
    Each flow is capped by `FLOW_TIMEOUT` (default 600 s, `scripts/flow/run_capped.sh`); use `FLOW_TIMEOUT=600`.
 3. Start from the nearest sibling: copy its `config.json` (tiny engines: `vision_block`; floats: `prec_fp8`;
@@ -105,5 +106,5 @@ same time: the repo's notes record which change did what.
 - Never put absolute home paths in committed files; every number in docs names its repo file.
 
 ## 6. Finish
-`make flow-all DESIGN=<d>` PASS on all 5 stages, then `make table` (README tables), write NOTES.md (write-design-notes
+`make flow-all DESIGN=<d>` PASS on all 6 stages (simulate, gds, check, gl_synth, gl_final, collect), then `make table` (`docs/RESULTS.md` tables), write NOTES.md (write-design-notes
 skill), `make test` passes, only then commit. Report: stage results, `output/metrics.json` figures, first failure.
