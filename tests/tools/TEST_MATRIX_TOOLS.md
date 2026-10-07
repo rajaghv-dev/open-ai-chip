@@ -6,7 +6,7 @@ Live smoke (opt-in, local Ollama hermes3:8b): `HERMES_LIVE=1 build/agent/venv/bi
 belongs to another owner and is not listed here.
 
 Files: A = test_eda_tools.py, B = test_rag.py, C = test_klayout_gui.py, D = test_klayout_live.py (all existing);
-new: E = test_agent_core.py, F = test_examples_harness_demo.py, G = test_rag_gui_gaps.py, H = test_live_smoke.py, conftest.py (registers the `live` marker).
+new: E = test_agent_core.py, Q = test_quick_tools.py (Hermes fast paths: slash commands, router, loops, harnesses, plugin), F = test_examples_harness_demo.py, G = test_rag_gui_gaps.py, H = test_live_smoke.py, conftest.py (registers the `live` marker).
 
 | example | tests before | gaps (before) | tests added |
 |---|---|---|---|
@@ -37,3 +37,4 @@ cleanup limited to `build/whatif/`, and that every LibreLane key named in the sk
 - `tools/eval/run_eval.py numbers_in` counts the exponent of `um^2` as the number 2 (the harness' `_nums` strips it). Not changed: it would alter how recorded scores are computed.
 - Real KLayout GUI window and OpenROAD GUI tests stay opt-in / with their owners.
 - The live smoke asserts structure plus the scorer verdict only on questions that pass in the committed results (r05, for example, is a known failure and is not used).
+| examples/hermes_desktop/tool_server/quick_tools.py, scripts/hermes/plugin/open-ai-chip/ | none (new) | - | Q: report commands answer for loose names with the metrics.json numbers and the source file; frozen designs never get gds/flow-all/collect; a typed /sim starts at once (run_make then confirm_run); /rebuild runs whatif_run rebuild on a copy; /klayout builds one gui_command sentence; the chat router opens windows, issues confirm ids only, completes the user's yes, hands facts and RAG quotes; /loop signoff, /loop layers, /loop sim traces; /harness names 10/10 and /harness facts 15/15 gates; the plugin registers its commands and hook |

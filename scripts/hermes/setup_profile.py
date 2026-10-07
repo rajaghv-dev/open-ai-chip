@@ -30,7 +30,9 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[2]
 MARK_BEGIN = "# >>> open-ai-chip managed block (scripts/hermes_agent_setup.sh); edit the script, not this block >>>"
 MARK_END = "# <<< open-ai-chip managed block <<<"
-MANAGED_KEYS = ["model", "providers", "agent", "tools", "platform_toolsets", "mcp_servers", "skills", "approvals", "hooks", "memory"]
+MANAGED_KEYS = ["model", "providers", "agent", "tools", "platform_toolsets", "mcp_servers", "skills", "approvals", "hooks", "memory",
+                "plugins"]
+PLUGIN = "open-ai-chip"   # scripts/hermes/plugin/open-ai-chip: slash commands + pre_llm_call fast path (no model turn), linked into the profile
 MODEL = "qwen3.5-64k:9b"
 DEFAULT_BASE_URL = "http://127.0.0.1:11434/v1"
 JOB_TEST = "open-ai-chip nightly make test"
@@ -218,6 +220,7 @@ def managed_config(home):
                       "deny": DENY},
         "hooks": {"pre_tool_call": [{"command": hook, "timeout": 10, "fail_closed": True}]},
         "memory": {"memory_enabled": False, "user_profile_enabled": False},
+        "plugins": {"enabled": [PLUGIN]},
     }, hook
 
 
@@ -349,6 +352,26 @@ def existing_names(ctx, sub):
     return r.stdout + r.stderr
 
 
+def plugin_link(ctx):
+    return ctx.pdir / "plugins" / PLUGIN
+
+
+def install_plugin(ctx):
+    """Symlink the repo plugin into the profile, so repo edits apply without re-running the setup."""
+    link, src = plugin_link(ctx), REPO / "scripts" / "hermes" / "plugin" / PLUGIN
+    link.parent.mkdir(parents=True, exist_ok=True)
+    if link.is_symlink() and Path(os.readlink(link)) == src:
+        print(f"plugin link exists: {shown(ctx, link)}")
+        return
+    if link.exists() and not link.is_symlink():
+        print(f"not replacing {shown(ctx, link)}: it is not a link made by this script", file=sys.stderr)
+        return
+    if link.is_symlink():
+        link.unlink()
+    link.symlink_to(src)
+    print(f"plugin linked: {shown(ctx, link)}")
+
+
 def do_install(ctx, apply):
     files, repo_files = plan_files(ctx)
     print(f"Hermes home : {ctx.home}{'' if ctx.explicit_home else '  (default)'}")
@@ -376,6 +399,7 @@ def do_install(ctx, apply):
     print("== hermes commands that --apply runs (after the backup):")
     for c, note in commands(ctx):
         print(f"  {c}\n      ({note})")
+    print(f"== link: {shown(ctx, plugin_link(ctx))} -> <repo>/scripts/hermes/plugin/{PLUGIN}  (slash commands /klayout /timing /run ..., no model turn)")
     print("\n== not touched: .env, auth.json, pairing/, the default profile's config.yaml, any other profile.")
     print("== the allowlist entry pre-approves exactly one hook command (the repo hook above) for this profile.")
     if not apply:
@@ -410,6 +434,7 @@ def do_install(ctx, apply):
     for p, (text, mode) in {**files, **repo_files}.items():
         write_file(p, text, mode)
         print(f"wrote {shown(ctx, p)}")
+    install_plugin(ctx)
     cron_out = existing_names(ctx, ["cron", "list"])
     for name, sched, script in ((JOB_TEST, "30 2 * * *", "chip_nightly_test.sh"),
                                 (JOB_FULL, "0 3 * * 0", "chip_weekly_test_full.sh")):
@@ -456,6 +481,7 @@ def do_uninstall(ctx, apply):
             plan.append(("restore " if f["existed"] else "remove  ") + shown(ctx, ctx.home / f["rel"]))
     for f in m["repo_files"]:
         plan.append(("restore " if f["existed"] else "remove  ") + "<repo>/" + f["rel"])
+    plan.append("remove  " + shown(ctx, plugin_link(ctx)) + "   (plugin link)")
     print("Plan:")
     for s in plan:
         print("  " + s)
@@ -472,6 +498,10 @@ def do_uninstall(ctx, apply):
         if mn and cur and mn.group(1) in (JOB_TEST, JOB_FULL):
             ctx.hermes("-p", ctx.profile, "cron", "remove", cur, check=False)
             print(f"cron job removed: {mn.group(1)}")
+    link = plugin_link(ctx)
+    if link.is_symlink():
+        link.unlink()
+        print("plugin link removed")
     if not m["profile_existed"]:
         ctx.hermes("profile", "delete", ctx.profile, "--yes", check=False)
         print("profile deleted")

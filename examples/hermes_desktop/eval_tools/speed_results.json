@@ -1,0 +1,126 @@
+{
+ "measured_on": "2026-10-07",
+ "how": "TestClient POST /quick in one process, seconds of wall time",
+ "commands": [
+  {
+   "command": "/timing kv_attn",
+   "seconds": 0.003,
+   "first_line": "**kv_attn_n8 timing** (clock 25 ns; positive slack = met)"
+  },
+  {
+   "command": "/synth vision lit",
+   "seconds": 0.002,
+   "first_line": "**vision_all_lit synthesis** (Yosys, before placement)"
+  },
+  {
+   "command": "/drc kv attention 16",
+   "seconds": 0.002,
+   "first_line": "**kv_attn_n16 DRC**"
+  },
+  {
+   "command": "/lvs prec bf16",
+   "seconds": 0.002,
+   "first_line": "**prec_bf16 LVS** (netgen: layout netlist vs the synthesised netlist)"
+  },
+  {
+   "command": "/signoff caravel kv",
+   "seconds": 0.002,
+   "first_line": "**user_project_wrapper_soc_kv signoff: CLEAN** Frozen: yes (`designs/FROZEN.json`)."
+  },
+  {
+   "command": "/metrics kv8",
+   "seconds": 0.001,
+   "first_line": "**kv_attn_n8**: signoff clean"
+  },
+  {
+   "command": "/compare kv4 kv8 kv16",
+   "seconds": 0.002,
+   "first_line": "| metric | kv_attn_n4 | kv_attn_n8 | kv_attn_n16 |"
+  },
+  {
+   "command": "/designs ",
+   "seconds": 0.006,
+   "first_line": "| design | cells | flip-flops | setup WS ns | signoff |"
+  },
+  {
+   "command": "/chip ",
+   "seconds": 0.001,
+   "first_line": "**open-ai-chip commands** (instant, no model; design names may be partial: `kv_attn`, `vision lit`, "
+  },
+  {
+   "command": "/run flow-all kv8",
+   "seconds": 0.001,
+   "first_line": "`kv_attn_n8` is frozen (`designs/FROZEN.json`): `make flow-all` would rewrite its committed evidence"
+  },
+  {
+   "command": "/loop signoff kv",
+   "seconds": 0.002,
+   "first_line": "**Loop: signoff check** (read-only, 5 designs)"
+  },
+  {
+   "command": "/harness names",
+   "seconds": 0.001,
+   "first_line": "**Harness: design-name resolver** (fixed set, 10 cases): score 10/10, gate **PASS**"
+  },
+  {
+   "command": "/harness facts kv",
+   "seconds": 0.006,
+   "first_line": "**Harness: grounded facts** (5 designs x 3 questions): score 15/15, gate **PASS**"
+  }
+ ],
+ "sentences": [
+  {
+   "text": "what is the setup slack of kv attention 16?",
+   "seconds": 0.002,
+   "kind": "facts",
+   "handled": false
+  },
+  {
+   "text": "is caravel kv clean?",
+   "seconds": 0.002,
+   "kind": "facts",
+   "handled": false
+  },
+  {
+   "text": "why does kv_attn_n8_int4 have more flip-flops than kv_attn_n8?",
+   "seconds": 0.078,
+   "kind": "rag",
+   "handled": false
+  },
+  {
+   "text": "how was the wrapper hold violation fixed?",
+   "seconds": 0.108,
+   "kind": "rag",
+   "handled": false
+  },
+  {
+   "text": "hello there",
+   "seconds": 0.001,
+   "kind": null,
+   "handled": false
+  }
+ ],
+ "rag": {
+  "first_question_seconds": 0.58,
+  "warm_question_seconds": 0.15
+ },
+ "observed": {
+  "note": "End-to-end times through the real hermes binary on 2026-10-07 (isolated home, qwen3.5-64k:9b, M-series Mac); one-shot `hermes -p chip -z` starts a new process, MCP bridge and tool server each time, so these include that start.",
+  "before_fast_paths": {
+   "default profile, 'open kv_attn design'": "about 390 s, interrupted (no repo tools: find over the home directory); Hermes state.db session 20261007_052017_3ab1df",
+   "chip profile, 'open kv_attn design' (one gui_command call)": 70,
+   "chip profile, 'open the klayout with vision lit'": 24,
+   "chip profile, '/timing kv_attn' typed in -z mode (sent to the model)": 92
+  },
+  "with_fast_paths": {
+   "plugin command handlers through Hermes's own dispatch (hermes_cli.plugins)": "0.1 s reports, 2.5 s /klayout vision lit show only met1",
+   "-z 'open kv_attn design' (window opened by pre_llm_call in 1.0 s, then the model's one-line reply)": 60,
+   "-z 'what is the setup slack of kv attention 16?' (facts injected)": 14,
+   "-z '/timing kv_attn' (answered by pre_llm_call)": 28
+  },
+  "loops_live": {
+   "/loop layers vision lit (open + 5 layer pictures in KLayout)": 7.2,
+   "/loop sim vision lit (make simulate, PASS line verified)": 2.0
+  }
+ }
+}

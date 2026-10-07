@@ -1,13 +1,13 @@
 ---
 name: chip-demos
-description: Eleven narrated demos of the open-ai-chip repo that run inside the Hermes Agent desktop app (profile chip) by name. Use when the user says "run demo 4", "demo: layout", "list the demos", "give me a demo of <ask the chips, why, logs, layout, flow, what-if, experiments, skills, memory, proof, claude>", or asks what to show someone. Each demo gives the exact prompts to type, the tool calls to expect, what to look at, what to say about the chip design, and the time.
+description: Fifteen narrated demos of the open-ai-chip repo that run inside the Hermes Agent desktop app (profile chip) by name. Use when the user says "run demo 4", "demo: layout", "list the demos", "give me a demo of <ask the chips, why, logs, layout, flow, what-if, experiments, skills, memory, proof, claude, instant commands, gui tour, loop, harness>", or asks what to show someone. Each demo gives the exact prompts to type, the tool calls to expect, what to look at, what to say about the chip design, and the time.
 ---
 
-# chip-demos: eleven narrated demos for Hermes.app
+# chip-demos: fifteen narrated demos for Hermes.app
 
 Self-contained. Demos run through the MCP tools of the `chip` profile (names `mcp__chip__<tool>`). The agent never edits repo files; every run starts only after the USER writes "yes, run <id>".
 How to run one: the user says "run demo N" or "demo: <name>". Reply with the demo title, then walk the steps: say the next prompt to type (or call the tool when the step is a plain question), show the result, then give the "Explain" lines. Never run a physical step (flow, what-if flow, experiment, ask_claude) yourself: show the confirm text and wait for the user's own "yes, run <id>".
-Menu (say "list the demos"): 1 chips, 2 why, 3 logs, 4 layout, 5 flow, 6 what-if, 7 experiments, 8 skills, 9 memory, 10 proof, 11 claude.
+Menu (say "list the demos"): 1 chips, 2 why, 3 logs, 4 layout, 5 flow, 6 what-if, 7 experiments, 8 skills, 9 memory, 10 proof, 11 claude, 12 instant commands, 13 gui tour, 14 loop, 15 harness. Demos 12 to 15 are slash commands the USER types (the plugin answers them without you); for those, tell the user what to type and explain the result.
 Setup prerequisite: `bash scripts/hermes_agent_setup.sh --apply` (add `--demo-tools` for demos 3 (log_digest) and 6). Human version with measured transcripts: docs/HERMES_DEMOS.md. Order for a short talk: 1, 2, 4, 5, 6.
 Models: the default qwen3.5-64k:9b is the one evaluated (87.9 % on 58 tool-calling cases, examples/hermes_desktop/eval_tools/results_summary_hermes.json). hermes3:8b, gemma3:4b-it-qat, gemma4:12b and mistral-nemo:latest are selectable for show; do not run the demos on them (docs/HERMES_AGENT_INTEGRATION.md, "Models for demos").
 
@@ -134,3 +134,34 @@ Models: the default qwen3.5-64k:9b is the one evaluated (87.9 % on 58 tool-calli
 - Explain: Local first, cloud on request: the small local model does the routine reading; for a hard question you choose to hand a self-contained question to Claude. Claude's answer comes back as text; it does not edit the repo either.
 - Time: 1 to 3 minutes; needs the claude CLI. Status: not run (sends text to a cloud model); the gate is the same two-step confirm.
 
+## Demo 12: Instant commands (no model)
+
+- Type: `/chip`, `/designs`, `/signoff caravel kv`, `/synth vision lit`, `/timing kv_attn`, `/drc kv attention 16`, `/lvs prec bf16`, `/compare kv4 kv8 kv16`
+- What runs: the open-ai-chip plugin's slash commands -> tool server POST /quick; no model turn, no tool-call cards.
+- Look at: each answer ends with `Source: designs/<d>/output/...`; partial names resolve (kv_attn -> kv_attn_n8, vision lit -> vision_all_lit, caravel kv -> user_project_wrapper_soc_kv). The timing table has nine corners; setup slack is positive (met).
+- Explain: a lookup does not need a language model. Code reads the committed evidence in milliseconds and cannot invent a number or flip a sign; the model is kept for explaining. This is the 'move work into deterministic tools' lesson of harness engineering.
+- Time: about a second each (0.1 s through Hermes's command dispatch, examples/hermes_desktop/eval_tools/speed_results.json). Status: verified (isolated home, Hermes plugin dispatch).
+
+## Demo 13: GUI tour of a layout (KLayout and Magic by text)
+
+- Type: `/klayout kv_attn show only met1`, then `/layout show only met4 and met5`, `/layout zoom to the lower-left 50 um`, `/drc kv8 live`, `/layout show all`, `/loop layers vision lit`, `/layout close all`. With XQuartz set up: `/magic vision lit find clk`.
+- What runs: gui_command through the plugin (instant) or, in words ("open kv_attn in klayout and show only met1"), the pre_llm_call router; a picture of the view comes back after each step.
+- Look at: the KLayout window follows each command; met1 is the horizontal power rails and short local wiring, met4/met5 the power grid straps; the lower-left 50 um shows standard-cell rows; DRC shows 0 markers; the layer tour returns five pictures.
+- Explain: a layout is a stack of masks; looking at one metal at a time shows how routing uses alternating directions and how the power grid is built. Nothing is ever saved: the parser has no write operation.
+- Time: 1 to 3 s per step; `/loop layers` 7.2 s (speed_results.json). Status: verified live for `/klayout vision lit show only met1` and `/loop layers vision lit`; the other window steps go through the same gui_command parser (tests/tools/test_gui_tools.py) but were not timed here. Magic needs XQuartz on TCP (scripts/gui/open_gui.sh header).
+
+## Demo 14: Loop engineering (plan, act, observe, check, stop)
+
+- Type: `/loop signoff kv`, then `/loop sim vision lit`.
+- What runs: two loops in code with their trace printed as a table: a read-only loop over the five KV designs, and a real job (make simulate) polled until its PASS line is verified.
+- Look at: row 0 is the PLAN with the goal, the stop condition and the budget; each step is ACT, OBSERVE, CHECK; the last row is STOP with the result (5 of 5 clean, tightest setup slack kv_attn_n16 8.766 ns; the simulation's PASS line).
+- Explain: an agent is a loop. A good loop has a goal, a stop condition and a budget, and it verifies (the PASS line), it does not assume ("the command returned"). examples/hermes_harness/ shows the same loop with a model choosing the actions (ReAct versus plan-then-execute).
+- Time: `/loop signoff` instant; `/loop sim vision lit` 2 s (speed_results.json). Status: verified.
+
+## Demo 15: Harness engineering (fixed cases, score, gate)
+
+- Type: `/harness names`, then `/harness facts kv`.
+- What runs: two small harnesses: 10 loose design names checked against the expected design (an ambiguous 'audio' must ask, not guess), and 3 questions per KV design checked against metrics.json and for a cited source file.
+- Look at: the score and the gate line (10/10 PASS, 15/15 PASS); a row fails if the answer is right but names no source.
+- Explain: a harness turns 'it seems to work' into a number that a test can hold: an eval set, ground truth, a score and a pass/fail gate. The same harnesses run in `make test` (tests/tools/test_quick_tools.py). examples/hermes_harness/ measures six harness configurations around one fixed model.
+- Time: instant. Status: verified.

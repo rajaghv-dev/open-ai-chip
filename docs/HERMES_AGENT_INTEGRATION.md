@@ -5,6 +5,8 @@ Hermes feature maps to which repo artefact, and the day-to-day workflow. Written
 `hermes <cmd> --help` on this Mac, plus read-only dry runs (`hermes verify --detect-only`, `hermes approvals test`).
 Nothing under `~/.hermes` was changed to produce it.
 
+**Start with [hermes-agents.md](../hermes-agents.md)**: the same integration top down (goal, mental model, the chip-design loop with the agent at each step, the four speeds of a request, every part, workflows, measured numbers). This page is the reference below it: Hermes feature by feature, the exact config, the hook decision table.
+
 **Status vocabulary** (used in every table): `verified` = tried on this Mac and seen to work; `built` = file exists in this
 repo but not yet exercised through Hermes Agent; `planned` = nothing exists yet. Two more for the `chip` profile work:
 `verified in isolated home` = applied to a throw-away Hermes home (`build/hermes_test_home/`, selected with `HERMES_HOME`) and
@@ -31,7 +33,10 @@ Narrated demos to run inside Hermes.app ("run demo 4"): [HERMES_DEMOS.md](HERMES
 | `.hermes.md` (the one context file Hermes reads; generated, checked by `make test`) | `scripts/docs/make_hermes_context.py`, `make master-prompt` | built; verified in isolated home |
 | Confirm guard: a gated call with a `confirm_id` is blocked unless the USER's latest message says "yes, run <id>" | `scripts/hermes/hooks/confirm_guard.py`, called first by `pre_tool_call.py`; tests `tests/tools/test_hermes_confirm_guard.py`, `tests/tools/test_hermes_hook.py` | built; verified live in isolated home `build/hermes_final_home`: the model's own `confirm_run` was blocked 3 times, the user's "yes, run <id>" passed (`build/agent/hermes_hook.log`) |
 | Demo models selectable in the picker (`providers.ollama-local`) | `scripts/hermes/setup_profile.py` | verified in isolated home (picker data lists the 5 models); see "Models for demos" |
-| Eleven demos by name | `.claude/skills/chip-demos/SKILL.md`, [HERMES_DEMOS.md](HERMES_DEMOS.md) | built; demos 1 to 3 verified in isolated home |
+| Plugin `open-ai-chip`: slash commands (`/klayout /magic /gds /synth /timing /drc /lvs /signoff /run /rebuild /jobs ...`, no model turn) and a `pre_llm_call` router (opens layouts, number facts, run confirm ids) | `scripts/hermes/plugin/open-ai-chip/`, tool server `POST /quick` (`quick_tools.py`), linked by the setup script (`plugins.enabled`) | verified in isolated home through Hermes's own command dispatch (0.1 to 2.5 s) and `hermes -z`; pending owner apply |
+| Loop and harness demos `/loop signoff|layers|sim`, `/harness names|facts` (existing designs only, trace printed as PLAN/ACT/OBSERVE/CHECK/STOP) | `quick_tools.py` (`loop_*`, `harness_*`), plugin commands `loop`, `harness` | verified in process (`tests/tools/test_quick_tools.py`; `/loop layers` 7.2 s and `/loop sim` 2.0 s live, `examples/hermes_desktop/eval_tools/speed_results.json`) |
+| RAG speed: index and embedding model warmed at tool-server start, no blocking re-embed on the first question, `keep_alive` 30 min | `rag_tools.py` (`warm`, `install`, `_ensure`, `_background_build`) | verified: first question 1.13 s cold, 0.12 s warm (`speed_results.json`) |
+| Fifteen demos by name (12 to 15: instant commands, GUI tour, loop, harness) | `.claude/skills/chip-demos/SKILL.md`, [HERMES_DEMOS.md](HERMES_DEMOS.md) | built; demos 1 to 3 verified in isolated home |
 | Local Grafana (Homebrew, 127.0.0.1:3000) with 3 dashboards of the repo evidence, and a read-only Grafana MCP server entry (`mcp_servers.grafana`, Viewer token from the Keychain) | `scripts/grafana/`, `scripts/hermes/grafana_mcp.{sh,json}`, [GRAFANA.md](GRAFANA.md), `tests/tools/test_grafana_export.py` | built; verified in isolated home `build/hermes_grafana_home` (`hermes mcp test grafana`, two live questions); merged as `scripts/hermes_agent_setup.sh --grafana` (opt-in; hook allows only the four read tools); pending owner apply |
 
 ## 1. What Hermes Agent is, and what is installed here
@@ -478,6 +483,8 @@ re-chunks and re-embeds only itself; the first build embeds every chunk and take
 How it answers with quotes: `rag_answer` retrieves, splits the best passages into sentences and picks the three with the most question-term
 weight, in code. The reply has `answer` (each sentence quoted verbatim with `file:line` and its heading), `quotes` (the same as data),
 `passages` (top chunks, each with a `markdown` citation) and `found`. When nothing matches, `found` is false and the answer says to say "I do not know".
+
+Speed: first question 1.13 s, then 0.12 s (`examples/hermes_desktop/eval_tools/speed_results.json`); the chat router (`quick_tools.py`) hands a why/how question its quotes before the model runs, so no tool round trip is needed (details in `examples/hermes_rag/README.md`, "Speed in the Hermes desktop app").
 
 How Hermes uses it: ask "Why does kv_attn_n8_int4 have more flip-flops than kv_attn_n8?" and the model calls `rag_answer`, then repeats the quoted
 lines and citations as they are. For a number ("what is the setup slack of X") it should use `read_metrics`; for a section it should use

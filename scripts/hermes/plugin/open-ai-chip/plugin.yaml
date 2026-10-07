@@ -1,0 +1,3 @@
+name: open-ai-chip
+version: "1.0"
+description: "open-ai-chip fast paths: /klayout /magic /gds /layout /synth /timing /drc /lvs /signoff /metrics /compare /run /rebuild /jobs (no model turn), and a pre_llm_call router that opens layouts and answers number questions from the committed evidence"

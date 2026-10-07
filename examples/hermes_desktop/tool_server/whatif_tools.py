@@ -618,6 +618,8 @@ class RunReq(BaseModel):
     tag: Optional[str] = Field(None, description="short name of this experiment: lower-case letters, digits, - and _ (max 31); the copy is build/whatif/<design>__<tag>/",
                                examples=["dens70"])
     confirm_id: Optional[str] = Field(None, description="SECOND call only: the confirm_id from the first reply, after the USER wrote 'yes, run <confirm_id>'. Never invent or reuse one.")
+    rebuild: Optional[bool] = Field(None, description="true = rebuild the design UNCHANGED on a fresh copy (no changes needed): a full flow "
+                                    "that leaves the frozen design and its committed run untouched")
 
 
 def _gate(kind: str, payload: dict, will_run: str, what: str, confirm_id: Optional[str]):
@@ -664,12 +666,17 @@ def whatif_run(req: RunReq) -> dict:
             return resp
         payload, confirmed = got
         design, changes, tag = payload["design"], payload["changes"], payload["tag"]
+        rebuild = bool(payload.get("rebuild"))
     else:
         design, changes, tag = req.design, req.changes, req.tag
+        rebuild = bool(req.rebuild)
+        if rebuild:
+            changes = changes or {}
+            tag = tag or "rebuild-" + datetime.datetime.now().strftime("%m%d-%H%M%S")
     err = _check_design(design)
     if err:
         return {"error": err}
-    if not changes:
+    if not changes and not rebuild:
         return {"error": "changes is required, e.g. {\"CLOCK_PERIOD\": 20}"}
     if not tag or not TAG_RE.match(tag):
         return {"error": "tag is required: 1..31 characters of lower-case letters, digits, - and _ (got %r)" % (tag,)}
@@ -695,7 +702,7 @@ def whatif_run(req: RunReq) -> dict:
                 "run LibreLane in Docker on the copy (PROFILE=tight: 2 CPUs, 8 GB), cap %d s" % FLOW_TIMEOUT_S,
                 "check_signoff.py on the new metrics.json (RTL is unchanged, so no new simulation is needed)",
                 "whatif_result compares with designs/%s/output/metrics.json" % design]}
-    payload = {"design": design, "changes": ev["allowed"], "tag": tag}
+    payload = {"design": design, "changes": ev["allowed"], "tag": tag, **({"rebuild": True} if rebuild else {})}
     if not confirmed and not (_server() and _server()._no_confirm()):
         _, resp = _gate("whatif", payload, " ".join(cmd), "what-if flow on a copy of %s with %s (physical flow, about a minute to ten)" % (
             design, json.dumps(ev["allowed"])), None)

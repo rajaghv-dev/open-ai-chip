@@ -51,7 +51,19 @@ ALIASES = {
     "vision": "vision_block", "text": "text_sentiment", "sentiment": "text_sentiment", "pitch": "audio_pitch", "onset": "audio_onset",
     "itm": "image_text_match", "template": "user_proj_example", "baseline": "user_proj_example", "counter": "user_proj_example",
     "wrapper": "user_project_wrapper", "soc_kv": "soc_kv_attn_n8", "soc_itm": "soc_image_text_match", "tiny_ai": "tiny_ai_core",
+    "kv": "kv_attn_n8", "kvattn": "kv_attn_n8", "kv_attention": "kv_attn_n8",
 }
+# Word-level matching for loose names ("vision lit", "kv attention 16", "the kv_attn design", "caravel kv"): words that never
+# name a design are dropped, synonyms are mapped onto the tokens of the design names, and FAMILY_DEFAULT breaks a tie inside a family.
+STOP_WORDS = {"the", "a", "an", "open", "opening", "load", "launch", "start", "show", "view", "display", "see", "in", "with", "on", "of",
+              "for", "to", "and", "me", "please", "pls", "can", "you", "could", "would", "let", "lets", "use", "using", "it", "its",
+              "klayout", "k", "magic", "layout", "layouts", "gds", "gdsii", "design", "designs", "chip", "app", "application", "window",
+              "gui", "file", "engine", "macro", "block_design", "my", "this", "that", "one", "now", "just", "repo", "tool", "viewer"}
+SYNONYMS = {"attention": "attn", "atten": "attn", "attn": "attn", "lite": "lit", "light": "lit", "lighted": "lit", "caravel": "wrapper",
+            "precision": "prec", "bfloat16": "bf16", "binary": "bin", "ternary": "tern", "sentiments": "sentiment", "matching": "match",
+            "img": "image", "txt": "text", "soc": "soc", "upw": "wrapper", "proj": "project", "core": "core"}
+FAMILY_DEFAULT = {"kv": "kv_attn_n8", "attn": "kv_attn_n8", "kv_attn": "kv_attn_n8", "prec": None, "audio": None, "vision": "vision_block",
+                  "wrapper": "user_project_wrapper", "soc": None}
 for _f in ("bin", "tern", "int4", "int8", "fp8", "fp16", "bf16"):
     ALIASES["prec_" + _f] = "prec_" + _f
     ALIASES[_f] = "prec_" + _f
@@ -90,13 +102,84 @@ def resolve_design(raw: str, valid: Optional[List[str]] = None) -> Tuple[Optiona
     sub = [v for v in valid if s in v] if len(s) >= 4 else []
     if len(sub) == 1:
         return sub[0], []
+    by_words, tied = _match_words(s, valid)
+    if by_words:
+        return by_words, []
     close = difflib.get_close_matches(s, valid, n=5, cutoff=0.6)
+    if tied:
+        return None, tied[:5]
     if close:
         best = difflib.SequenceMatcher(None, s, close[0]).ratio()
         second = difflib.SequenceMatcher(None, s, close[1]).ratio() if len(close) > 1 else 0.0
         if best >= 0.86 and best - second >= 0.06:
             return close[0], []
     return None, (close or pre or sub)[:5]
+
+
+def _query_words(s: str) -> List[str]:
+    out = []
+    for w in re.findall(r"[a-z0-9]+", s.lower().replace("_", " ")):
+        if w in STOP_WORDS:
+            continue
+        out.append(SYNONYMS.get(w, w))
+    return out
+
+
+def _word_hits(q: str, toks: List[str]) -> bool:
+    return any(t == q or (len(q) >= 2 and t.startswith(q)) or t == "n" + q for t in toks)
+
+
+def _match_words(s: str, valid: List[str]) -> Tuple[Optional[str], List[str]]:
+    """(design, tied). Every remaining query word must hit a token of the design name (equal, prefix, or 16 -> n16). One hit
+    wins; several: the fewest extra tokens, then FAMILY_DEFAULT. (None, tied) if still ambiguous."""
+    q = _query_words(s)
+    if not q:
+        return None, []
+    hits = [v for v in valid if all(_word_hits(w, v.split("_")) for w in q)]
+    if not hits:
+        return None, []
+    if len(hits) == 1:
+        return hits[0], []
+    least = min(len(v.split("_")) for v in hits)
+    best = [v for v in hits if len(v.split("_")) == least]
+    if len(best) == 1:
+        return best[0], []
+    for key in ("_".join(q), q[0]):
+        d = FAMILY_DEFAULT.get(key) or ALIASES.get(key)
+        if d in best:
+            return d, []
+    return None, best
+
+
+def design_from_text(text: str, valid: Optional[List[str]] = None) -> Optional[str]:
+    """The design a free sentence talks about ("open the klayout with vision lit" -> vision_all_lit), or None."""
+    valid = valid if valid is not None else designs()
+    t = (text or "").lower()
+    for d in sorted(valid, key=len, reverse=True):   # an exact full name wins
+        if re.search(r"(?<![a-z0-9_])%s(?![a-z0-9_])" % re.escape(d), t):
+            return d
+    words = [w for w in re.findall(r"[a-z0-9_]+", t) if w not in STOP_WORDS]
+    if not words:
+        return None
+    name, _ = resolve_design(" ".join(words), valid)
+    if name:
+        return name
+    # a question has other words too ("what is the setup slack of kv attention 16"): the longest run of words that names a design
+    heads = {v.split("_")[0] for v in valid} | {w for v in valid for w in v.split("_")[:2]} | set(ALIASES)
+    for n in range(min(4, len(words)), 0, -1):
+        for i in range(len(words) - n + 1):
+            span = words[i:i + n]
+            if not any(w in heads or SYNONYMS.get(w) in heads or "_" in w or re.search(r"\d", w) for w in span):
+                continue
+            if n == 1 and not (span[0] in ALIASES or "_" in span[0] or span[0] in valid or re.search(r"[a-z]\d|\d[a-z]", span[0])):
+                continue
+            got, _ = _match_words(" ".join(span), valid) if n > 1 or "_" in span[0] else (None, [])
+            got = got or (ALIASES.get(span[0]) if n == 1 else None) or (span[0] if span[0] in valid else None)
+            if not got and "_" in span[0]:
+                got = resolve_design(span[0], valid)[0]
+            if got:
+                return got
+    return None
 
 
 def clean_confirm(v: str) -> str:

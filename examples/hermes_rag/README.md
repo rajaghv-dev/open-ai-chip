@@ -216,3 +216,14 @@ are too few to rank the variants with confidence: the differences are 1 or 2 que
 the metrics chunks from the candidates (before this, `metrics.json` chunks took rank 1 for 7 of 15 questions and BM25 @1 fell to 3/10), and sentence mining reads
 paragraphs, not wrapped lines. The extractive answer is a relay aid, not a judge: it can pick a sentence that is on topic but not the cause (r02, "what limits the setup slack of soc_kv_attn_n8", returns
 sentences from the right design but not the `wb_rst_i` explanation); the passages are returned too so the model can read around the quote.
+
+### Speed in the Hermes desktop app
+
+Measured with `scripts/hermes/measure_speed.py` (`examples/hermes_desktop/eval_tools/speed_results.json`): the first
+`rag_answer` takes 1.13 s with the embedding model unloaded, later ones 0.12 s; the chat router hands why/how questions
+their quotes in 0.08 to 0.11 s. Three changes in `examples/hermes_desktop/tool_server/rag_tools.py` keep it so:
+- the tool server warms the index and the embedding model at start (background thread; not under pytest, `CHIP_RAG_WARM=0` turns it off);
+- the first question loads the cached chunks and vectors and answers at once; chunks changed since the last build are
+  embedded in a background thread (BM25 covers them meanwhile). Before, the first question after a doc edit waited for
+  that re-embedding (14 s measured once);
+- embed requests ask Ollama to keep the model loaded for 30 minutes (`RAG_KEEP_ALIVE`).

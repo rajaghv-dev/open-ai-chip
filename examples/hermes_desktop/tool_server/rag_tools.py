@@ -162,13 +162,16 @@ def embed_text(c: Dict[str, Any]) -> str:
 
 # ------------------------------------------------------------------ embeddings (Ollama /api/embed)
 def _ollama_embed(texts: List[str], model: str, timeout: float = 90.0) -> List[List[float]]:
-    req = urllib.request.Request(OLLAMA + "/api/embed", data=json.dumps({"model": model, "input": texts, "truncate": True}).encode(),
+    req = urllib.request.Request(OLLAMA + "/api/embed", data=json.dumps({"model": model, "input": texts, "truncate": True,
+                                                                      "keep_alive": KEEP_ALIVE}).encode(),
                                  headers={"Content-Type": "application/json"})
     with urllib.request.urlopen(req, timeout=timeout) as r:
         return json.load(r)["embeddings"]
 
 
 EMBED_FN = _ollama_embed          # tests replace this (a stub, or one that raises to simulate Ollama down)
+KEEP_ALIVE = os.environ.get("RAG_KEEP_ALIVE", "30m")   # keep the 0.6B embedding model loaded between questions (Ollama default 5 min)
+_BG = {"thread": None}
 
 
 def _unit(v: List[float]) -> array:
@@ -195,8 +198,9 @@ def _emb_path(model: str) -> str:
     return os.path.join(_dir(), "emb_" + re.sub(r"[^A-Za-z0-9._-]", "_", model) + ".json")
 
 
-def build_index(rebuild: bool = False, embed: bool = True, model: Optional[str] = None) -> Dict[str, Any]:
-    """Incremental: unchanged files reuse cached chunks, unchanged chunks reuse cached vectors. Returns the status dict (also `timing`)."""
+def build_index(rebuild: bool = False, embed: bool = True, model: Optional[str] = None, embed_new: bool = True) -> Dict[str, Any]:
+    """Incremental: unchanged files reuse cached chunks, unchanged chunks reuse cached vectors. Returns the status dict (also `timing`).
+    embed_new=False only loads the cached vectors (fast; chunks changed since the last build are BM25-only until a full build)."""
     model = model or EMBED_MODEL
     t0 = time.time()
     os.makedirs(_dir(), exist_ok=True)
@@ -238,7 +242,7 @@ def build_index(rebuild: bool = False, embed: bool = True, model: Optional[str] 
                 emb = {}
         live = {c["key"] for c in chunks}
         emb = {k: v for k, v in emb.items() if k in live}
-        todo = [c for c in chunks if c["key"] not in emb]
+        todo = [c for c in chunks if c["key"] not in emb] if embed_new else []
         try:
             for i in range(0, len(todo), EMBED_BATCH):
                 part = todo[i:i + EMBED_BATCH]
@@ -252,8 +256,12 @@ def build_index(rebuild: bool = False, embed: bool = True, model: Optional[str] 
                         print(f"embedded {embedded}/{len(todo)}", file=sys.stderr, flush=True)
         except Exception as e:  # noqa: BLE001  Ollama down / model missing: keep what we have, BM25 still works
             note = f"embedding failed ({type(e).__name__}: {str(e)[:120]}); {len(todo) - embedded} chunks without vectors"
-        json.dump({k: _enc(v) for k, v in emb.items()}, open(epath + ".tmp", "w"), separators=(",", ":"))
-        os.replace(epath + ".tmp", epath)
+        if embed_new:
+            json.dump({k: _enc(v) for k, v in emb.items()}, open(epath + ".tmp", "w"), separators=(",", ":"))
+            os.replace(epath + ".tmp", epath)
+        else:
+            pending = sum(c["key"] not in emb for c in chunks)
+            note = ("%d changed chunks are embedded in the background (BM25 covers them meanwhile)" % pending) if pending else None
     _MEM.clear()
     st = {"files": len(files), "chunks": len(chunks), "files_rechunked": rechunked, "model": model, "vectors": sum(c["key"] in emb for c in chunks),
           "vectors_new": embedded, "note": note, "chunk_seconds": round(t_chunk, 2), "build_seconds": round(time.time() - t0, 2)}
@@ -261,10 +269,49 @@ def build_index(rebuild: bool = False, embed: bool = True, model: Optional[str] 
     return st
 
 
+def _background_build() -> None:
+    """Embed changed chunks without blocking a question (one thread at a time)."""
+    import threading
+    t = _BG.get("thread")
+    if t is not None and t.is_alive():
+        return
+
+    def run():
+        try:
+            build_index()
+        except Exception:  # noqa: BLE001  Ollama down: questions still work (BM25 and the cached vectors)
+            pass
+    _BG["thread"] = threading.Thread(target=run, name="rag-embed", daemon=True)
+    _BG["thread"].start()
+
+
 def _ensure() -> Dict[str, Any]:
+    """First question: load the cached chunks and vectors (about 0.2 s) and answer; changed chunks are embedded in the background."""
     if "chunks" not in _MEM:
-        build_index()
+        if EMBED_FN is not _ollama_embed:          # a stub (tests): build synchronously, deterministic
+            build_index()
+            return _MEM
+        st = build_index(embed_new=False)
+        if st["vectors"] < st["chunks"]:
+            _background_build()
     return _MEM
+
+
+def warm() -> None:
+    """Tool-server start (install): index in memory, embedding model loaded, so the first question in Hermes is not a cold one."""
+    try:
+        _ensure()
+        EMBED_FN(["warm"], _MEM.get("model") or EMBED_MODEL)
+    except Exception:  # noqa: BLE001
+        pass
+
+
+def install(app) -> None:
+    """Called by tool_server._mount_extensions: warm the RAG in a background thread (not under pytest; CHIP_RAG_WARM=0 turns it off)."""
+    import threading
+    if "pytest" in sys.modules or os.environ.get("CHIP_RAG_WARM") == "0":
+        return
+    threading.Thread(target=warm, name="rag-warm", daemon=True).start()
 
 
 # ------------------------------------------------------------------ BM25 (rag.py v2 scoring) over the hybrid corpus

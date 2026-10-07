@@ -132,6 +132,16 @@ failures. The scorer was fixed (not the model, not the harness) and every run wa
 - Try a bigger model or `--plan` with a tool that accepts a list of sub-queries; compare under the same gate.
 - Use the traces: replay an episode, or diff two configurations' traces to see where they diverge.
 
+## In the Hermes desktop app (code-only versions of these ideas)
+
+The open-ai-chip Hermes plugin has small demos of the same ideas that run without a model, on the existing designs, so
+every step is visible: `/loop signoff kv` (plan, act, observe, check, stop over five designs), `/loop layers kv8` (a GUI
+loop over met1..met5 in KLayout), `/loop sim vision lit` (start a job, poll, verify the PASS line), `/harness names` and
+`/harness facts kv` (fixed cases, score, pass/fail gate). Code: `examples/hermes_desktop/tool_server/quick_tools.py`;
+overview and measured times: `hermes-agents.md` section 4.16; demos 14 and 15 in `docs/HERMES_DEMOS.md`. The lesson of
+this folder (move work the model is bad at into deterministic tools) is also why the integration answers lookups and
+launches in code (the fast paths).
+
 ## Limits
 
 - q03's expected answer was regenerated (`tools/eval/ground_truth.py`: now `soc_kv_attn_n8 (570)`, it predated that design) and the table above is the re-run against it; regenerate again whenever results change.

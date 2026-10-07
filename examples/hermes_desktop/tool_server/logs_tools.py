@@ -549,6 +549,17 @@ def _find_lyp() -> Optional[str]:
     return c[0] if c else None
 
 
+def _related(design: str) -> List[str]:
+    """Same-family designs (same first word: kv_attn_n8 -> kv_attn_n4, kv_attn_n16, ...), so a loose request such as "open kv_attn"
+    shows which one was opened and what else exists."""
+    try:
+        import eda_tools
+        fam = design.split("_")[0] + "_"
+        return [d for d in sorted(eda_tools._designs()) if d.startswith(fam) and d != design][:6]
+    except Exception:  # noqa: BLE001
+        return []
+
+
 def open_gds_for(design: str, viewer: str = "klayout-app") -> Dict[str, Any]:
     check_design(design)
     v = (viewer or "klayout-app").strip().lower().replace("_", "-")
@@ -577,7 +588,9 @@ def open_gds_for(design: str, viewer: str = "klayout-app") -> Dict[str, Any]:
         g = os.path.relpath(gds, os.path.realpath(ROOT)) if gds.startswith(os.path.realpath(ROOT)) else os.path.basename(gds)
         return {"ok": True, "viewer": "klayout-app", "design": design, "gds": g, "layer_properties": os.path.basename(lyp) if lyp else None,
                 "command": " ".join(os.path.basename(c) if c.startswith("/") else c for c in cmd), "pid": p.pid,
-                "markdown": "Opened the KLayout application with `%s` and the sky130 layer file. It is a normal desktop window; nothing is written." % g}
+                "related": _related(design),
+                "markdown": "Opened the KLayout application with `%s` and the sky130 layer file. It is a normal desktop window; nothing is written.%s"
+                            % (g, (" Related designs: %s." % ", ".join(_related(design))) if _related(design) else "")}
     if v in ("klayout", "magic"):
         try:
             r = _http("gui_start", {"tool": v, "design": design})

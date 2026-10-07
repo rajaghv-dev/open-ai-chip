@@ -725,7 +725,11 @@ def _design_in(clause: str, designs: List[str]) -> Optional[str]:
     for d in designs:
         if d.lower() in toks:
             return d
-    return None
+    try:   # loose names: "vision lit", "kv attention 16", "the kv_attn design" (normalize_tools.design_from_text)
+        import normalize_tools
+        return normalize_tools.design_from_text(clause, designs)
+    except Exception:  # noqa: BLE001
+        return None
 
 
 def parse_text(text: str, tool: Optional[str] = None, running: Optional[List[str]] = None, designs: Optional[List[str]] = None,

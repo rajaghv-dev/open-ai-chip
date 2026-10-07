@@ -36,6 +36,31 @@ def test_resolve_design():
     assert nt.resolve_design("kv_attn", VALID)[0] is None or True       # ambiguous prefix must not crash
 
 
+def test_resolve_loose_names():
+    """Pins down: word-level names a user types for "open X in klayout" resolve without a second tool round."""
+    full = VALID + ["vision_all_lit", "soc_kv_attn_n8", "user_project_wrapper", "user_project_wrapper_soc_kv", "prec_bf16", "audio_onset"]
+    r = lambda s: nt.resolve_design(s, full)[0]  # noqa: E731
+    assert r("vision lit") == "vision_all_lit" and r("vision lite") == "vision_all_lit"
+    assert r("kv attention 16") == "kv_attn_n16" and r("the kv_attn design") == "kv_attn_n8" and r("kv") == "kv_attn_n8"
+    assert r("kv_attn_int4") == "kv_attn_n8_int4" and r("kv ring") == "kv_attn_n8_ring" and r("caravel kv") == "user_project_wrapper_soc_kv"
+    assert r("precision bf16") == "prec_bf16"
+    name, tied = nt.resolve_design("audio", full)
+    assert name is None and set(tied) == {"audio_pitch", "audio_onset"}            # a real tie returns the choices
+    assert nt.design_from_text("open the klayout with vision lit", full) == "vision_all_lit"
+    assert nt.design_from_text("open kv_attn design", full) == "kv_attn_n8"
+    assert nt.design_from_text("open klayout", full) is None
+
+
+def test_gui_parse_loose_names():
+    """Pins down: gui_command opens the design a loose sentence names."""
+    import gui_tools
+    full = sorted(VALID + ["vision_all_lit"], key=len, reverse=True)
+    a = gui_tools.parse_text("open the klayout with vision lit", designs=full)["actions"]
+    assert a[0]["op"] == "open" and a[0]["design"] == "vision_all_lit"
+    a = gui_tools.parse_text("open kv attention 16 in magic", designs=full)["actions"]
+    assert a[0] == {"op": "open", "tool": "magic", "design": "kv_attn_n16"}
+
+
 def test_normalize_pure():
     """Pins down: placeholders removed, confirm id cleaned, target lower-cased, designs list repaired."""
     new, ch, err = nt.normalize("read_metrics", {"design": "KV8", "keys": "-", "pattern": "none", "k": " 5 "}, VALID)

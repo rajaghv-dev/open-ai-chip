@@ -1,6 +1,6 @@
-# Hermes demos: eleven narrated demos for the desktop app
+# Hermes demos: fifteen narrated demos for the desktop app
 
-Eleven short demos you run inside the Hermes Agent desktop app (Hermes.app, profile `chip`) by typing "run demo 4" or "demo: layout".
+Fifteen short demos you run inside the Hermes Agent desktop app (Hermes.app, profile `chip`) by typing "run demo 4" or "demo: layout".
 The same content is the skill `.claude/skills/chip-demos/SKILL.md`, which Hermes loads from `skills.external_dirs`, so the agent can walk you through them.
 Background: [HERMES_AGENT_INTEGRATION.md](HERMES_AGENT_INTEGRATION.md) (setup, safety, models). Numbers below come from `designs/<d>/output/metrics.json`
 and from the transcripts at the end (isolated home `build/hermes_final_home`, model `qwen3.5-64k:9b`, one-shot `hermes -p chip -z`).
@@ -17,7 +17,7 @@ Ollama must be running with `qwen3.5-64k:9b` installed. Demo 4 needs the KLayout
 Safety during demos: every run needs your own message "yes, run <id>"; the hook blocks the model if it tries to confirm itself; physical flows also show an approval card.
 Run the demos on `qwen3.5-64k:9b` (the evaluated model); the other local models are for show only.
 
-Short talk: demos 1, 2, 4, 5, 6 (about 10 minutes). Full tour: 1 to 11.
+Short talk: demos 12, 13, 2, 5, 14 (about 10 minutes; 12 to 15 need the plugin, installed by the setup script). Full tour: 1 to 15.
 
 ### Demo 1: Ask the chips (numbers)
 
@@ -141,6 +141,38 @@ Short talk: demos 1, 2, 4, 5, 6 (about 10 minutes). Full tour: 1 to 11.
 - Look at: the confirm text names exactly what will be sent. Without your 'yes, run <id>' nothing is sent; the hook blocks a self-confirmation here too.
 - Explain: Local first, cloud on request: the small local model does the routine reading; for a hard question you choose to hand a self-contained question to Claude. Claude's answer comes back as text; it does not edit the repo either.
 - Time: 1 to 3 minutes; needs the claude CLI. Status: not run (sends text to a cloud model); the gate is the same two-step confirm.
+
+### Demo 12: Instant commands (no model)
+
+- Type: `/chip`, `/designs`, `/signoff caravel kv`, `/synth vision lit`, `/timing kv_attn`, `/drc kv attention 16`, `/lvs prec bf16`, `/compare kv4 kv8 kv16`
+- What runs: the open-ai-chip plugin's slash commands -> tool server POST /quick; no model turn, no tool-call cards.
+- Look at: each answer ends with `Source: designs/<d>/output/...`; partial names resolve (kv_attn -> kv_attn_n8, vision lit -> vision_all_lit, caravel kv -> user_project_wrapper_soc_kv). The timing table has nine corners; setup slack is positive (met).
+- Explain: a lookup does not need a language model. Code reads the committed evidence in milliseconds and cannot invent a number or flip a sign; the model is kept for explaining. This is the 'move work into deterministic tools' lesson of harness engineering.
+- Time: about a second each (0.1 s through Hermes's command dispatch, examples/hermes_desktop/eval_tools/speed_results.json). Status: verified (isolated home, Hermes plugin dispatch).
+
+### Demo 13: GUI tour of a layout (KLayout and Magic by text)
+
+- Type: `/klayout kv_attn show only met1`, then `/layout show only met4 and met5`, `/layout zoom to the lower-left 50 um`, `/drc kv8 live`, `/layout show all`, `/loop layers vision lit`, `/layout close all`. With XQuartz set up: `/magic vision lit find clk`.
+- What runs: gui_command through the plugin (instant) or, in words ("open kv_attn in klayout and show only met1"), the pre_llm_call router; a picture of the view comes back after each step.
+- Look at: the KLayout window follows each command; met1 is the horizontal power rails and short local wiring, met4/met5 the power grid straps; the lower-left 50 um shows standard-cell rows; DRC shows 0 markers; the layer tour returns five pictures.
+- Explain: a layout is a stack of masks; looking at one metal at a time shows how routing uses alternating directions and how the power grid is built. Nothing is ever saved: the parser has no write operation.
+- Time: 1 to 3 s per step; `/loop layers` 7.2 s (speed_results.json). Status: verified live for `/klayout vision lit show only met1` and `/loop layers vision lit`; the other window steps go through the same gui_command parser (tests/tools/test_gui_tools.py) but were not timed here. Magic needs XQuartz on TCP (scripts/gui/open_gui.sh header).
+
+### Demo 14: Loop engineering (plan, act, observe, check, stop)
+
+- Type: `/loop signoff kv`, then `/loop sim vision lit`.
+- What runs: two loops in code with their trace printed as a table: a read-only loop over the five KV designs, and a real job (make simulate) polled until its PASS line is verified.
+- Look at: row 0 is the PLAN with the goal, the stop condition and the budget; each step is ACT, OBSERVE, CHECK; the last row is STOP with the result (5 of 5 clean, tightest setup slack kv_attn_n16 8.766 ns; the simulation's PASS line).
+- Explain: an agent is a loop. A good loop has a goal, a stop condition and a budget, and it verifies (the PASS line), it does not assume ("the command returned"). examples/hermes_harness/ shows the same loop with a model choosing the actions (ReAct versus plan-then-execute).
+- Time: `/loop signoff` instant; `/loop sim vision lit` 2 s (speed_results.json). Status: verified.
+
+### Demo 15: Harness engineering (fixed cases, score, gate)
+
+- Type: `/harness names`, then `/harness facts kv`.
+- What runs: two small harnesses: 10 loose design names checked against the expected design (an ambiguous 'audio' must ask, not guess), and 3 questions per KV design checked against metrics.json and for a cited source file.
+- Look at: the score and the gate line (10/10 PASS, 15/15 PASS); a row fails if the answer is right but names no source.
+- Explain: a harness turns 'it seems to work' into a number that a test can hold: an eval set, ground truth, a score and a pass/fail gate. The same harnesses run in `make test` (tests/tools/test_quick_tools.py). examples/hermes_harness/ measures six harness configurations around one fixed model.
+- Time: instant. Status: verified.
 
 ## Measured transcripts (demos 1 to 3)
 
