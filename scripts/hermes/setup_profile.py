@@ -49,6 +49,7 @@ ENABLED_TOOLSETS = ["skills", "session_search"]
 # Local demo models, selectable in the Hermes.app model picker (and `hermes -p chip -m <model>`). All installed in Ollama (checked with
 # `ollama list`); nothing is pulled and no cloud model is listed. The default stays MODEL (the one evaluated: 87.9%, see docs).
 DEMO_TOOLS = False
+GRAFANA = False      # --grafana: add the read-only local Grafana MCP server (docs/GRAFANA.md)
 DEMO_EXTRA_TOOLS = ["log_digest", "param_info", "propose_change", "whatif_run", "whatif_result"]
 PROVIDER_NAME = "ollama-local"
 DEMO_MODELS = ["qwen3.5-64k:9b", "hermes3:8b", "gemma3:4b-it-qat", "gemma4:12b", "mistral-nemo:latest"]
@@ -179,6 +180,15 @@ def tool_include():
     return names
 
 
+def grafana_server():
+    """--grafana: the local Grafana MCP entry from scripts/hermes/grafana_mcp.json (docs/GRAFANA.md). Read-only: the wrapper
+    starts mcp-grafana with -disable-write and a Viewer token from the Keychain, and only four read tools are included."""
+    if not GRAFANA:
+        return {}
+    e = json.loads((REPO / "scripts" / "hermes" / "grafana_mcp.json").read_text(encoding="utf-8"))["mcp_servers"]["grafana"]
+    return {"grafana": json.loads(json.dumps(e).replace("__REPO__", str(REPO)))}
+
+
 def managed_config(home):
     src = read_source_model(home)
     server = {
@@ -202,7 +212,7 @@ def managed_config(home):
         "agent": {"max_turns": 40, "disabled_toolsets": DISABLED_TOOLSETS},
         "tools": {"tool_search": {"enabled": "off"}},
         "platform_toolsets": {"cli": ENABLED_TOOLSETS, "tui": ENABLED_TOOLSETS, "acp": ENABLED_TOOLSETS},
-        "mcp_servers": {"chip": server},
+        "mcp_servers": {"chip": server, **grafana_server()},
         "skills": {"external_dirs": [str(REPO / ".claude" / "skills")]},
         "approvals": {"mode": "manual", "cron_mode": "deny", "single_query_mode": "deny", "unattended_mode": "deny",
                       "deny": DENY},
@@ -492,9 +502,12 @@ def main():
     ap.add_argument("--hermes-home", help="alternative Hermes home (default $HERMES_HOME or ~/.hermes)")
     ap.add_argument("--demo-tools", action="store_true",
                     help="also expose log_digest, param_info, propose_change, whatif_run, whatif_result (needed by demos 3 and 6; not in the measured core set)")
+    ap.add_argument("--grafana", action="store_true",
+                    help="also add the local Grafana MCP server (read-only; needs scripts/grafana/setup_grafana.sh first, docs/GRAFANA.md)")
     a = ap.parse_args()
-    global DEMO_TOOLS
+    global DEMO_TOOLS, GRAFANA
     DEMO_TOOLS = a.demo_tools
+    GRAFANA = a.grafana
     if not re.fullmatch(r"[a-z0-9][a-z0-9_-]*", a.profile) or a.profile == "default":
         print("profile must be a lowercase name other than 'default'", file=sys.stderr)
         return 2

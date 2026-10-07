@@ -1,0 +1,653 @@
+{
+ "uid": "chip-overview",
+ "title": "open-ai-chip overview",
+ "description": "Designs, area, timing slack, signoff and freeze status.",
+ "tags": [
+  "open-ai-chip"
+ ],
+ "schemaVersion": 39,
+ "version": 1,
+ "editable": true,
+ "timezone": "browser",
+ "refresh": "",
+ "time": {
+  "from": "now-30d",
+  "to": "now"
+ },
+ "panels": [
+  {
+   "id": 1,
+   "title": "Designs",
+   "type": "stat",
+   "datasource": {
+    "type": "frser-sqlite-datasource",
+    "uid": "chipdb"
+   },
+   "description": "",
+   "gridPos": {
+    "x": 0,
+    "y": 0,
+    "w": 4,
+    "h": 4
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "frser-sqlite-datasource",
+      "uid": "chipdb"
+     },
+     "queryText": "SELECT COUNT(*) AS designs FROM designs",
+     "rawQueryText": "SELECT COUNT(*) AS designs FROM designs",
+     "queryType": "table",
+     "timeColumns": []
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value"
+   }
+  },
+  {
+   "id": 2,
+   "title": "Signoff PASS",
+   "type": "stat",
+   "datasource": {
+    "type": "frser-sqlite-datasource",
+    "uid": "chipdb"
+   },
+   "description": "",
+   "gridPos": {
+    "x": 4,
+    "y": 0,
+    "w": 4,
+    "h": 4
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "frser-sqlite-datasource",
+      "uid": "chipdb"
+     },
+     "queryText": "SELECT COUNT(*) AS pass FROM designs WHERE signoff='PASS'",
+     "rawQueryText": "SELECT COUNT(*) AS pass FROM designs WHERE signoff='PASS'",
+     "queryType": "table",
+     "timeColumns": []
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value"
+   }
+  },
+  {
+   "id": 3,
+   "title": "Frozen",
+   "type": "stat",
+   "datasource": {
+    "type": "frser-sqlite-datasource",
+    "uid": "chipdb"
+   },
+   "description": "",
+   "gridPos": {
+    "x": 8,
+    "y": 0,
+    "w": 4,
+    "h": 4
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "frser-sqlite-datasource",
+      "uid": "chipdb"
+     },
+     "queryText": "SELECT COUNT(*) AS frozen FROM designs WHERE frozen=1",
+     "rawQueryText": "SELECT COUNT(*) AS frozen FROM designs WHERE frozen=1",
+     "queryType": "table",
+     "timeColumns": []
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value"
+   }
+  },
+  {
+   "id": 4,
+   "title": "Total std cells",
+   "type": "stat",
+   "datasource": {
+    "type": "frser-sqlite-datasource",
+    "uid": "chipdb"
+   },
+   "description": "",
+   "gridPos": {
+    "x": 12,
+    "y": 0,
+    "w": 4,
+    "h": 4
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "frser-sqlite-datasource",
+      "uid": "chipdb"
+     },
+     "queryText": "SELECT SUM(cells) AS cells FROM designs",
+     "rawQueryText": "SELECT SUM(cells) AS cells FROM designs",
+     "queryType": "table",
+     "timeColumns": []
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value"
+   }
+  },
+  {
+   "id": 5,
+   "title": "Worst setup slack (ns)",
+   "type": "stat",
+   "datasource": {
+    "type": "frser-sqlite-datasource",
+    "uid": "chipdb"
+   },
+   "description": "",
+   "gridPos": {
+    "x": 16,
+    "y": 0,
+    "w": 4,
+    "h": 4
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "frser-sqlite-datasource",
+      "uid": "chipdb"
+     },
+     "queryText": "SELECT MIN(setup_ws) AS ns FROM designs",
+     "rawQueryText": "SELECT MIN(setup_ws) AS ns FROM designs",
+     "queryType": "table",
+     "timeColumns": []
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value"
+   }
+  },
+  {
+   "id": 6,
+   "title": "Worst hold slack (ns)",
+   "type": "stat",
+   "datasource": {
+    "type": "frser-sqlite-datasource",
+    "uid": "chipdb"
+   },
+   "description": "",
+   "gridPos": {
+    "x": 20,
+    "y": 0,
+    "w": 4,
+    "h": 4
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "frser-sqlite-datasource",
+      "uid": "chipdb"
+     },
+     "queryText": "SELECT MIN(hold_ws) AS ns FROM designs",
+     "rawQueryText": "SELECT MIN(hold_ws) AS ns FROM designs",
+     "queryType": "table",
+     "timeColumns": []
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value"
+   }
+  },
+  {
+   "id": 7,
+   "title": "All designs",
+   "type": "table",
+   "datasource": {
+    "type": "frser-sqlite-datasource",
+    "uid": "chipdb"
+   },
+   "description": "Source: designs/*/output/{metrics,resources}.json, designs/FROZEN.json (make grafana-db).",
+   "gridPos": {
+    "x": 0,
+    "y": 4,
+    "w": 24,
+    "h": 12
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "frser-sqlite-datasource",
+      "uid": "chipdb"
+     },
+     "queryText": "SELECT name, family, cells, ff, die_um2, ROUND(util,3) AS util, ROUND(setup_ws,3) AS setup_ws_ns, setup_corner, ROUND(hold_ws,3) AS hold_ws_ns, hold_corner, drc, lvs, xor, antenna, slew_viol, ROUND(power_w*1000,4) AS power_mw, flow_s, peak_gb, frozen, signoff FROM designs ORDER BY name",
+     "rawQueryText": "SELECT name, family, cells, ff, die_um2, ROUND(util,3) AS util, ROUND(setup_ws,3) AS setup_ws_ns, setup_corner, ROUND(hold_ws,3) AS hold_ws_ns, hold_corner, drc, lvs, xor, antenna, slew_viol, ROUND(power_w*1000,4) AS power_mw, flow_s, peak_gb, frozen, signoff FROM designs ORDER BY name",
+     "queryType": "table",
+     "timeColumns": []
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": [
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "signoff"
+      },
+      "properties": [
+       {
+        "id": "custom.cellOptions",
+        "value": {
+         "type": "color-text"
+        }
+       },
+       {
+        "id": "mappings",
+        "value": [
+         {
+          "type": "value",
+          "options": {
+           "PASS": {
+            "color": "green",
+            "index": 0
+           },
+           "FAIL": {
+            "color": "red",
+            "index": 1
+           }
+          }
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "options": {
+    "showHeader": true,
+    "cellHeight": "sm"
+   }
+  },
+  {
+   "id": 8,
+   "title": "Std cells per design",
+   "type": "barchart",
+   "datasource": {
+    "type": "frser-sqlite-datasource",
+    "uid": "chipdb"
+   },
+   "description": "",
+   "gridPos": {
+    "x": 0,
+    "y": 16,
+    "w": 8,
+    "h": 10
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "frser-sqlite-datasource",
+      "uid": "chipdb"
+     },
+     "queryText": "SELECT name, cells FROM designs ORDER BY cells DESC",
+     "rawQueryText": "SELECT name, cells FROM designs ORDER BY cells DESC",
+     "queryType": "table",
+     "timeColumns": []
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {
+    "orientation": "horizontal",
+    "legend": {
+     "showLegend": false
+    },
+    "xTickLabelRotation": 0,
+    "showValue": "auto",
+    "tooltip": {
+     "mode": "single"
+    }
+   }
+  },
+  {
+   "id": 9,
+   "title": "Flip-flops per design",
+   "type": "barchart",
+   "datasource": {
+    "type": "frser-sqlite-datasource",
+    "uid": "chipdb"
+   },
+   "description": "",
+   "gridPos": {
+    "x": 8,
+    "y": 16,
+    "w": 8,
+    "h": 10
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "frser-sqlite-datasource",
+      "uid": "chipdb"
+     },
+     "queryText": "SELECT name, ff FROM designs WHERE ff IS NOT NULL ORDER BY ff DESC",
+     "rawQueryText": "SELECT name, ff FROM designs WHERE ff IS NOT NULL ORDER BY ff DESC",
+     "queryType": "table",
+     "timeColumns": []
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {
+    "orientation": "horizontal",
+    "legend": {
+     "showLegend": false
+    },
+    "xTickLabelRotation": 0,
+    "showValue": "auto",
+    "tooltip": {
+     "mode": "single"
+    }
+   }
+  },
+  {
+   "id": 10,
+   "title": "Die area (um2)",
+   "type": "barchart",
+   "datasource": {
+    "type": "frser-sqlite-datasource",
+    "uid": "chipdb"
+   },
+   "description": "",
+   "gridPos": {
+    "x": 16,
+    "y": 16,
+    "w": 8,
+    "h": 10
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "frser-sqlite-datasource",
+      "uid": "chipdb"
+     },
+     "queryText": "SELECT name, die_um2 FROM designs ORDER BY die_um2 DESC",
+     "rawQueryText": "SELECT name, die_um2 FROM designs ORDER BY die_um2 DESC",
+     "queryType": "table",
+     "timeColumns": []
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {
+    "orientation": "horizontal",
+    "legend": {
+     "showLegend": false
+    },
+    "xTickLabelRotation": 0,
+    "showValue": "auto",
+    "tooltip": {
+     "mode": "single"
+    }
+   }
+  },
+  {
+   "id": 11,
+   "title": "Worst setup slack (ns), lowest first",
+   "type": "barchart",
+   "datasource": {
+    "type": "frser-sqlite-datasource",
+    "uid": "chipdb"
+   },
+   "description": "Worst over the nine timing corners, 25 ns clock.",
+   "gridPos": {
+    "x": 0,
+    "y": 26,
+    "w": 12,
+    "h": 10
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "frser-sqlite-datasource",
+      "uid": "chipdb"
+     },
+     "queryText": "SELECT name, ROUND(setup_ws,3) AS setup_ws_ns FROM designs ORDER BY setup_ws ASC",
+     "rawQueryText": "SELECT name, ROUND(setup_ws,3) AS setup_ws_ns FROM designs ORDER BY setup_ws ASC",
+     "queryType": "table",
+     "timeColumns": []
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {
+    "orientation": "horizontal",
+    "legend": {
+     "showLegend": false
+    },
+    "xTickLabelRotation": 0,
+    "showValue": "auto",
+    "tooltip": {
+     "mode": "single"
+    }
+   }
+  },
+  {
+   "id": 12,
+   "title": "Worst hold slack (ns), lowest first",
+   "type": "barchart",
+   "datasource": {
+    "type": "frser-sqlite-datasource",
+    "uid": "chipdb"
+   },
+   "description": "",
+   "gridPos": {
+    "x": 12,
+    "y": 26,
+    "w": 12,
+    "h": 10
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "frser-sqlite-datasource",
+      "uid": "chipdb"
+     },
+     "queryText": "SELECT name, ROUND(hold_ws,3) AS hold_ws_ns FROM designs ORDER BY hold_ws ASC",
+     "rawQueryText": "SELECT name, ROUND(hold_ws,3) AS hold_ws_ns FROM designs ORDER BY hold_ws ASC",
+     "queryType": "table",
+     "timeColumns": []
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {
+    "orientation": "horizontal",
+    "legend": {
+     "showLegend": false
+    },
+    "xTickLabelRotation": 0,
+    "showValue": "auto",
+    "tooltip": {
+     "mode": "single"
+    }
+   }
+  },
+  {
+   "id": 13,
+   "title": "Flow wall time (s)",
+   "type": "barchart",
+   "datasource": {
+    "type": "frser-sqlite-datasource",
+    "uid": "chipdb"
+   },
+   "description": "",
+   "gridPos": {
+    "x": 0,
+    "y": 36,
+    "w": 12,
+    "h": 10
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "frser-sqlite-datasource",
+      "uid": "chipdb"
+     },
+     "queryText": "SELECT name, flow_s FROM designs WHERE flow_s IS NOT NULL ORDER BY flow_s DESC",
+     "rawQueryText": "SELECT name, flow_s FROM designs WHERE flow_s IS NOT NULL ORDER BY flow_s DESC",
+     "queryType": "table",
+     "timeColumns": []
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "s"
+    },
+    "overrides": []
+   },
+   "options": {
+    "orientation": "horizontal",
+    "legend": {
+     "showLegend": false
+    },
+    "xTickLabelRotation": 0,
+    "showValue": "auto",
+    "tooltip": {
+     "mode": "single"
+    }
+   }
+  },
+  {
+   "id": 14,
+   "title": "Signoff status by family",
+   "type": "table",
+   "datasource": {
+    "type": "frser-sqlite-datasource",
+    "uid": "chipdb"
+   },
+   "description": "",
+   "gridPos": {
+    "x": 12,
+    "y": 36,
+    "w": 12,
+    "h": 10
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "frser-sqlite-datasource",
+      "uid": "chipdb"
+     },
+     "queryText": "SELECT family, COUNT(*) AS designs, SUM(signoff='PASS') AS pass, SUM(frozen) AS frozen FROM designs GROUP BY family ORDER BY family",
+     "rawQueryText": "SELECT family, COUNT(*) AS designs, SUM(signoff='PASS') AS pass, SUM(frozen) AS frozen FROM designs GROUP BY family ORDER BY family",
+     "queryType": "table",
+     "timeColumns": []
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {}
+  }
+ ],
+ "templating": {
+  "list": []
+ },
+ "annotations": {
+  "list": []
+ }
+}

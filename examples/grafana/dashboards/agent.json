@@ -1,0 +1,368 @@
+{
+ "uid": "chip-agent",
+ "title": "Agent",
+ "description": "Hermes tool-calling eval scores and the tool-call proof log.",
+ "tags": [
+  "open-ai-chip"
+ ],
+ "schemaVersion": 39,
+ "version": 1,
+ "editable": true,
+ "timezone": "browser",
+ "refresh": "",
+ "time": {
+  "from": "now-30d",
+  "to": "now"
+ },
+ "panels": [
+  {
+   "id": 1,
+   "title": "Tool calls logged",
+   "type": "stat",
+   "datasource": {
+    "type": "frser-sqlite-datasource",
+    "uid": "chipdb"
+   },
+   "description": "",
+   "gridPos": {
+    "x": 0,
+    "y": 0,
+    "w": 4,
+    "h": 4
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "frser-sqlite-datasource",
+      "uid": "chipdb"
+     },
+     "queryText": "SELECT COUNT(*) AS calls FROM proof_calls",
+     "rawQueryText": "SELECT COUNT(*) AS calls FROM proof_calls",
+     "queryType": "table",
+     "timeColumns": []
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value"
+   }
+  },
+  {
+   "id": 2,
+   "title": "Distinct tools",
+   "type": "stat",
+   "datasource": {
+    "type": "frser-sqlite-datasource",
+    "uid": "chipdb"
+   },
+   "description": "",
+   "gridPos": {
+    "x": 4,
+    "y": 0,
+    "w": 4,
+    "h": 4
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "frser-sqlite-datasource",
+      "uid": "chipdb"
+     },
+     "queryText": "SELECT COUNT(DISTINCT tool) AS tools FROM proof_calls",
+     "rawQueryText": "SELECT COUNT(DISTINCT tool) AS tools FROM proof_calls",
+     "queryType": "table",
+     "timeColumns": []
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value"
+   }
+  },
+  {
+   "id": 3,
+   "title": "Non-200 calls",
+   "type": "stat",
+   "datasource": {
+    "type": "frser-sqlite-datasource",
+    "uid": "chipdb"
+   },
+   "description": "",
+   "gridPos": {
+    "x": 8,
+    "y": 0,
+    "w": 4,
+    "h": 4
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "frser-sqlite-datasource",
+      "uid": "chipdb"
+     },
+     "queryText": "SELECT COUNT(*) AS errors FROM proof_calls WHERE status != 200",
+     "rawQueryText": "SELECT COUNT(*) AS errors FROM proof_calls WHERE status != 200",
+     "queryType": "table",
+     "timeColumns": []
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value"
+   }
+  },
+  {
+   "id": 4,
+   "title": "Median call (ms)",
+   "type": "stat",
+   "datasource": {
+    "type": "frser-sqlite-datasource",
+    "uid": "chipdb"
+   },
+   "description": "",
+   "gridPos": {
+    "x": 12,
+    "y": 0,
+    "w": 4,
+    "h": 4
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "frser-sqlite-datasource",
+      "uid": "chipdb"
+     },
+     "queryText": "SELECT ms FROM proof_calls ORDER BY ms LIMIT 1 OFFSET (SELECT COUNT(*)/2 FROM proof_calls)",
+     "rawQueryText": "SELECT ms FROM proof_calls ORDER BY ms LIMIT 1 OFFSET (SELECT COUNT(*)/2 FROM proof_calls)",
+     "queryType": "table",
+     "timeColumns": []
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value"
+   }
+  },
+  {
+   "id": 5,
+   "title": "Tool-calling eval (overall)",
+   "type": "table",
+   "datasource": {
+    "type": "frser-sqlite-datasource",
+    "uid": "chipdb"
+   },
+   "description": "Source: examples/hermes_desktop/eval_tools/results_summary_*.json.",
+   "gridPos": {
+    "x": 0,
+    "y": 4,
+    "w": 24,
+    "h": 5
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "frser-sqlite-datasource",
+      "uid": "chipdb"
+     },
+     "queryText": "SELECT backend, model, date, cases AS scored, passed, accuracy_pct FROM eval_scores WHERE grp='ALL' ORDER BY backend",
+     "rawQueryText": "SELECT backend, model, date, cases AS scored, passed, accuracy_pct FROM eval_scores WHERE grp='ALL' ORDER BY backend",
+     "queryType": "table",
+     "timeColumns": []
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {}
+  },
+  {
+   "id": 6,
+   "title": "Eval accuracy by group (%)",
+   "type": "barchart",
+   "datasource": {
+    "type": "frser-sqlite-datasource",
+    "uid": "chipdb"
+   },
+   "description": "",
+   "gridPos": {
+    "x": 0,
+    "y": 9,
+    "w": 24,
+    "h": 10
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "frser-sqlite-datasource",
+      "uid": "chipdb"
+     },
+     "queryText": "SELECT grp, MAX(CASE WHEN backend='direct' THEN accuracy_pct END) AS direct, MAX(CASE WHEN backend='hermes' THEN accuracy_pct END) AS hermes FROM eval_scores WHERE grp!='ALL' GROUP BY grp ORDER BY grp",
+     "rawQueryText": "SELECT grp, MAX(CASE WHEN backend='direct' THEN accuracy_pct END) AS direct, MAX(CASE WHEN backend='hermes' THEN accuracy_pct END) AS hermes FROM eval_scores WHERE grp!='ALL' GROUP BY grp ORDER BY grp",
+     "queryType": "table",
+     "timeColumns": []
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {
+    "orientation": "auto",
+    "legend": {
+     "showLegend": true
+    },
+    "showValue": "auto"
+   }
+  },
+  {
+   "id": 7,
+   "title": "Tool calls by tool (proof log)",
+   "type": "barchart",
+   "datasource": {
+    "type": "frser-sqlite-datasource",
+    "uid": "chipdb"
+   },
+   "description": "Source: build/agent/proof/calls.jsonl.",
+   "gridPos": {
+    "x": 0,
+    "y": 19,
+    "w": 12,
+    "h": 11
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "frser-sqlite-datasource",
+      "uid": "chipdb"
+     },
+     "queryText": "SELECT tool, COUNT(*) AS calls FROM proof_calls GROUP BY tool ORDER BY calls DESC LIMIT 20",
+     "rawQueryText": "SELECT tool, COUNT(*) AS calls FROM proof_calls GROUP BY tool ORDER BY calls DESC LIMIT 20",
+     "queryType": "table",
+     "timeColumns": []
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {
+    "orientation": "horizontal",
+    "legend": {
+     "showLegend": false
+    },
+    "xTickLabelRotation": 0,
+    "showValue": "auto",
+    "tooltip": {
+     "mode": "single"
+    }
+   }
+  },
+  {
+   "id": 8,
+   "title": "Tool calls per hour",
+   "type": "timeseries",
+   "datasource": {
+    "type": "frser-sqlite-datasource",
+    "uid": "chipdb"
+   },
+   "description": "",
+   "gridPos": {
+    "x": 12,
+    "y": 19,
+    "w": 12,
+    "h": 11
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "frser-sqlite-datasource",
+      "uid": "chipdb"
+     },
+     "queryText": "SELECT (ts/3600)*3600 AS time, COUNT(*) AS calls FROM proof_calls GROUP BY 1 ORDER BY 1",
+     "rawQueryText": "SELECT (ts/3600)*3600 AS time, COUNT(*) AS calls FROM proof_calls GROUP BY 1 ORDER BY 1",
+     "queryType": "time series",
+     "timeColumns": [
+      "time"
+     ]
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": [
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "calls"
+      },
+      "properties": [
+       {
+        "id": "custom.drawStyle",
+        "value": "bars"
+       }
+      ]
+     }
+    ]
+   },
+   "options": {
+    "legend": {
+     "showLegend": false
+    }
+   }
+  }
+ ],
+ "templating": {
+  "list": []
+ },
+ "annotations": {
+  "list": []
+ }
+}

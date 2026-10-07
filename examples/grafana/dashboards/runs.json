@@ -1,0 +1,507 @@
+{
+ "uid": "chip-runs",
+ "title": "Runs and jobs",
+ "description": "Tool-server jobs, durations, pass/fail and what-if results.",
+ "tags": [
+  "open-ai-chip"
+ ],
+ "schemaVersion": 39,
+ "version": 1,
+ "editable": true,
+ "timezone": "browser",
+ "refresh": "",
+ "time": {
+  "from": "now-30d",
+  "to": "now"
+ },
+ "panels": [
+  {
+   "id": 1,
+   "title": "Runs recorded",
+   "type": "stat",
+   "datasource": {
+    "type": "frser-sqlite-datasource",
+    "uid": "chipdb"
+   },
+   "description": "",
+   "gridPos": {
+    "x": 0,
+    "y": 0,
+    "w": 4,
+    "h": 4
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "frser-sqlite-datasource",
+      "uid": "chipdb"
+     },
+     "queryText": "SELECT COUNT(*) AS runs FROM runs",
+     "rawQueryText": "SELECT COUNT(*) AS runs FROM runs",
+     "queryType": "table",
+     "timeColumns": []
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value"
+   }
+  },
+  {
+   "id": 2,
+   "title": "PASS",
+   "type": "stat",
+   "datasource": {
+    "type": "frser-sqlite-datasource",
+    "uid": "chipdb"
+   },
+   "description": "",
+   "gridPos": {
+    "x": 4,
+    "y": 0,
+    "w": 4,
+    "h": 4
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "frser-sqlite-datasource",
+      "uid": "chipdb"
+     },
+     "queryText": "SELECT COUNT(*) AS pass FROM runs WHERE result='PASS'",
+     "rawQueryText": "SELECT COUNT(*) AS pass FROM runs WHERE result='PASS'",
+     "queryType": "table",
+     "timeColumns": []
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value"
+   }
+  },
+  {
+   "id": 3,
+   "title": "FAIL",
+   "type": "stat",
+   "datasource": {
+    "type": "frser-sqlite-datasource",
+    "uid": "chipdb"
+   },
+   "description": "",
+   "gridPos": {
+    "x": 8,
+    "y": 0,
+    "w": 4,
+    "h": 4
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "frser-sqlite-datasource",
+      "uid": "chipdb"
+     },
+     "queryText": "SELECT COUNT(*) AS fail FROM runs WHERE result='FAIL'",
+     "rawQueryText": "SELECT COUNT(*) AS fail FROM runs WHERE result='FAIL'",
+     "queryType": "table",
+     "timeColumns": []
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value"
+   }
+  },
+  {
+   "id": 4,
+   "title": "What-if runs",
+   "type": "stat",
+   "datasource": {
+    "type": "frser-sqlite-datasource",
+    "uid": "chipdb"
+   },
+   "description": "",
+   "gridPos": {
+    "x": 12,
+    "y": 0,
+    "w": 4,
+    "h": 4
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "frser-sqlite-datasource",
+      "uid": "chipdb"
+     },
+     "queryText": "SELECT COUNT(*) AS whatifs FROM whatifs",
+     "rawQueryText": "SELECT COUNT(*) AS whatifs FROM whatifs",
+     "queryType": "table",
+     "timeColumns": []
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value"
+   }
+  },
+  {
+   "id": 5,
+   "title": "Recent jobs",
+   "type": "table",
+   "datasource": {
+    "type": "frser-sqlite-datasource",
+    "uid": "chipdb"
+   },
+   "description": "Source: build/agent/jobs/*.log and build/agent/memory/runs.md.",
+   "gridPos": {
+    "x": 0,
+    "y": 4,
+    "w": 24,
+    "h": 12
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "frser-sqlite-datasource",
+      "uid": "chipdb"
+     },
+     "queryText": "SELECT time, result, design, ROUND(secs,1) AS secs, cmd, log FROM runs WHERE ts IS NOT NULL ORDER BY ts DESC LIMIT 40",
+     "rawQueryText": "SELECT time, result, design, ROUND(secs,1) AS secs, cmd, log FROM runs WHERE ts IS NOT NULL ORDER BY ts DESC LIMIT 40",
+     "queryType": "table",
+     "timeColumns": []
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": [
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "result"
+      },
+      "properties": [
+       {
+        "id": "custom.cellOptions",
+        "value": {
+         "type": "color-text"
+        }
+       },
+       {
+        "id": "mappings",
+        "value": [
+         {
+          "type": "value",
+          "options": {
+           "PASS": {
+            "color": "green",
+            "index": 0
+           },
+           "FAIL": {
+            "color": "red",
+            "index": 1
+           }
+          }
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "options": {
+    "showHeader": true,
+    "cellHeight": "sm"
+   }
+  },
+  {
+   "id": 6,
+   "title": "Pass / fail per hour",
+   "type": "timeseries",
+   "datasource": {
+    "type": "frser-sqlite-datasource",
+    "uid": "chipdb"
+   },
+   "description": "",
+   "gridPos": {
+    "x": 0,
+    "y": 16,
+    "w": 12,
+    "h": 9
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "frser-sqlite-datasource",
+      "uid": "chipdb"
+     },
+     "queryText": "SELECT (ts/3600)*3600 AS time, SUM(result='PASS') AS pass, SUM(result='FAIL') AS fail FROM runs WHERE ts IS NOT NULL GROUP BY 1 ORDER BY 1",
+     "rawQueryText": "SELECT (ts/3600)*3600 AS time, SUM(result='PASS') AS pass, SUM(result='FAIL') AS fail FROM runs WHERE ts IS NOT NULL GROUP BY 1 ORDER BY 1",
+     "queryType": "time series",
+     "timeColumns": [
+      "time"
+     ]
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": [
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "pass"
+      },
+      "properties": [
+       {
+        "id": "color",
+        "value": {
+         "mode": "fixed",
+         "fixedColor": "green"
+        }
+       },
+       {
+        "id": "custom.drawStyle",
+        "value": "bars"
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "fail"
+      },
+      "properties": [
+       {
+        "id": "color",
+        "value": {
+         "mode": "fixed",
+         "fixedColor": "red"
+        }
+       },
+       {
+        "id": "custom.drawStyle",
+        "value": "bars"
+       }
+      ]
+     }
+    ]
+   },
+   "options": {
+    "legend": {
+     "showLegend": true
+    },
+    "tooltip": {
+     "mode": "multi"
+    }
+   }
+  },
+  {
+   "id": 7,
+   "title": "Longest jobs (s)",
+   "type": "barchart",
+   "datasource": {
+    "type": "frser-sqlite-datasource",
+    "uid": "chipdb"
+   },
+   "description": "",
+   "gridPos": {
+    "x": 12,
+    "y": 16,
+    "w": 12,
+    "h": 9
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "frser-sqlite-datasource",
+      "uid": "chipdb"
+     },
+     "queryText": "SELECT SUBSTR(cmd,1,40) || ' ' || SUBSTR(id,10,6) AS job, ROUND(secs,1) AS secs FROM runs WHERE secs IS NOT NULL ORDER BY secs DESC LIMIT 12",
+     "rawQueryText": "SELECT SUBSTR(cmd,1,40) || ' ' || SUBSTR(id,10,6) AS job, ROUND(secs,1) AS secs FROM runs WHERE secs IS NOT NULL ORDER BY secs DESC LIMIT 12",
+     "queryType": "table",
+     "timeColumns": []
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "s"
+    },
+    "overrides": []
+   },
+   "options": {
+    "orientation": "horizontal",
+    "legend": {
+     "showLegend": false
+    },
+    "xTickLabelRotation": 0,
+    "showValue": "auto",
+    "tooltip": {
+     "mode": "single"
+    }
+   }
+  },
+  {
+   "id": 8,
+   "title": "What-ifs vs committed baseline",
+   "type": "table",
+   "datasource": {
+    "type": "frser-sqlite-datasource",
+    "uid": "chipdb"
+   },
+   "description": "Source: build/whatif/<design>__<tag>/ vs designs/<design>/output/metrics.json. Slack in ns.",
+   "gridPos": {
+    "x": 0,
+    "y": 25,
+    "w": 24,
+    "h": 8
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "frser-sqlite-datasource",
+      "uid": "chipdb"
+     },
+     "queryText": "SELECT tag, design, changes, ROUND(setup_ws,3) AS setup_ws, ROUND(base_setup_ws,3) AS base_setup_ws, ROUND(d_setup_ws,3) AS d_setup_ws, ROUND(hold_ws,3) AS hold_ws, ROUND(d_hold_ws,4) AS d_hold_ws, cells, d_cells, wall_s, peak_gb FROM whatifs ORDER BY tag",
+     "rawQueryText": "SELECT tag, design, changes, ROUND(setup_ws,3) AS setup_ws, ROUND(base_setup_ws,3) AS base_setup_ws, ROUND(d_setup_ws,3) AS d_setup_ws, ROUND(hold_ws,3) AS hold_ws, ROUND(d_hold_ws,4) AS d_hold_ws, cells, d_cells, wall_s, peak_gb FROM whatifs ORDER BY tag",
+     "queryType": "table",
+     "timeColumns": []
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {}
+  },
+  {
+   "id": 9,
+   "title": "What-if setup slack change vs baseline (ns)",
+   "type": "barchart",
+   "datasource": {
+    "type": "frser-sqlite-datasource",
+    "uid": "chipdb"
+   },
+   "description": "",
+   "gridPos": {
+    "x": 0,
+    "y": 33,
+    "w": 12,
+    "h": 8
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "frser-sqlite-datasource",
+      "uid": "chipdb"
+     },
+     "queryText": "SELECT tag, ROUND(d_setup_ws,3) AS d_setup_ws FROM whatifs ORDER BY tag",
+     "rawQueryText": "SELECT tag, ROUND(d_setup_ws,3) AS d_setup_ws FROM whatifs ORDER BY tag",
+     "queryType": "table",
+     "timeColumns": []
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {
+    "orientation": "horizontal",
+    "legend": {
+     "showLegend": false
+    },
+    "xTickLabelRotation": 0,
+    "showValue": "auto",
+    "tooltip": {
+     "mode": "single"
+    }
+   }
+  },
+  {
+   "id": 10,
+   "title": "Jobs by design",
+   "type": "table",
+   "datasource": {
+    "type": "frser-sqlite-datasource",
+    "uid": "chipdb"
+   },
+   "description": "",
+   "gridPos": {
+    "x": 12,
+    "y": 33,
+    "w": 12,
+    "h": 8
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "frser-sqlite-datasource",
+      "uid": "chipdb"
+     },
+     "queryText": "SELECT design, COUNT(*) AS jobs, SUM(result='PASS') AS pass, SUM(result='FAIL') AS fail FROM runs WHERE design != '' GROUP BY design ORDER BY jobs DESC",
+     "rawQueryText": "SELECT design, COUNT(*) AS jobs, SUM(result='PASS') AS pass, SUM(result='FAIL') AS fail FROM runs WHERE design != '' GROUP BY design ORDER BY jobs DESC",
+     "queryType": "table",
+     "timeColumns": []
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {}
+  }
+ ],
+ "templating": {
+  "list": []
+ },
+ "annotations": {
+  "list": []
+ }
+}

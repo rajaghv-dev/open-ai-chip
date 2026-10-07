@@ -1,0 +1,29 @@
+{
+  "//": "mcp_servers.grafana entry for the Hermes chip profile (merge under mcp_servers in config.yaml; the lead integrates it into scripts/hermes/setup_profile.py). REPO is the repo root, filled in by the setup script. No secret here: the wrapper reads the Viewer token from the macOS Keychain (service open-ai-chip-grafana-mcp).",
+  "mcp_servers": {
+    "grafana": {
+      "command": "sh",
+      "args": ["__REPO__/scripts/hermes/grafana_mcp.sh"],
+      "env": {"GRAFANA_URL": "http://127.0.0.1:3000"},
+      "timeout": 60,
+      "connect_timeout": 30,
+      "tools": {
+        "prompts": false,
+        "resources": false,
+        "include": [
+          "search_dashboards",
+          "get_dashboard_summary",
+          "get_dashboard_panel_queries",
+          "list_datasources"
+        ]
+      }
+    }
+  },
+  "approvals_notes": {
+    "read_only_tools_allowed": ["search_dashboards", "get_dashboard_summary", "get_dashboard_panel_queries", "list_datasources"],
+    "denied_in_every_case": ["update_dashboard", "create_datasource", "update_datasource", "create_folder", "create_annotation", "query_sql", "grafana_api_request", "install_plugin", "run_panel_query"],
+    "why": "Defence in depth: the server is started with -disable-write and an enabled-tools list of search, dashboard, datasource (so the write tools are not even registered), the Hermes tools.include list exposes only four tools, and the Grafana token is a Viewer service account (the API refuses writes). In Hermes approvals: mode manual stays; add the grafana write tool names above to approvals.deny, and let mcp_grafana read tools run without a prompt (they only read the local evidence database).",
+    "limitation": "mcp-grafana run_panel_query does not support the SQLite datasource and grafana_api_request (the only other way to run a panel query) is a generic request tool that is deliberately not enabled; so Hermes reads dashboard titles, panels and the panel SQL through Grafana and gets the numbers from the chip tools (read_metrics, compare_designs). Enabling grafana_api_request is an owner decision (Viewer token keeps it read-only at the Grafana side).",
+    "hook": "scripts/hermes/hooks/pre_tool_call.py needs no change for read tools; for belt and braces it may block any mcp tool whose name matches (update|create|delete|install|grafana_api_request|query_sql) when the server is grafana."
+  }
+}

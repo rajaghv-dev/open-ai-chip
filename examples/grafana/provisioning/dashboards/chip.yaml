@@ -1,0 +1,13 @@
+# Dashboard provider: loads the open-ai-chip dashboards from a folder.
+# __CHIP_DASH_DIR__ is replaced by scripts/grafana/setup_grafana.sh with the absolute path of examples/grafana/dashboards.
+apiVersion: 1
+providers:
+  - name: open-ai-chip
+    orgId: 1
+    folder: open-ai-chip
+    type: file
+    disableDeletion: true
+    allowUiUpdates: false
+    updateIntervalSeconds: 30
+    options:
+      path: __CHIP_DASH_DIR__

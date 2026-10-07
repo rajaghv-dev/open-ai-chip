@@ -32,6 +32,7 @@ Narrated demos to run inside Hermes.app ("run demo 4"): [HERMES_DEMOS.md](HERMES
 | Confirm guard: a gated call with a `confirm_id` is blocked unless the USER's latest message says "yes, run <id>" | `scripts/hermes/hooks/confirm_guard.py`, called first by `pre_tool_call.py`; tests `tests/tools/test_hermes_confirm_guard.py`, `tests/tools/test_hermes_hook.py` | built; verified live in isolated home `build/hermes_final_home`: the model's own `confirm_run` was blocked 3 times, the user's "yes, run <id>" passed (`build/agent/hermes_hook.log`) |
 | Demo models selectable in the picker (`providers.ollama-local`) | `scripts/hermes/setup_profile.py` | verified in isolated home (picker data lists the 5 models); see "Models for demos" |
 | Eleven demos by name | `.claude/skills/chip-demos/SKILL.md`, [HERMES_DEMOS.md](HERMES_DEMOS.md) | built; demos 1 to 3 verified in isolated home |
+| Local Grafana (Homebrew, 127.0.0.1:3000) with 3 dashboards of the repo evidence, and a read-only Grafana MCP server entry (`mcp_servers.grafana`, Viewer token from the Keychain) | `scripts/grafana/`, `scripts/hermes/grafana_mcp.{sh,json}`, [GRAFANA.md](GRAFANA.md), `tests/tools/test_grafana_export.py` | built; verified in isolated home `build/hermes_grafana_home` (`hermes mcp test grafana`, two live questions); merged as `scripts/hermes_agent_setup.sh --grafana` (opt-in; hook allows only the four read tools); pending owner apply |
 
 ## 1. What Hermes Agent is, and what is installed here
 

@@ -320,6 +320,9 @@ def confirm_guard_message(payload):
             pass
 
 
+GRAFANA_READ_TOOLS = {"search_dashboards", "get_dashboard_summary", "get_dashboard_panel_queries", "list_datasources"}
+
+
 def decide(payload):
     tool = str(payload.get("tool_name") or "")
     msg = confirm_guard_message(payload)
@@ -332,6 +335,12 @@ def decide(payload):
     summary = tool
     m = re.match(r"^mcp_+chip(?:_eda)?_+(.+)$", tool)   # Hermes names MCP tools mcp__chip__<tool> (v0.21.5 measured); older docs show mcp_chip_<tool>
     short = m.group(1) if m else tool
+
+    g = re.match(r"^mcp_+grafana_+(.+)$", tool)   # local Grafana MCP (docs/GRAFANA.md): only the four read tools, never a write
+    if g:
+        if g.group(1) in GRAFANA_READ_TOOLS:
+            return tool, "allow", "", tool
+        return tool, "block", "only the Grafana read tools are allowed (search, dashboard summary, panel queries, datasources)", tool
 
     for p in get_paths(args):
         if secret_path(p):

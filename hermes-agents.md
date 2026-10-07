@@ -213,13 +213,25 @@ Eleven demos ("run demo 4" in the app). The skill is `.claude/skills/chip-demos/
 - Demos 1 to 3 are verified with transcripts. The rest are marked "not run" or "checked against the tool server".
 - Known flake: `log_digest` sometimes produces an invalid tool call on the 9B model (demo 3).
 
-## 12. Grafana (in progress)
+## 12. Grafana: the evidence as dashboards
 
-- A local Grafana is installed via Homebrew. It gets a SQLite datasource built from the repo's metrics and dashboards,
-  and `mcp-grafana` is added as a second MCP server, so Hermes can answer "show me the slack trend" from a dashboard.
-- Secrets: the admin password and service token live only in the macOS Keychain and are never printed or committed.
-- **Status:** in progress (`examples/grafana/`, `scripts/grafana/`, `scripts/hermes/grafana_mcp.*`, not committed
-  yet); `docs/GRAFANA.md` will follow.
+- **What:** a local Grafana (Homebrew, http://127.0.0.1:3000) with three dashboards: overview (all 25 designs), runs
+  (jobs, what-ifs) and agent (eval scores, tool calls). They read a SQLite file that `make grafana-db` builds from the
+  committed evidence. Guide: [docs/GRAFANA.md](docs/GRAFANA.md).
+- **Hermes link:** `bash scripts/hermes_agent_setup.sh --grafana` adds `mcp-grafana` as a second MCP server. It is opt-in,
+  so a Mac without Grafana gets no broken server.
+- **Read-only, four times over:**
+  - the server starts with `-disable-write`;
+  - only four read tools are listed;
+  - the hook blocks every other Grafana tool;
+  - the token is a Viewer account.
+  The admin password and the token live only in the macOS Keychain.
+- **Limit:** `run_panel_query` does not support SQLite. Hermes therefore reads dashboard titles and the SQL behind each
+  panel from Grafana, but takes the numbers from the chip tools. Enabling the generic `grafana_api_request` tool would close
+  that gap; that is an owner decision and it is not enabled.
+- **Status:** verified in an isolated home (`hermes mcp test grafana`, two live questions); pending owner apply.
+- **Insight:** dashboards are for **you** (trends at a glance); the chip tools are for **the model** (exact numbers with a
+  source file).
 
 ## 13. Other front ends (kept, not maintained)
 
@@ -232,6 +244,7 @@ Eleven demos ("run demo 4" in the app). The skill is `.claude/skills/chip-demos/
 ## 14. What is not done, and what needs you
 
 - **Owner actions:**
+  - Optional: decide whether to enable Grafana's `grafana_api_request` (section 12).
   - Run `bash scripts/hermes_agent_setup.sh`, read the diff, then rerun with `--apply`.
   - Decide whether a Hermes gateway runs (needed for cron).
 - **Limits:**
@@ -254,5 +267,6 @@ Eleven demos ("run demo 4" in the app). The skill is `.claude/skills/chip-demos/
 | Freeze | `designs/FROZEN.json`, `designs/FROZEN.md`, `scripts/flow/freeze.py`, `scripts/flow/frozen.py` |
 | RAG | `examples/hermes_desktop/tool_server/rag_tools.py`, `examples/hermes_rag/` |
 | Cron | `scripts/hermes/cron_run.sh` |
+| Grafana | `scripts/grafana/`, `scripts/hermes/grafana_mcp.{sh,json}`, `examples/grafana/`, [docs/GRAFANA.md](docs/GRAFANA.md) |
 | Eval | `examples/hermes_desktop/eval_tools/` (`cases.json`, `run_eval.py`, results summaries) |
 | Docs | [docs/HERMES_AGENT_INTEGRATION.md](docs/HERMES_AGENT_INTEGRATION.md), [docs/HERMES_DEMOS.md](docs/HERMES_DEMOS.md), [SPEC.md](SPEC.md) |

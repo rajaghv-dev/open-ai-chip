@@ -104,6 +104,10 @@ TABLE = [
     ("mcp_chip_read_metrics", {"design": "live_d"}, "allow", ""),
     ("mcp_chip_job_status", {"job_id": "1"}, "allow", ""),
     ("mcp_chip_eda_list_designs", {}, "allow", ""),
+    ("mcp__grafana__search_dashboards", {"query": "chip"}, "allow", ""),
+    ("mcp__grafana__get_dashboard_panel_queries", {"uid": "chip-overview"}, "allow", ""),
+    ("mcp__grafana__update_dashboard", {"dashboard": {}}, "block", "grafana read tools"),
+    ("mcp__grafana__grafana_api_request", {"path": "/api/ds/query"}, "block", "grafana read tools"),
 ]
 
 

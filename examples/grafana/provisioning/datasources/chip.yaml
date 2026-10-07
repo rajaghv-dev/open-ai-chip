@@ -1,0 +1,13 @@
+# Grafana datasource for the open-ai-chip evidence database (built by `make grafana-db`).
+# __CHIP_DB_PATH__ is replaced by scripts/grafana/setup_grafana.sh with the absolute path of build/grafana/chip.db
+# when it installs this file into the Grafana provisioning directory (the repo copy holds no absolute paths).
+apiVersion: 1
+datasources:
+  - name: chip-sqlite
+    uid: chipdb
+    type: frser-sqlite-datasource
+    access: proxy
+    isDefault: true
+    editable: false
+    jsonData:
+      path: __CHIP_DB_PATH__
